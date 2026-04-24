@@ -132,6 +132,7 @@ function Expand-AtlasXaml {
         'STATUS_READY'       = (Get-AtlasString 'status.ready')
         'COFFEE_LABEL'       = (Get-AtlasString 'footer.coffee')
         'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
+        'LANG_TOOLTIP'       = (Get-AtlasString 'header.languageTooltip')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -236,6 +237,7 @@ function Show-AtlasWindow {
     $btnLogs     = $window.FindName('BtnLogs')
     $btnAbout    = $window.FindName('BtnAbout')
     $coffeeLink  = $window.FindName('CoffeeLink')
+    $langCombo   = $window.FindName('LanguageCombo')
 
     # Badge de admin en header
     if (Test-IsAdmin) {
@@ -360,6 +362,41 @@ $(Get-AtlasString 'about.description')
 "@
         [System.Windows.MessageBox]::Show($msg, (Get-AtlasString 'about.title'), "OK", "Information") | Out-Null
     })
+
+    # Selector de idioma (header)
+    if ($langCombo) {
+        $supported = Get-AtlasSupportedLanguages
+        $currentLang = $script:AtlasCurrentLang
+        $selectedIndex = 0
+        $i = 0
+        foreach ($code in $supported) {
+            $item = New-Object System.Windows.Controls.ComboBoxItem
+            $item.Content = Get-AtlasLanguageName $code
+            $item.Tag = $code
+            [void]$langCombo.Items.Add($item)
+            if ($code -eq $currentLang) { $selectedIndex = $i }
+            $i++
+        }
+        $langCombo.SelectedIndex = $selectedIndex
+        # Marcar initial selection como hecho ANTES de enganchar el handler,
+        # para evitar que un evento espureo dispare al crear la ComboBox.
+        $script:LangComboReady = $true
+        $langCombo.Add_SelectionChanged({
+            param($eventSender, $eventArgs)
+            if (-not $script:LangComboReady) { return }
+            $sel = $eventSender.SelectedItem
+            if (-not $sel) { return }
+            $newLang = [string]$sel.Tag
+            if ($newLang -eq $script:AtlasCurrentLang) { return }
+            $ok = Set-AtlasLanguagePref $newLang
+            Write-AtlasLog "Idioma cambiado a '$newLang' (guardado=$ok). Reinicio requerido." -Tool 'UI'
+            $brand = if ($script:Branding -and $script:Branding.brand) { $script:Branding.brand.shortName } else { 'Atlas PC Support' }
+            # Usar el string del NUEVO idioma (ya cargado en el dict, solo no aplicado a UI)
+            $msg = $script:AtlasStringsDict[$newLang]['language.restartRequired']
+            if (-not $msg) { $msg = Get-AtlasString 'language.restartRequired' }
+            [System.Windows.MessageBox]::Show($msg, $brand, 'OK', 'Information') | Out-Null
+        })
+    }
 
     # Coffee / donacion (footer)
     if ($coffeeLink) {
