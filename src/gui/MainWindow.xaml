@@ -141,8 +141,7 @@
                     <TextBlock Text="{{BRAND_NAME}}"
                                Foreground="{StaticResource AccentBrush}"
                                FontSize="22"
-                               FontWeight="Bold"
-                               LetterSpacing="2"/>
+                               FontWeight="Bold"/>
                     <TextBlock Text="{{BRAND_TAGLINE}}"
                                Foreground="{StaticResource TextMutedBrush}"
                                FontSize="12"

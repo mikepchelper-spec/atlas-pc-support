@@ -118,6 +118,12 @@ El panel detecta automáticamente el idioma del sistema. Soportados actualmente:
 Valores: `"auto"`, `"es"`, `"en"`, `"ro"`. Detalles y cómo añadir otros idiomas
 en [docs/LANGUAGES.md](docs/LANGUAGES.md).
 
+### Dominio corto propio
+
+Si tienes tu propio dominio, puedes servir el launcher como `tools.tudominio.com`
+con Cloudflare Workers (gratis, 10 min de setup). Instrucciones paso a paso en
+[docs/CLOUDFLARE-DOMAIN.md](docs/CLOUDFLARE-DOMAIN.md).
+
 ---
 
 ## 🧑‍💻 Desarrollo local

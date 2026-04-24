@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 01:44:55
+#  Build:   2026-04-24 01:51:08
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 01:44:55'
+$script:AtlasBuildDate = '2026-04-24 01:51:08'
 
 $script:AtlasToolsManifest = @'
 {
@@ -339,8 +339,7 @@ $script:AtlasXamlTemplate = @'
                     <TextBlock Text="{{BRAND_NAME}}"
                                Foreground="{StaticResource AccentBrush}"
                                FontSize="22"
-                               FontWeight="Bold"
-                               LetterSpacing="2"/>
+                               FontWeight="Bold"/>
                     <TextBlock Text="{{BRAND_TAGLINE}}"
                                Foreground="{StaticResource TextMutedBrush}"
                                FontSize="12"
@@ -458,7 +457,8 @@ function Get-AtlasBranding {
             copyright    = "© 2026 Atlas PC Support"
         }
         theme = @{
-            accentColor      = "#FF6600"
+            accentColor      = "#FF5500"
+            secondaryColor   = "#002147"
             darkMode         = $true
             useSystemAccent  = $false
             cornerRadius     = 8
@@ -1026,16 +1026,21 @@ function Get-AtlasPalette {
 
     $accent = ConvertTo-AtlasHex $Branding.theme.accentColor
     $dark   = [bool]$Branding.theme.darkMode
+    $secondary = if ($Branding.theme.secondaryColor) { ConvertTo-AtlasHex $Branding.theme.secondaryColor } else { $null }
 
     if ($dark) {
+        # Si hay secondaryColor (ej. Atlas navy #002147), tínta sutilmente el fondo
+        $bg      = if ($secondary) { (Get-AtlasColorShift $secondary -15) } else { '#0F1115' }
+        $surface = if ($secondary) { (Get-AtlasColorShift $secondary 0)   } else { '#1A1D23' }
+        $surfAlt = if ($secondary) { (Get-AtlasColorShift $secondary 15)  } else { '#23272F' }
         return @{
-            BgColor          = '#0F1115'
-            SurfaceColor     = '#1A1D23'
-            SurfaceAltColor  = '#23272F'
+            BgColor          = $bg
+            SurfaceColor     = $surface
+            SurfaceAltColor  = $surfAlt
             BorderColor      = '#2E333D'
             TextPrimary      = '#F5F5F5'
             TextSecondary    = '#C5C7CC'
-            TextMuted        = '#7A7D85'
+            TextMuted        = '#9BA0AA'
             AccentColor      = $accent
             AccentHover      = (Get-AtlasColorShift $accent 20)
             AccentPressed    = (Get-AtlasColorShift $accent -20)
