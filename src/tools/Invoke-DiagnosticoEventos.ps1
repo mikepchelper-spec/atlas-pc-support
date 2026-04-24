@@ -246,7 +246,7 @@ function Invoke-DiagnosticoEventos {
     function _Query-Events {
         param(
             [string]$LogName = 'System',
-            [int[]]$Levels = @(1,2,3),   # 1=Critical, 2=Error, 3=Warning, 4=Info
+            [int[]]$Levels = @(1,2,3,4), # 1=Critical, 2=Error, 3=Warning, 4=Info (incluido por default para capturar 6006/1074/WHEA 46)
             [int[]]$Ids = $null,
             [int]$Hours = 24,
             [int]$MaxEvents = 500
@@ -332,7 +332,8 @@ function Invoke-DiagnosticoEventos {
                 $kb = _Kb-Lookup $first.LogName $first.ProviderName ([int]$first.Id)
                 $level = if ($kb) { $kb.Level } else { 'INFO' }
                 $cls = $level.ToLower()
-                $evTitle = if ($kb) { $kb.Title } else { [System.Net.WebUtility]::HtmlEncode("$($first.ProviderName) #$($first.Id)") }
+                # Raw string — el encoding se hace una sola vez al inyectarlo en $htmlSections.
+                $evTitle = if ($kb) { $kb.Title } else { "$($first.ProviderName) #$($first.Id)" }
                 $cause  = if ($kb) { [System.Net.WebUtility]::HtmlEncode($kb.Cause)  } else { '' }
                 $action = if ($kb) { [System.Net.WebUtility]::HtmlEncode($kb.Action) } else { '' }
                 $rawMsg = [System.Net.WebUtility]::HtmlEncode((($first.Message -replace "`r?`n", ' ').Trim()))
@@ -511,7 +512,7 @@ $htmlSections
                     Write-Host "      Accion   : $($kb.Action)" -ForegroundColor White
                 } else {
                     Write-Host "  [i] EventID $idN no esta en la base de conocimiento." -ForegroundColor Yellow
-                    Write-Host '      Consulta en: https://www.google.com/search?q=windows+event+id+' + $idN -ForegroundColor DarkGray
+                    Write-Host "      Consulta en: https://www.google.com/search?q=windows+event+id+$idN" -ForegroundColor DarkGray
                 }
                 Write-Host ''
                 Write-Host '  Mostrando ocurrencias recientes en System + Application (30d, top 5)...' -ForegroundColor DarkGray
