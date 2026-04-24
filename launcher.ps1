@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 01:31:23
+#  Build:   2026-04-24 01:44:55
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 01:31:23'
+$script:AtlasBuildDate = '2026-04-24 01:44:55'
 
 $script:AtlasToolsManifest = @'
 {
@@ -357,7 +357,7 @@ $script:AtlasXamlTemplate = @'
                          BorderBrush="{StaticResource BorderBrush}"
                          FontSize="13"
                          VerticalContentAlignment="Center"
-                         Tag="🔍  Buscar herramienta..."/>
+                         Tag="🔍  {{SEARCH_PLACEHOLDER}}"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="AdminBadge"
@@ -367,11 +367,11 @@ $script:AtlasXamlTemplate = @'
                                Margin="0,0,12,0"
                                VerticalAlignment="Center"/>
                     <Button x:Name="BtnLogs"
-                            Content="📋 Logs"
+                            Content="{{HEADER_LOGS}}"
                             Style="{StaticResource AtlasSecondaryButton}"
                             Margin="0,0,8,0"/>
                     <Button x:Name="BtnAbout"
-                            Content="ℹ️ Acerca de"
+                            Content="{{HEADER_ABOUT}}"
                             Style="{StaticResource AtlasSecondaryButton}"/>
                 </StackPanel>
             </Grid>
@@ -413,7 +413,7 @@ $script:AtlasXamlTemplate = @'
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0"
                            x:Name="StatusText"
-                           Text="Listo"
+                           Text="{{STATUS_READY}}"
                            Foreground="{StaticResource TextMutedBrush}"
                            FontSize="11"
                            VerticalAlignment="Center"/>
@@ -464,6 +464,7 @@ function Get-AtlasBranding {
             cornerRadius     = 8
             fontFamily       = "Segoe UI Variable"
         }
+        language = "auto"
         window = @{
             title       = "ATLAS PC SUPPORT · Panel v1.0"
             width       = 1100
@@ -493,9 +494,16 @@ function Get-AtlasBranding {
 
     $candidatePaths = @()
     if ($OverridePath) { $candidatePaths += $OverridePath }
-    $candidatePaths += (Join-Path $PSScriptRoot "..\..\branding.json")
-    $candidatePaths += (Join-Path $env:LOCALAPPDATA "AtlasPC\branding.json")
-    $candidatePaths += (Join-Path $env:APPDATA "AtlasPC\branding.json")
+    if ($PSScriptRoot) {
+        $candidatePaths += (Join-Path $PSScriptRoot "..\..\branding.json")
+        $candidatePaths += (Join-Path $PSScriptRoot "branding.json")
+    }
+    if ($env:LOCALAPPDATA) {
+        $candidatePaths += (Join-Path $env:LOCALAPPDATA "AtlasPC\branding.json")
+    }
+    if ($env:APPDATA) {
+        $candidatePaths += (Join-Path $env:APPDATA "AtlasPC\branding.json")
+    }
 
     foreach ($path in $candidatePaths) {
         if ($path -and (Test-Path $path)) {
@@ -533,6 +541,158 @@ function Expand-AtlasPath {
     param([string]$Path)
     if (-not $Path) { return "" }
     return [System.Environment]::ExpandEnvironmentVariables($Path)
+}
+
+
+# ---- lib\Strings.ps1 ----
+# ============================================================
+# Atlas PC Support — Strings / i18n
+# Idiomas soportados: es (por defecto), en, ro
+# Añadir otros: copia el bloque 'es' y traduce los valores.
+# ============================================================
+
+$script:AtlasStringsDict = @{
+    'es' = @{
+        'app.tagline'             = 'Panel unificado de soporte técnico para Windows'
+        'search.placeholder'      = 'Buscar herramienta...'
+        'category.all'            = 'Todo'
+        'category.diagnostico'    = 'Diagnóstico'
+        'category.mantenimiento'  = 'Mantenimiento'
+        'category.copia'          = 'Copia de archivos'
+        'category.redes'          = 'Redes'
+        'category.seguridad'      = 'Seguridad'
+        'category.software'       = 'Software'
+        'category.entrega'        = 'Entrega'
+        'header.admin'            = '🛡  Admin'
+        'header.user'             = '👤 Usuario'
+        'header.logs'             = '📋 Logs'
+        'header.about'            = 'ℹ️ Acerca de'
+        'button.run'              = '▶  Ejecutar'
+        'badge.requiresAdmin'     = '🛡  requiere admin'
+        'status.ready'            = 'Listo'
+        'status.launching'        = 'Lanzando: {0}...'
+        'status.lastRun'          = 'Listo — última: {0}'
+        'status.toolsShown'       = '{0} herramienta(s) mostrada(s)'
+        'logs.empty'              = 'Aún no hay logs. Ejecuta alguna herramienta primero.'
+        'about.title'             = 'Acerca de'
+        'about.description'       = 'Panel basado en WinUtil (Chris Titus Tech).{NEWLINE}Licencia: MIT.'
+        'about.web'               = 'Web'
+        'tool.closePrompt'        = 'Presiona Enter para cerrar esta ventana...'
+        'tool.error'              = '[!] Error en {0}: {1}'
+        'tool.notLoaded'          = "No se pudo serializar la función '{0}'. ¿Está cargada?"
+    }
+    'en' = @{
+        'app.tagline'             = 'Unified Windows tech-support panel'
+        'search.placeholder'      = 'Search tool...'
+        'category.all'            = 'All'
+        'category.diagnostico'    = 'Diagnostics'
+        'category.mantenimiento'  = 'Maintenance'
+        'category.copia'          = 'File copy'
+        'category.redes'          = 'Network'
+        'category.seguridad'      = 'Security'
+        'category.software'       = 'Software'
+        'category.entrega'        = 'Handover'
+        'header.admin'            = '🛡  Admin'
+        'header.user'             = '👤 User'
+        'header.logs'             = '📋 Logs'
+        'header.about'            = 'ℹ️ About'
+        'button.run'              = '▶  Run'
+        'badge.requiresAdmin'     = '🛡  requires admin'
+        'status.ready'            = 'Ready'
+        'status.launching'        = 'Launching: {0}...'
+        'status.lastRun'          = 'Ready — last: {0}'
+        'status.toolsShown'       = '{0} tool(s) shown'
+        'logs.empty'              = 'No logs yet. Run a tool first.'
+        'about.title'             = 'About'
+        'about.description'       = 'Panel based on WinUtil (Chris Titus Tech).{NEWLINE}License: MIT.'
+        'about.web'               = 'Web'
+        'tool.closePrompt'        = 'Press Enter to close this window...'
+        'tool.error'              = '[!] Error in {0}: {1}'
+        'tool.notLoaded'          = "Could not serialize the function '{0}'. Is it loaded?"
+    }
+    'ro' = @{
+        'app.tagline'             = 'Panou unificat de suport tehnic pentru Windows'
+        'search.placeholder'      = 'Caută unealta...'
+        'category.all'            = 'Toate'
+        'category.diagnostico'    = 'Diagnostic'
+        'category.mantenimiento'  = 'Mentenanță'
+        'category.copia'          = 'Copiere fișiere'
+        'category.redes'          = 'Rețea'
+        'category.seguridad'      = 'Securitate'
+        'category.software'       = 'Software'
+        'category.entrega'        = 'Predare'
+        'header.admin'            = '🛡  Admin'
+        'header.user'             = '👤 Utilizator'
+        'header.logs'             = '📋 Jurnale'
+        'header.about'            = 'ℹ️ Despre'
+        'button.run'              = '▶  Rulează'
+        'badge.requiresAdmin'     = '🛡  necesită admin'
+        'status.ready'            = 'Gata'
+        'status.launching'        = 'Se lansează: {0}...'
+        'status.lastRun'          = 'Gata — ultima: {0}'
+        'status.toolsShown'       = '{0} unealtă(e) afișată(e)'
+        'logs.empty'              = 'Încă nu există jurnale. Rulează o unealtă mai întâi.'
+        'about.title'             = 'Despre'
+        'about.description'       = 'Panou bazat pe WinUtil (Chris Titus Tech).{NEWLINE}Licență: MIT.'
+        'about.web'               = 'Web'
+        'tool.closePrompt'        = 'Apasă Enter pentru a închide această fereastră...'
+        'tool.error'              = '[!] Eroare în {0}: {1}'
+        'tool.notLoaded'          = "Nu s-a putut serializa funcția '{0}'. Este încărcată?"
+    }
+}
+
+$script:AtlasCurrentLang = 'es'
+
+function Get-AtlasSystemLanguage {
+    try {
+        $culture = [System.Globalization.CultureInfo]::CurrentUICulture
+        $two = $culture.TwoLetterISOLanguageName.ToLower()
+        if ($script:AtlasStringsDict.ContainsKey($two)) {
+            return $two
+        }
+    } catch {}
+    return 'es'
+}
+
+function Set-AtlasLanguage {
+    [CmdletBinding()]
+    param(
+        [string]$Language = 'auto'
+    )
+    if ($Language -eq 'auto' -or -not $Language) {
+        $Language = Get-AtlasSystemLanguage
+    }
+    $Language = $Language.ToLower()
+    if (-not $script:AtlasStringsDict.ContainsKey($Language)) {
+        Write-Warning "Idioma '$Language' no soportado. Usando 'es'."
+        $Language = 'es'
+    }
+    $script:AtlasCurrentLang = $Language
+    return $Language
+}
+
+function Get-AtlasString {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position=0)] [string]$Key,
+        [Parameter(Position=1, ValueFromRemainingArguments=$true)] [object[]]$Args
+    )
+    $dict = $script:AtlasStringsDict[$script:AtlasCurrentLang]
+    if (-not $dict.ContainsKey($Key)) {
+        # fallback a español
+        $dict = $script:AtlasStringsDict['es']
+    }
+    $value = $dict[$Key]
+    if (-not $value) { return $Key }
+    if ($Args -and $Args.Count -gt 0) {
+        $value = [string]::Format($value, $Args)
+    }
+    $value = $value -replace '\{NEWLINE\}', [Environment]::NewLine
+    return $value
+}
+
+function Get-AtlasSupportedLanguages {
+    return @($script:AtlasStringsDict.Keys)
 }
 
 
@@ -595,16 +755,15 @@ function Invoke-AsAdmin {
         [System.Text.Encoding]::Unicode.GetBytes($ScriptBlock.ToString())
     )
 
-    $args = @(
+    $psArgs = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
-        "-NoExit",
-        "-Command", "`$Host.UI.RawUI.WindowTitle = '$Title'; & { `$sb = [scriptblock]::Create([System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('$encoded'))); & `$sb }"
+        "-EncodedCommand", $encoded
     )
 
     $startArgs = @{
         FilePath     = "powershell.exe"
-        ArgumentList = $args
+        ArgumentList = $psArgs
         Verb         = "RunAs"
     }
     if ($Wait) { $startArgs.Wait = $true }
@@ -797,7 +956,34 @@ function Invoke-AtlasTool {
 
     if ($runInNew) {
         $title = "$($Branding.brand.shortName) — $($Tool.name)"
-        $sb = [scriptblock]::Create("& $function")
+
+        # Serializar la función: necesitamos que la nueva ventana la tenga definida.
+        # Obtenemos el cuerpo de la función del scope actual y lo embebemos.
+        $funcBody = (Get-Command $function -CommandType Function -ErrorAction SilentlyContinue).Definition
+        if (-not $funcBody) {
+            $msg = "No se pudo serializar la función '$function'. ¿Está cargada?"
+            Write-AtlasLog $msg -Level ERROR -Tool 'Runner'
+            [System.Windows.MessageBox]::Show($msg, 'Atlas PC Support', 'OK', 'Error') | Out-Null
+            return
+        }
+
+        $fullScript = @"
+`$Host.UI.RawUI.WindowTitle = '$title'
+function $function {
+$funcBody
+}
+try {
+    $function
+} catch {
+    Write-Host ""
+    Write-Host "[!] Error en ${function}: `$_" -ForegroundColor Red
+}
+Write-Host ""
+Write-Host "Presiona Enter para cerrar esta ventana..." -ForegroundColor Yellow
+[Console]::ReadLine() | Out-Null
+"@
+
+        $sb = [scriptblock]::Create($fullScript)
 
         if ($Tool.requiresAdmin) {
             Invoke-AsAdmin -ScriptBlock $sb -Title $title | Out-Null
@@ -806,8 +992,8 @@ function Invoke-AtlasTool {
                 [System.Text.Encoding]::Unicode.GetBytes($sb.ToString())
             )
             Start-Process -FilePath 'powershell.exe' -ArgumentList @(
-                '-NoProfile','-ExecutionPolicy','Bypass','-NoExit',
-                '-Command', "`$Host.UI.RawUI.WindowTitle = '$title'; & { `$sb = [scriptblock]::Create([System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('$encoded'))); & `$sb }"
+                '-NoProfile','-ExecutionPolicy','Bypass',
+                '-EncodedCommand', $encoded
             ) | Out-Null
         }
     } else {
@@ -888,6 +1074,9 @@ function Expand-AtlasXaml {
         [hashtable]$Branding,
         [hashtable]$Palette
     )
+    $tagline = $Branding.brand.tagline
+    if (-not $tagline) { $tagline = Get-AtlasString 'app.tagline' }
+
     $map = @{
         'WINDOW_TITLE'       = $Branding.window.title
         'WINDOW_WIDTH'       = $Branding.window.width
@@ -895,7 +1084,7 @@ function Expand-AtlasXaml {
         'WINDOW_MIN_WIDTH'   = $Branding.window.minWidth
         'WINDOW_MIN_HEIGHT'  = $Branding.window.minHeight
         'BRAND_NAME'         = $Branding.brand.name
-        'BRAND_TAGLINE'      = $Branding.brand.tagline
+        'BRAND_TAGLINE'      = $tagline
         'BRAND_VERSION'      = $Branding.brand.version
         'BRAND_COPYRIGHT'    = $Branding.brand.copyright
         'FONT_FAMILY'        = $Branding.theme.fontFamily
@@ -910,6 +1099,10 @@ function Expand-AtlasXaml {
         'TEXT_PRIMARY'       = $Palette.TextPrimary
         'TEXT_SECONDARY'     = $Palette.TextSecondary
         'TEXT_MUTED'         = $Palette.TextMuted
+        'SEARCH_PLACEHOLDER' = (Get-AtlasString 'search.placeholder')
+        'HEADER_LOGS'        = (Get-AtlasString 'header.logs')
+        'HEADER_ABOUT'       = (Get-AtlasString 'header.about')
+        'STATUS_READY'       = (Get-AtlasString 'status.ready')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -946,7 +1139,7 @@ function New-AtlasToolCard {
                    Height='56'
                    Margin='0,0,0,10'/>
         <StackPanel Orientation='Horizontal'>
-            <Button x:Name='BtnRun' Content='▶  Ejecutar' Tag='{{ID}}' Padding='14,6'
+            <Button x:Name='BtnRun' Content='{{BTN_RUN}}' Tag='{{ID}}' Padding='14,6'
                     Background='$($Palette.AccentColor)' Foreground='White'
                     BorderBrush='$($Palette.AccentColor)' BorderThickness='1'
                     Cursor='Hand'/>
@@ -970,12 +1163,14 @@ function New-AtlasToolCard {
     $icon = $iconMap[$Tool.category]
     if (-not $icon) { $icon = '⚙' }
 
-    $adminBadge = if ($Tool.requiresAdmin) { "🛡  requiere admin" } else { "" }
+    $adminBadge = if ($Tool.requiresAdmin) { (Get-AtlasString 'badge.requiresAdmin') } else { "" }
+    $btnRunText = Get-AtlasString 'button.run'
 
     $xaml = $xaml.Replace('{{ICON}}', $icon).
                   Replace('{{NAME}}', [System.Security.SecurityElement]::Escape($Tool.name)).
                   Replace('{{DESCRIPTION}}', [System.Security.SecurityElement]::Escape($Tool.description)).
                   Replace('{{ID}}', $Tool.id).
+                  Replace('{{BTN_RUN}}', [System.Security.SecurityElement]::Escape($btnRunText)).
                   Replace('{{ADMIN_BADGE}}', $adminBadge)
 
     return $xaml
@@ -1013,16 +1208,16 @@ function Show-AtlasWindow {
 
     # Badge de admin en header
     if (Test-IsAdmin) {
-        $adminBadge.Text = "🛡  Admin"
+        $adminBadge.Text = Get-AtlasString 'header.admin'
         $adminBadge.Foreground = [System.Windows.Media.Brushes]::LimeGreen
     } else {
-        $adminBadge.Text = "👤 Usuario"
+        $adminBadge.Text = Get-AtlasString 'header.user'
     }
 
-    # Categorías
+    # Categorías — usa label traducido si el brand no sobreescribe
     $categories = @($Branding.categories) | Sort-Object -Property order
     $allCat = New-Object System.Windows.Controls.RadioButton
-    $allCat.Content = "Todo"
+    $allCat.Content = Get-AtlasString 'category.all'
     $allCat.Style = $window.FindResource('CategoryPill')
     $allCat.Tag = '__all__'
     $allCat.IsChecked = $true
@@ -1030,7 +1225,9 @@ function Show-AtlasWindow {
 
     foreach ($cat in $categories) {
         $rb = New-Object System.Windows.Controls.RadioButton
-        $rb.Content = "$($cat.icon) $($cat.label)"
+        $translatedLabel = Get-AtlasString "category.$($cat.id)"
+        $label = if ($translatedLabel -ne "category.$($cat.id)") { $translatedLabel } else { $cat.label }
+        $rb.Content = "$($cat.icon) $label"
         $rb.Style = $window.FindResource('CategoryPill')
         $rb.Tag = $cat.id
         [void]$categoryBar.Children.Add($rb)
@@ -1061,9 +1258,9 @@ function Show-AtlasWindow {
                 $t = $script:AllTools | Where-Object { $_.id -eq $id } | Select-Object -First 1
                 if ($t) {
                     $statusText = $script:MainWindow.FindName('StatusText')
-                    $statusText.Text = "Lanzando: $($t.name)..."
+                    $statusText.Text = Get-AtlasString 'status.launching' $t.name
                     Invoke-AtlasTool -Tool $t -Branding $script:Branding
-                    $statusText.Text = "Listo — última: $($t.name)"
+                    $statusText.Text = Get-AtlasString 'status.lastRun' $t.name
                 }
             }.GetNewClosure())
         }
@@ -1076,7 +1273,6 @@ function Show-AtlasWindow {
     $applyFilter = {
         $selectedCat = ($categoryBar.Children | Where-Object { $_.IsChecked }).Tag
         $query = $searchBox.Text.Trim().ToLower()
-        if ($query -eq '🔍  buscar herramienta...') { $query = '' }
 
         $toolsGrid.Items.Clear()
         foreach ($entry in $script:AllCards) {
@@ -1087,7 +1283,7 @@ function Show-AtlasWindow {
                 [void]$toolsGrid.Items.Add($entry.Card)
             }
         }
-        $statusText.Text = "$($toolsGrid.Items.Count) herramienta(s) mostrada(s)"
+        $statusText.Text = Get-AtlasString 'status.toolsShown' $toolsGrid.Items.Count
     }
 
     foreach ($rb in $categoryBar.Children) {
@@ -1101,22 +1297,23 @@ function Show-AtlasWindow {
         if (Test-Path $logPath) {
             Start-Process notepad.exe -ArgumentList $logPath
         } else {
-            [System.Windows.MessageBox]::Show("Aún no hay logs. Ejecuta alguna herramienta primero.", "Atlas PC Support") | Out-Null
+            [System.Windows.MessageBox]::Show((Get-AtlasString 'logs.empty'), $script:Branding.brand.shortName) | Out-Null
         }
     })
     $btnAbout.Add_Click({
+        $webLabel = Get-AtlasString 'about.web'
+        $tagline = if ($script:Branding.brand.tagline) { $script:Branding.brand.tagline } else { Get-AtlasString 'app.tagline' }
         $msg = @"
 $($script:Branding.brand.name) v$($script:Branding.brand.version)
 
-$($script:Branding.brand.tagline)
+$tagline
 
-Web: $($script:Branding.brand.companyUrl)
+$($webLabel): $($script:Branding.brand.companyUrl)
 $($script:Branding.brand.copyright)
 
-Panel basado en WinUtil (Chris Titus Tech).
-Licencia: MIT.
+$(Get-AtlasString 'about.description')
 "@
-        [System.Windows.MessageBox]::Show($msg, "Acerca de", "OK", "Information") | Out-Null
+        [System.Windows.MessageBox]::Show($msg, (Get-AtlasString 'about.title'), "OK", "Information") | Out-Null
     })
 
     $script:MainWindow = $window
@@ -8321,8 +8518,9 @@ foreach ($Servicio in $ServiciosAOptimizar) {
 $ErrorActionPreference = 'Stop'
 
 $branding = Get-AtlasBranding
+$currentLang = Set-AtlasLanguage $branding.language
 Initialize-AtlasLog | Out-Null
-Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion)"
+Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion, lang=$currentLang)"
 
 try {
     $manifestObj = $script:AtlasToolsManifest | ConvertFrom-Json -AsHashtable

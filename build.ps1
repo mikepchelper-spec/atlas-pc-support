@@ -35,6 +35,7 @@ $xamlTemplate = Get-EmbeddedContent (Join-Path $src 'gui\MainWindow.xaml')
 
 $libFiles = @(
     'lib\Branding.ps1'
+    'lib\Strings.ps1'
     'lib\Admin.ps1'
     'lib\Logging.ps1'
     'lib\Dependencies.ps1'
@@ -78,8 +79,9 @@ $epilog = @'
 $ErrorActionPreference = 'Stop'
 
 $branding = Get-AtlasBranding
+$currentLang = Set-AtlasLanguage $branding.language
 Initialize-AtlasLog | Out-Null
-Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion)"
+Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion, lang=$currentLang)"
 
 try {
     $manifestObj = $script:AtlasToolsManifest | ConvertFrom-Json -AsHashtable

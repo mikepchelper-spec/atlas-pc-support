@@ -56,16 +56,15 @@ function Invoke-AsAdmin {
         [System.Text.Encoding]::Unicode.GetBytes($ScriptBlock.ToString())
     )
 
-    $args = @(
+    $psArgs = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
-        "-NoExit",
-        "-Command", "`$Host.UI.RawUI.WindowTitle = '$Title'; & { `$sb = [scriptblock]::Create([System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('$encoded'))); & `$sb }"
+        "-EncodedCommand", $encoded
     )
 
     $startArgs = @{
         FilePath     = "powershell.exe"
-        ArgumentList = $args
+        ArgumentList = $psArgs
         Verb         = "RunAs"
     }
     if ($Wait) { $startArgs.Wait = $true }

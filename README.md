@@ -105,6 +105,19 @@ Si no existe, se usa el branding Atlas por defecto.
 
 📘 Ver detalles en [docs/BRANDING.md](docs/BRANDING.md).
 
+### Idiomas
+
+El panel detecta automáticamente el idioma del sistema. Soportados actualmente:
+**español (nativo), inglés, rumano**. Para forzar uno concreto, edita
+`branding.json`:
+
+```json
+{ "language": "en" }
+```
+
+Valores: `"auto"`, `"es"`, `"en"`, `"ro"`. Detalles y cómo añadir otros idiomas
+en [docs/LANGUAGES.md](docs/LANGUAGES.md).
+
 ---
 
 ## 🧑‍💻 Desarrollo local

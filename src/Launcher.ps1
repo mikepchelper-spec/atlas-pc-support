@@ -20,6 +20,7 @@ if ($PSScriptRoot) {
 
 # --- Cargar librerías base ---
 . (Join-Path $script:AtlasSrc 'lib\Branding.ps1')
+. (Join-Path $script:AtlasSrc 'lib\Strings.ps1')
 . (Join-Path $script:AtlasSrc 'lib\Admin.ps1')
 . (Join-Path $script:AtlasSrc 'lib\Logging.ps1')
 . (Join-Path $script:AtlasSrc 'lib\Dependencies.ps1')
@@ -31,8 +32,9 @@ Get-ChildItem -Path $toolsDir -Filter 'Invoke-*.ps1' | ForEach-Object { . $_.Ful
 
 # --- Cargar branding + manifiesto ---
 $branding = Get-AtlasBranding
+$currentLang = Set-AtlasLanguage $branding.language
 Initialize-AtlasLog | Out-Null
-Write-AtlasLog "Atlas PC Support iniciado ($($branding.brand.name) v$($branding.brand.version))"
+Write-AtlasLog "Atlas PC Support iniciado ($($branding.brand.name) v$($branding.brand.version), lang=$currentLang)"
 
 $toolsManifestPath = Join-Path $script:AtlasRoot 'config\tools.json'
 $manifest = Get-Content -Raw $toolsManifestPath | ConvertFrom-Json -AsHashtable
