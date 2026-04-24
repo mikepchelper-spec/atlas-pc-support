@@ -167,17 +167,6 @@
       "dependencies": ["winget"]
     },
     {
-      "id": "bundle-atlas",
-      "name": "Bundle Atlas Recomendado",
-      "description": "Instala el pack pre-configurado de Atlas: Opera GX, 7-Zip, Chrome, VLC, WhatsApp, Zoom, PowerShell 7, digiKam, etc.",
-      "category": "software",
-      "function": "Invoke-BundleAtlas",
-      "source": "BundleAtlas.ps1",
-      "requiresAdmin": true,
-      "runsInNewWindow": true,
-      "dependencies": ["winget"]
-    },
-    {
       "id": "entrega-pc",
       "name": "Entrega PC",
       "description": "Protocolo de cierre: limpieza final, resumen, bitácora y preparación para entrega al cliente.",
