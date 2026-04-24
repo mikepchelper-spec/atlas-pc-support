@@ -95,9 +95,15 @@ $epilog = @'
 $ErrorActionPreference = 'Stop'
 
 $branding = Get-AtlasBranding
-$currentLang = Set-AtlasLanguage $branding.language
+# Preferencia guardada por el usuario (selector de idioma) manda sobre branding / auto-detect.
+$savedLang = Get-AtlasLanguagePref
+if ($savedLang) {
+    $currentLang = Set-AtlasLanguage $savedLang
+} else {
+    $currentLang = Set-AtlasLanguage $branding.language
+}
 Initialize-AtlasLog | Out-Null
-Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion, lang=$currentLang)"
+Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion, lang=$currentLang, savedPref=$savedLang)"
 
 # Detectar PS 7 y cachear la ruta (ToolRunner lo usa para lanzar tools en pwsh).
 $ps7 = Initialize-AtlasPS7
