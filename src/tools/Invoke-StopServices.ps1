@@ -106,11 +106,22 @@ function Invoke-StopServices {
             $svc = Get-Service -Name $t.Name -ErrorAction SilentlyContinue
             if (-not $svc) { continue }
             $cim = Get-CimInstance -ClassName Win32_Service -Filter "Name='$($t.Name)'" -ErrorAction SilentlyContinue
+            # Capturar DelayedAutoStart (Win32_Service.StartMode devuelve 'Auto' tanto
+            # para 'Automatic' como para 'Automatic (Delayed Start)', hay que leerlo
+            # aparte desde registro/CIM para no perderlo al restaurar).
+            $delayed = $false
+            if ($cim -and $cim.StartMode -eq 'Auto') {
+                try {
+                    $regKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$($t.Name)"
+                    $delayed = [bool](Get-ItemProperty -Path $regKey -Name DelayedAutostart -ErrorAction Stop).DelayedAutostart
+                } catch { $delayed = $false }
+            }
             $backup += [pscustomobject]@{
-                Name      = $t.Name
-                Status    = $svc.Status.ToString()
-                StartMode = if ($cim) { $cim.StartMode } else { 'Unknown' }
-                Timestamp = (Get-Date).ToString('s')
+                Name              = $t.Name
+                Status            = $svc.Status.ToString()
+                StartMode         = if ($cim) { $cim.StartMode } else { 'Unknown' }
+                DelayedAutoStart  = $delayed
+                Timestamp         = (Get-Date).ToString('s')
             }
         }
         # Append a historial de backups (no sobrescribir para permitir multiples undos)
@@ -123,7 +134,9 @@ function Invoke-StopServices {
             Services  = $backup
         }
         $history = @($history) + @($entry)
-        $history | ConvertTo-Json -Depth 5 | Out-File -FilePath $backupFile -Encoding UTF8
+        # IMPORTANTE: usar -InputObject para evitar que el pipeline desenvuelva el array
+        # y serialice cada elemento individualmente (generando JSON concatenado invalido).
+        ConvertTo-Json -InputObject $history -Depth 5 | Out-File -FilePath $backupFile -Encoding UTF8
         Write-Host ''
         Write-Host ("  [i] Backup guardado: {0}" -f $backupFile) -ForegroundColor DarkGray
         Write-Host ''
@@ -180,14 +193,30 @@ function Invoke-StopServices {
         if ($sel -match '^\d+$' -and [int]$sel -ge 1 -and [int]$sel -le $history.Count) {
             $entry = $history[[int]$sel - 1]
             foreach ($s in $entry.Services) {
+                # PowerShell 5.1 Set-Service no acepta 'AutomaticDelayedStart' (solo
+                # existe en PS 6+). Si el servicio tenia delayed-start, restauramos
+                # como 'Automatic' y ademas escribimos DelayedAutostart=1 en el
+                # registro para preservar el delay.
                 $modeMap = @{ 'Auto' = 'Automatic'; 'Automatic' = 'Automatic'; 'Manual' = 'Manual'; 'Disabled' = 'Disabled'; 'Boot' = 'Boot'; 'System' = 'System' }
                 $mode = if ($modeMap.ContainsKey($s.StartMode)) { $modeMap[$s.StartMode] } else { 'Manual' }
+                $label = if ($mode -eq 'Automatic' -and $s.DelayedAutoStart) { 'Automatic(Delayed)' } else { $mode }
                 try {
                     Set-Service -Name $s.Name -StartupType $mode -ErrorAction Stop
+                    # Escribir el flag DelayedAutostart directamente en el registro
+                    # (compatible con PS 5.1 y PS 7+).
+                    if ($mode -eq 'Automatic') {
+                        $regKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$($s.Name)"
+                        $flagVal = if ($s.DelayedAutoStart) { 1 } else { 0 }
+                        try {
+                            Set-ItemProperty -Path $regKey -Name 'DelayedAutostart' -Value $flagVal -Type DWord -ErrorAction Stop
+                        } catch {
+                            # Si el servicio no existe en registro, no critico.
+                        }
+                    }
                     if ($s.Status -eq 'Running') {
                         Start-Service -Name $s.Name -ErrorAction SilentlyContinue
                     }
-                    Write-Host ("  [OK]   {0,-22} modo={1,-10} estado_prev={2}" -f $s.Name, $mode, $s.Status) -ForegroundColor Green
+                    Write-Host ("  [OK]   {0,-22} modo={1,-18} estado_prev={2}" -f $s.Name, $label, $s.Status) -ForegroundColor Green
                 } catch {
                     Write-Host ("  [ERR]  {0,-22} {1}" -f $s.Name, $_.Exception.Message) -ForegroundColor Red
                 }
