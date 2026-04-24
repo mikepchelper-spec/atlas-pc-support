@@ -193,17 +193,30 @@ function Invoke-StopServices {
         if ($sel -match '^\d+$' -and [int]$sel -ge 1 -and [int]$sel -le $history.Count) {
             $entry = $history[[int]$sel - 1]
             foreach ($s in $entry.Services) {
-                # StartupType de Set-Service. 'AutomaticDelayedStart' preserva delayed
-                # para servicios como WSearch que arrancan con delay por defecto.
+                # PowerShell 5.1 Set-Service no acepta 'AutomaticDelayedStart' (solo
+                # existe en PS 6+). Si el servicio tenia delayed-start, restauramos
+                # como 'Automatic' y ademas escribimos DelayedAutostart=1 en el
+                # registro para preservar el delay.
                 $modeMap = @{ 'Auto' = 'Automatic'; 'Automatic' = 'Automatic'; 'Manual' = 'Manual'; 'Disabled' = 'Disabled'; 'Boot' = 'Boot'; 'System' = 'System' }
                 $mode = if ($modeMap.ContainsKey($s.StartMode)) { $modeMap[$s.StartMode] } else { 'Manual' }
-                if ($mode -eq 'Automatic' -and $s.DelayedAutoStart) { $mode = 'AutomaticDelayedStart' }
+                $label = if ($mode -eq 'Automatic' -and $s.DelayedAutoStart) { 'Automatic(Delayed)' } else { $mode }
                 try {
                     Set-Service -Name $s.Name -StartupType $mode -ErrorAction Stop
+                    # Escribir el flag DelayedAutostart directamente en el registro
+                    # (compatible con PS 5.1 y PS 7+).
+                    if ($mode -eq 'Automatic') {
+                        $regKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$($s.Name)"
+                        $flagVal = if ($s.DelayedAutoStart) { 1 } else { 0 }
+                        try {
+                            Set-ItemProperty -Path $regKey -Name 'DelayedAutostart' -Value $flagVal -Type DWord -ErrorAction Stop
+                        } catch {
+                            # Si el servicio no existe en registro, no critico.
+                        }
+                    }
                     if ($s.Status -eq 'Running') {
                         Start-Service -Name $s.Name -ErrorAction SilentlyContinue
                     }
-                    Write-Host ("  [OK]   {0,-22} modo={1,-22} estado_prev={2}" -f $s.Name, $mode, $s.Status) -ForegroundColor Green
+                    Write-Host ("  [OK]   {0,-22} modo={1,-18} estado_prev={2}" -f $s.Name, $label, $s.Status) -ForegroundColor Green
                 } catch {
                     Write-Host ("  [ERR]  {0,-22} {1}" -f $s.Name, $_.Exception.Message) -ForegroundColor Red
                 }
