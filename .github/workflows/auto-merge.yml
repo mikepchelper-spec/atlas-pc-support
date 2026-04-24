@@ -1,0 +1,38 @@
+name: Auto-merge Devin PRs
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review, labeled, unlabeled, unlocked]
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
+  status: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    # Sólo PRs abiertos por el bot de Devin. Cualquier otro autor requiere merge manual.
+    if: |
+      (github.event_name != 'pull_request' && github.event_name != 'pull_request_review') ||
+      github.event.pull_request.user.login == 'devin-ai-integration[bot]'
+    steps:
+      - name: Auto-merge when CI is green
+        uses: pascalgn/automerge-action@v0.16.4
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          MERGE_METHOD: squash
+          MERGE_LABELS: ""
+          UPDATE_LABELS: ""
+          MERGE_FILTER_AUTHOR: "devin-ai-integration[bot]"
+          MERGE_DELETE_BRANCH: "true"
+          MERGE_RETRIES: "6"
+          MERGE_RETRY_SLEEP: "30000"
+          MERGE_REQUIRED_APPROVALS: "0"
+          UPDATE_METHOD: rebase
