@@ -49,7 +49,7 @@ function Get-AtlasBranding {
         categories = @(
             @{ id = "diagnostico";    label = "Diagnóstico";    icon = "🔍"; order = 1 }
             @{ id = "mantenimiento";  label = "Mantenimiento";  icon = "🛠"; order = 2 }
-            @{ id = "copia";          label = "Copia de archivos"; icon = "📁"; order = 3 }
+            @{ id = "copia";          label = "Backup & Sync";  icon = "📁"; order = 3 }
             @{ id = "redes";          label = "Redes";          icon = "🌐"; order = 4 }
             @{ id = "seguridad";      label = "Seguridad";      icon = "🔒"; order = 5 }
             @{ id = "software";       label = "Software";       icon = "📦"; order = 6 }
