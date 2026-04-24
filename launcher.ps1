@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 14:34:39
+#  Build:   2026-04-24 15:59:34
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 14:34:39'
+$script:AtlasBuildDate = '2026-04-24 15:59:34'
 
 $script:AtlasToolsManifest = @'
 {
@@ -1669,7 +1669,7 @@ $(Get-AtlasString 'about.description')
 
     # Coffee / donacion (footer)
     if ($coffeeLink) {
-        $coffeeUrl = 'https://www.paypal.me/florinmihaisuciu'
+        $coffeeUrl = 'https://www.paypal.me/atlaspcsupport'
         $coffeeLink.Add_MouseLeftButtonUp({
             try {
                 Start-Process $coffeeUrl
