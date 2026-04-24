@@ -28,6 +28,8 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           MERGE_METHOD: squash
+          MERGE_LABELS: ""
+          UPDATE_LABELS: ""
           MERGE_FILTER_AUTHOR: "devin-ai-integration[bot]"
           MERGE_DELETE_BRANCH: "true"
           MERGE_RETRIES: "6"
