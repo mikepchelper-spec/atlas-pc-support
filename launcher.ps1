@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 02:41:10
+#  Build:   2026-04-24 02:52:44
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 02:41:10'
+$script:AtlasBuildDate = '2026-04-24 02:52:44'
 
 $script:AtlasToolsManifest = @'
 {
@@ -980,8 +980,11 @@ function Invoke-AtlasTool {
         return
     }
 
-    # Limpiar BOM UTF-8 y otros caracteres invisibles del inicio.
-    $funcBody = $funcBody -replace "^[\uFEFF\u200B]+", ""
+    # Limpiar BOM UTF-8 (U+FEFF) y zero-width space (U+200B) en CUALQUIER
+    # posicion del cuerpo. No solo al inicio: algunos archivos fuente tienen
+    # el BOM en medio (p.ej. re-guardados por editor) y el parser revienta
+    # con 'The term ''#'' is not recognized' si el BOM queda antes de un #.
+    $funcBody = $funcBody -replace "[\uFEFF\u200B]", ""
     $funcBody = $funcBody.TrimStart()
 
     $brandName = if ($Branding -and $Branding.brand -and $Branding.brand.shortName) { $Branding.brand.shortName } else { 'Atlas PC Support' }
@@ -1019,23 +1022,38 @@ function Invoke-AtlasTool {
     if (-not (Test-Path $tempDir)) {
         New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
     }
-    $tempScript = Join-Path $tempDir "run-$($Tool.id)-$(Get-Random).ps1"
+    $stamp       = "$($Tool.id)-$(Get-Random)"
+    $tempScript  = Join-Path $tempDir "run-$stamp.ps1"
+    $tempWrapper = Join-Path $tempDir "run-$stamp.cmd"
 
-    # Escribir SIN BOM para evitar que el BOM cause "The term '﻿#' is not recognized".
+    # Escribir .ps1 SIN BOM (UTF-8 without BOM).
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($tempScript, $sb.ToString(), $utf8NoBom)
 
-    Write-AtlasLog "Temp script: $tempScript" -Tool 'Runner' -Level DEBUG
-
-    $psArgs = @(
-        '-NoProfile',
-        '-ExecutionPolicy', 'Bypass',
-        '-File', $tempScript
+    # Wrapper .cmd: necesario porque muchas tools llaman 'exit' dentro de
+    # PowerShell, lo que termina el proceso antes de que podamos pausar.
+    # Con un wrapper cmd.exe /c, el 'exit' de PS solo sale del child;
+    # cmd.exe sigue vivo y ejecuta 'pause' para que la ventana no se cierre.
+    # El .cmd wrapper se escribe puramente en ASCII (el titulo real de la
+    # ventana lo gestiona el .ps1 via $Host.UI.RawUI.WindowTitle).
+    $psFile = $tempScript.Replace('%', '%%')
+    $wrapperLines = @(
+        '@echo off',
+        'chcp 65001 > nul 2>&1',
+        ('powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + $psFile + '"'),
+        'echo.',
+        'echo ============================================',
+        'echo   Tool finalizada. Presiona una tecla para cerrar.',
+        'echo ============================================',
+        'pause > nul'
     )
+    [System.IO.File]::WriteAllLines($tempWrapper, $wrapperLines, [System.Text.ASCIIEncoding]::new())
+
+    Write-AtlasLog "Temp wrapper: $tempWrapper" -Tool 'Runner' -Level DEBUG
 
     $startArgs = @{
-        FilePath     = 'powershell.exe'
-        ArgumentList = $psArgs
+        FilePath     = 'cmd.exe'
+        ArgumentList = @('/c', "`"$tempWrapper`"")
     }
     if ($Tool.requiresAdmin -and -not (Test-IsAdmin)) {
         $startArgs.Verb = 'RunAs'
@@ -6860,7 +6878,11 @@ function Toggle-Watermark {
 # BUCLE PRINCIPAL
 # ==========================================
 $ejecutar = $true
-$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+# La tool se ejecuta inline (no desde un .ps1 fisico), asi que
+# $MyInvocation.MyCommand.Definition devuelve el cuerpo de la funcion.
+# Buscar wallpaper.jpg en %LOCALAPPDATA%\AtlasPC (ubicacion documentada).
+$ScriptPath = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'AtlasPC' } else { $env:TEMP }
+if (-not (Test-Path $ScriptPath)) { New-Item -ItemType Directory -Path $ScriptPath -Force | Out-Null }
 
 while ($ejecutar) {
     Show-Header
