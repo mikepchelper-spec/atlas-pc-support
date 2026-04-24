@@ -10,6 +10,39 @@ function ConvertTo-AtlasHex {
     return $Hex
 }
 
+# Recorre el arbol logico de WPF buscando el primer descendiente del tipo indicado.
+function Find-AtlasDescendant {
+    param(
+        [Parameter(Mandatory)] $Root,
+        [Parameter(Mandatory)] [type]$Type
+    )
+    if ($null -eq $Root) { return $null }
+    if ($Root -is $Type) { return $Root }
+
+    # Intentar varios "hijos" segun el tipo de contenedor WPF
+    $kids = @()
+    if ($Root.PSObject.Properties.Match('Child').Count -gt 0 -and $Root.Child) {
+        $kids += $Root.Child
+    }
+    if ($Root.PSObject.Properties.Match('Children').Count -gt 0 -and $Root.Children) {
+        foreach ($c in $Root.Children) { $kids += $c }
+    }
+    if ($Root.PSObject.Properties.Match('Content').Count -gt 0 -and $Root.Content -and ($Root.Content -is [System.Windows.DependencyObject])) {
+        $kids += $Root.Content
+    }
+    if ($Root.PSObject.Properties.Match('Items').Count -gt 0 -and $Root.Items) {
+        foreach ($c in $Root.Items) {
+            if ($c -is [System.Windows.DependencyObject]) { $kids += $c }
+        }
+    }
+
+    foreach ($kid in $kids) {
+        $found = Find-AtlasDescendant -Root $kid -Type $Type
+        if ($found) { return $found }
+    }
+    return $null
+}
+
 function Get-AtlasPalette {
     param([hashtable]$Branding)
 
@@ -237,27 +270,41 @@ function Show-AtlasWindow {
         $card = [Windows.Markup.XamlReader]::Load($cardReader)
         $card.Tag = $tool
 
-        # bind click
-        $btn = $card.FindName('BtnRun')
-        if (-not $btn) {
-            # Find the button via walking the visual tree
-            $btn = $card.Child.Children | Where-Object { $_ -is [System.Windows.Controls.StackPanel] } |
-                ForEach-Object { $_.Children } |
-                Where-Object { $_ -is [System.Windows.Controls.Button] } |
-                Select-Object -First 1
-        }
+        # Walk visual tree robustly para encontrar el boton "Run"
+        $btn = Find-AtlasDescendant -Root $card -Type ([System.Windows.Controls.Button])
         if ($btn) {
+            # Guardar el tool completo en el Tag del boton, evita depender de scope compartido
+            $btn.Tag = $tool
+            Write-AtlasLog ("Bound click handler: tool={0}" -f $tool.id) -Level DEBUG
+
             $btn.Add_Click({
-                param($sender, $e)
-                $id = $sender.Tag
-                $t = $script:AllTools | Where-Object { $_.id -eq $id } | Select-Object -First 1
-                if ($t) {
+                param($eventSender, $eventArgs)
+                try {
+                    # $eventSender es el boton, fallback a $this si PowerShell no lo binde
+                    $theBtn = if ($eventSender) { $eventSender } else { $this }
+                    $t = $theBtn.Tag
+                    if (-not $t) {
+                        Write-AtlasLog "Click: Button.Tag esta vacio" -Level WARN
+                        return
+                    }
+                    Write-AtlasLog ("Click: lanzando tool={0} function={1}" -f $t.id, $t.function) -Level INFO
+
                     $statusText = $script:MainWindow.FindName('StatusText')
-                    $statusText.Text = Get-AtlasString 'status.launching' $t.name
+                    if ($statusText) { $statusText.Text = Get-AtlasString 'status.launching' $t.name }
+
                     Invoke-AtlasTool -Tool $t -Branding $script:Branding
-                    $statusText.Text = Get-AtlasString 'status.lastRun' $t.name
+
+                    if ($statusText) { $statusText.Text = Get-AtlasString 'status.lastRun' $t.name }
+                } catch {
+                    Write-AtlasLog ("Click handler fallo: {0}" -f $_.Exception.Message) -Level ERROR
+                    [System.Windows.MessageBox]::Show(
+                        "Error al lanzar la herramienta:`n`n$($_.Exception.Message)",
+                        "Atlas PC Support",
+                        'OK', 'Error') | Out-Null
                 }
-            }.GetNewClosure())
+            })
+        } else {
+            Write-AtlasLog ("NO se encontro el boton Run para tool={0}" -f $tool.id) -Level ERROR
         }
 
         $script:AllCards += [pscustomobject]@{ Card = $card; Tool = $tool }
