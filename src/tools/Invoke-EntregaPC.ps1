@@ -146,159 +146,396 @@ function Renombrar-Equipo {
     Read-Host "`n   ENTER para volver"
 }
 
-# --- FUNCIÓN: Generar Checklist de Entrega (reporte) ---
+# --- HELPERS de escape HTML (inline, tool aislada) ---
+function _Esc-Html {
+    param([string]$Text)
+    if ($null -eq $Text) { return '' }
+    return ([System.Net.WebUtility]::HtmlEncode($Text))
+}
+
+function _Row {
+    param([string]$Label, [string]$Value)
+    $v = _Esc-Html $Value
+    $l = _Esc-Html $Label
+    return "<tr><th>$l</th><td>$v</td></tr>"
+}
+
+# --- FUNCION: Generar Checklist de Entrega (reporte HTML) ---
 function Generar-ChecklistEntrega {
-    Escribir-Centrado "--- GENERANDO CHECKLIST DE ENTREGA ---" "Cyan"
+    Escribir-Centrado "--- GENERANDO CHECKLIST DE ENTREGA (HTML) ---" "Cyan"
     Write-Host ""
     Write-Host "   Recopilando informacion del equipo..." -ForegroundColor Yellow
 
-    $report = @()
-    $report += "==========================================="
-    $report += "  ATLAS PC SUPPORT - CHECKLIST DE ENTREGA"
-    $report += "==========================================="
-    $report += "  Generado: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-    $report += ""
+    # Recopilar datos
+    $now = Get-Date
+    $generated = $now.ToString('yyyy-MM-dd HH:mm:ss')
+    $hostName  = $env:COMPUTERNAME
+    $userName  = $env:USERNAME
 
-    # Equipo
+    $equipoRows = @()
     try {
-        $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop
+        $cs   = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop
         $bios = Get-CimInstance Win32_BIOS -ErrorAction Stop
-        $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
-        $report += "[EQUIPO]"
-        $report += ("  Nombre:        {0}" -f $env:COMPUTERNAME)
-        $report += ("  Fabricante:    {0}" -f $cs.Manufacturer)
-        $report += ("  Modelo:        {0}" -f $cs.Model)
-        $report += ("  Serial BIOS:   {0}" -f $bios.SerialNumber)
-        $report += ("  OS:            {0}" -f $os.Caption)
-        $report += ("  Version:       {0}" -f $os.Version)
-        $report += ("  Build:         {0}" -f $os.BuildNumber)
-        $report += ("  Arquitectura:  {0}" -f $os.OSArchitecture)
-        $report += ("  RAM total:     {0:N1} GB" -f ($cs.TotalPhysicalMemory/1GB))
-        $report += ""
+        $os   = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+        $equipoRows += _Row 'Nombre'       $hostName
+        $equipoRows += _Row 'Fabricante'   ($cs.Manufacturer)
+        $equipoRows += _Row 'Modelo'       ($cs.Model)
+        $equipoRows += _Row 'Serial BIOS'  ($bios.SerialNumber)
+        $equipoRows += _Row 'OS'           ($os.Caption)
+        $equipoRows += _Row 'Version'      ($os.Version)
+        $equipoRows += _Row 'Build'        ($os.BuildNumber)
+        $equipoRows += _Row 'Arquitectura' ($os.OSArchitecture)
+        $equipoRows += _Row 'RAM total'    (("{0:N1} GB" -f ($cs.TotalPhysicalMemory/1GB)))
     } catch {
-        $report += "  [!] Error obteniendo info equipo: $($_.Exception.Message)"
+        $equipoRows += "<tr><td colspan='2' class='err'>Error obteniendo info equipo: $(_Esc-Html $_.Exception.Message)</td></tr>"
     }
 
-    # Activacion
+    $activacion = ''
     try {
         $licInfo = cscript.exe //Nologo "C:\Windows\System32\slmgr.vbs" /xpr 2>&1
-        $report += "[ACTIVACION WINDOWS]"
-        $licInfo | ForEach-Object { $report += "  $_" }
-        $report += ""
+        $activacion = _Esc-Html (($licInfo -join "`n").Trim())
     } catch {
-        $report += "  [!] No se pudo consultar activacion."
+        $activacion = "<span class='err'>No se pudo consultar activacion.</span>"
     }
 
-    # Usuarios
+    $usuariosHtml = ''
+    $adminsHtml   = ''
     try {
-        $report += "[USUARIOS LOCALES]"
-        Get-LocalUser -ErrorAction Stop | Where-Object { $_.Enabled } | ForEach-Object {
-            $report += ("  - {0,-20} (FullName: {1})" -f $_.Name, $_.FullName)
-        }
-        $report += ""
-        $report += "[ADMINISTRADORES]"
-        $adminGroup = Get-LocalGroup | Where-Object SID -eq "S-1-5-32-544"
+        $ul = Get-LocalUser -ErrorAction Stop | Where-Object { $_.Enabled }
+        $usuariosHtml = ($ul | ForEach-Object {
+            "<li><strong>$(_Esc-Html $_.Name)</strong> <span class='muted'>$(_Esc-Html $_.FullName)</span></li>"
+        }) -join ''
+        $adminGroup = Get-LocalGroup | Where-Object SID -eq 'S-1-5-32-544'
         if ($adminGroup) {
-            Get-LocalGroupMember -Group $adminGroup -ErrorAction SilentlyContinue | ForEach-Object {
-                $report += ("  - {0}" -f $_.Name)
+            $members = Get-LocalGroupMember -Group $adminGroup -ErrorAction SilentlyContinue
+            if ($members) {
+                $adminsHtml = ($members | ForEach-Object { "<li>$(_Esc-Html $_.Name)</li>" }) -join ''
             }
         }
-        $report += ""
     } catch {
-        $report += "  [!] Error listando usuarios: $($_.Exception.Message)"
+        $usuariosHtml = "<li class='err'>Error: $(_Esc-Html $_.Exception.Message)</li>"
     }
 
-    # BitLocker
+    $bitlockerRows = @()
     try {
-        $report += "[BITLOCKER]"
         $vols = Get-BitLockerVolume -ErrorAction Stop
         foreach ($v in $vols) {
-            $report += ("  {0}: {1,-15} Protection: {2,-5} Enc: {3}%" -f $v.MountPoint, $v.VolumeStatus, $v.ProtectionStatus, $v.EncryptionPercentage)
+            $status = "$(_Esc-Html $v.VolumeStatus) · Protection: $(_Esc-Html $v.ProtectionStatus) · Enc: $($v.EncryptionPercentage)%"
             $rk = $v.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
+            $keys = ''
             foreach ($r in $rk) {
-                $report += ("     Recovery Key ID: {0}" -f $r.KeyProtectorId)
-                $report += ("     Recovery Key:    {0}" -f $r.RecoveryPassword)
+                $keys += "<div class='key-block'><div class='muted small'>Key ID: $(_Esc-Html $r.KeyProtectorId)</div><code>$(_Esc-Html $r.RecoveryPassword)</code></div>"
             }
+            $bitlockerRows += "<tr><th>$(_Esc-Html $v.MountPoint)</th><td>$status$keys</td></tr>"
         }
-        $report += ""
     } catch {
-        $report += "  [!] BitLocker no disponible o error: $($_.Exception.Message)"
-        $report += ""
+        $bitlockerRows += "<tr><td colspan='2' class='err'>BitLocker no disponible: $(_Esc-Html $_.Exception.Message)</td></tr>"
     }
 
-    # Discos
+    $discosHtml = ''
     try {
-        $report += "[DISCOS FISICOS]"
+        $discosHtml += '<table class="mini"><thead><tr><th>Modelo</th><th>Serial</th><th>Tamaño</th><th>Salud</th><th>Tipo</th></tr></thead><tbody>'
         Get-PhysicalDisk -ErrorAction Stop | ForEach-Object {
-            $report += ("  - {0} {1}  {2:N0} GB  Health: {3}  Media: {4}" -f $_.FriendlyName, $_.SerialNumber, ($_.Size/1GB), $_.HealthStatus, $_.MediaType)
+            $health = _Esc-Html "$($_.HealthStatus)"
+            $cls = if ($_.HealthStatus -eq 'Healthy') { 'ok' } elseif ($_.HealthStatus -eq 'Warning') { 'warn' } else { 'err' }
+            $discosHtml += "<tr><td>$(_Esc-Html $_.FriendlyName)</td><td><code>$(_Esc-Html $_.SerialNumber)</code></td><td>$("{0:N0} GB" -f ($_.Size/1GB))</td><td class='$cls'>$health</td><td>$(_Esc-Html $_.MediaType)</td></tr>"
         }
-        $report += ""
-        $report += "[VOLUMENES]"
+        $discosHtml += '</tbody></table>'
+    } catch {
+        $discosHtml = "<p class='err'>Error: $(_Esc-Html $_.Exception.Message)</p>"
+    }
+
+    $volumenesHtml = ''
+    try {
+        $volumenesHtml += '<table class="mini"><thead><tr><th>Drive</th><th>Label</th><th>Libre</th><th>Total</th><th>FS</th></tr></thead><tbody>'
         Get-Volume -ErrorAction Stop | Where-Object { $_.DriveLetter } | Sort-Object DriveLetter | ForEach-Object {
-            $report += ("  {0}: {1,-15} {2:N1} GB libre de {3:N1} GB ({4})" -f $_.DriveLetter, $_.FileSystemLabel, ($_.SizeRemaining/1GB), ($_.Size/1GB), $_.FileSystem)
+            $pctFree = if ($_.Size -gt 0) { [int](($_.SizeRemaining/$_.Size)*100) } else { 0 }
+            $cls = if ($pctFree -lt 10) { 'err' } elseif ($pctFree -lt 20) { 'warn' } else { 'ok' }
+            $volumenesHtml += "<tr><td><strong>$($_.DriveLetter):</strong></td><td>$(_Esc-Html $_.FileSystemLabel)</td><td class='$cls'>$("{0:N1} GB" -f ($_.SizeRemaining/1GB)) ($pctFree%)</td><td>$("{0:N1} GB" -f ($_.Size/1GB))</td><td>$(_Esc-Html $_.FileSystem)</td></tr>"
         }
-        $report += ""
+        $volumenesHtml += '</tbody></table>'
     } catch {
-        $report += "  [!] Error discos: $($_.Exception.Message)"
+        $volumenesHtml = "<p class='err'>Error volumenes: $(_Esc-Html $_.Exception.Message)</p>"
     }
 
-    # Windows Update
+    $hotfixHtml = ''
     try {
-        $report += "[ULTIMAS ACTUALIZACIONES INSTALADAS]"
+        $hotfixHtml += '<table class="mini"><thead><tr><th>HotFix</th><th>Instalado</th><th>Tipo</th></tr></thead><tbody>'
         Get-HotFix -ErrorAction Stop | Sort-Object InstalledOn -Descending | Select-Object -First 10 | ForEach-Object {
-            $report += ("  - {0}  {1}  ({2})" -f $_.HotFixID, $_.InstalledOn, $_.Description)
+            $hotfixHtml += "<tr><td><code>$(_Esc-Html $_.HotFixID)</code></td><td>$(_Esc-Html $_.InstalledOn.ToString('yyyy-MM-dd'))</td><td>$(_Esc-Html $_.Description)</td></tr>"
         }
-        $report += ""
+        $hotfixHtml += '</tbody></table>'
     } catch {
-        $report += "  [!] Error HotFix: $($_.Exception.Message)"
+        $hotfixHtml = "<p class='err'>Error HotFix: $(_Esc-Html $_.Exception.Message)</p>"
     }
 
-    # Red
+    $redHtml = ''
     try {
-        $report += "[RED]"
-        Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop | Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -notlike '127.*' } | ForEach-Object {
-            $report += ("  {0}: {1}/{2}" -f $_.InterfaceAlias, $_.IPAddress, $_.PrefixLength)
+        $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop | Where-Object { $_.IPAddress -notlike '169.*' -and $_.IPAddress -notlike '127.*' }
+        if ($ips) {
+            $redHtml = '<ul>'
+            foreach ($ip in $ips) {
+                $redHtml += "<li><strong>$(_Esc-Html $ip.InterfaceAlias):</strong> <code>$(_Esc-Html $ip.IPAddress)/$($ip.PrefixLength)</code></li>"
+            }
+            $redHtml += '</ul>'
+        } else {
+            $redHtml = "<p class='muted'>Sin interfaces activas.</p>"
         }
-        $report += ""
     } catch {}
 
-    # Defender
+    $defenderRows = @()
     try {
         $mp = Get-MpComputerStatus -ErrorAction Stop
-        $report += "[WINDOWS DEFENDER]"
-        $report += ("  AV Enabled:          {0}" -f $mp.AntivirusEnabled)
-        $report += ("  RealTime Protection: {0}" -f $mp.RealTimeProtectionEnabled)
-        $report += ("  AV Signature:        {0}" -f $mp.AntivirusSignatureLastUpdated)
-        $report += ""
+        $defenderRows += _Row 'AV Enabled'          ([string]$mp.AntivirusEnabled)
+        $defenderRows += _Row 'RealTime Protection' ([string]$mp.RealTimeProtectionEnabled)
+        $defenderRows += _Row 'AV Signature'        ([string]$mp.AntivirusSignatureLastUpdated)
     } catch {}
 
-    # Checklist manual
-    $report += "[CHECKLIST MANUAL PRE-ENTREGA]"
-    $report += "  [ ] Hardware probado (pantalla, teclado, tactil, audio, USB)"
-    $report += "  [ ] Bateria al 100% y cargador incluido"
-    $report += "  [ ] Antivirus activo y actualizado"
-    $report += "  [ ] BitLocker activado y recovery key guardada"
-    $report += "  [ ] Windows Update al dia"
-    $report += "  [ ] Navegador limpio (sin cuentas guardadas del tecnico)"
-    $report += "  [ ] Usuario cliente creado con nombre correcto"
-    $report += "  [ ] Password entregada fisicamente o por canal seguro"
-    $report += "  [ ] Cliente informado sobre garantia y contacto"
-    $report += "  [ ] Equipo limpio (polvo, pantalla, teclado)"
-    $report += ""
-    $report += "==========================================="
-    $report += "  FIN DEL REPORTE"
-    $report += "==========================================="
+    # --- Ensamblar HTML ---
+    $checklistItems = @(
+        'Hardware probado (pantalla, teclado, táctil, audio, USB, webcam, lector huellas)',
+        'Batería al 100% y cargador incluido',
+        'Antivirus activo y actualizado',
+        'BitLocker activado y recovery key guardada en sitio seguro',
+        'Windows Update al día',
+        'Navegador limpio (sin cuentas guardadas del técnico)',
+        'Usuario cliente creado con nombre correcto',
+        'Password entregada físicamente o por canal seguro',
+        'Cliente informado sobre garantía y contacto',
+        'Equipo limpio (polvo, pantalla, teclado)',
+        'Documentos de cliente recuperados y restaurados',
+        'Programas solicitados por el cliente instalados'
+    )
+    $checklistHtml = ''
+    $i = 0
+    foreach ($item in $checklistItems) {
+        $i++
+        $checklistHtml += "<label class='check'><input type='checkbox' id='c$i'><span>$(_Esc-Html $item)</span></label>"
+    }
+
+    $equipoTable    = $equipoRows    -join ''
+    $bitlockerTable = $bitlockerRows -join ''
+    $defenderTable  = $defenderRows  -join ''
+
+    # Uso here-string double-quoted para interpolacion; escapamos los $ de CSS con backtick.
+    $html = @"
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<title>Atlas PC Support - Checklist Entrega - $hostName</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+  :root {
+    --bg: #0f141b;
+    --surface: #171d26;
+    --surface-alt: #1e2631;
+    --border: #2c3444;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --ok: #22c55e;
+    --warn: #eab308;
+    --err: #ef4444;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px; }
+  header {
+    background: linear-gradient(135deg, var(--accent) 0%, #1d4ed8 100%);
+    color: white;
+    padding: 32px 24px;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    box-shadow: 0 6px 24px rgba(59,130,246,0.25);
+  }
+  header h1 { margin: 0 0 4px 0; font-size: 28px; letter-spacing: -0.5px; }
+  header .subtitle { opacity: .85; font-size: 14px; }
+  header .meta { margin-top: 12px; font-size: 12px; opacity: .75; }
+  section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  section h2 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: var(--accent-hover);
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table th, table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  table th { color: var(--muted); font-weight: 500; white-space: nowrap; width: 30%; }
+  table.mini th, table.mini td { padding: 5px 8px; font-size: 12px; }
+  table.mini thead th { background: var(--surface-alt); color: var(--accent-hover); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; border-bottom: 2px solid var(--border); }
+  code { background: var(--surface-alt); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #cbd5e1; }
+  pre { background: var(--surface-alt); padding: 10px; border-radius: 6px; white-space: pre-wrap; font-size: 12px; }
+  ul { margin: 4px 0; padding-left: 20px; }
+  li { margin: 2px 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 11px; }
+  .ok { color: var(--ok); font-weight: 500; }
+  .warn { color: var(--warn); font-weight: 500; }
+  .err { color: var(--err); font-weight: 500; }
+  .key-block { margin-top: 4px; background: var(--surface-alt); padding: 8px; border-radius: 4px; border-left: 3px solid var(--warn); }
+  .key-block code { background: transparent; color: var(--warn); font-size: 13px; font-weight: 600; letter-spacing: .5px; }
+  .check { display: flex; align-items: flex-start; padding: 10px 12px; margin: 4px 0; background: var(--surface-alt); border-radius: 6px; cursor: pointer; transition: background .15s; border: 1px solid transparent; }
+  .check:hover { background: #252d3a; border-color: var(--border); }
+  .check input[type=checkbox] { flex-shrink: 0; width: 18px; height: 18px; margin-right: 10px; accent-color: var(--accent); cursor: pointer; }
+  .check input[type=checkbox]:checked + span { color: var(--ok); text-decoration: line-through; opacity: .7; }
+  .check span { flex: 1; }
+  .signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px; }
+  .signature-box { padding: 30px 10px 10px; border-top: 2px solid var(--border); text-align: center; color: var(--muted); font-size: 12px; min-height: 80px; }
+  .toolbar { position: sticky; top: 10px; z-index: 10; display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 12px; }
+  .btn { background: var(--accent); color: white; border: 0; border-radius: 6px; padding: 10px 18px; font-size: 13px; cursor: pointer; font-weight: 500; transition: background .15s; }
+  .btn:hover { background: var(--accent-hover); }
+  .btn.secondary { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+  footer { margin-top: 32px; padding: 16px; text-align: center; color: var(--muted); font-size: 11px; }
+
+  @media print {
+    body { background: white !important; color: black !important; font-size: 11pt; }
+    .wrap { max-width: 100%; padding: 0; }
+    header { background: white !important; color: black !important; border: 2px solid #333; box-shadow: none; page-break-after: avoid; }
+    header h1, header .subtitle { color: #1d4ed8 !important; }
+    section { background: white !important; border: 1px solid #999 !important; color: black !important; page-break-inside: avoid; }
+    section h2 { color: #1d4ed8 !important; border-color: #999; }
+    table th, table td { border-bottom: 1px solid #ccc !important; color: black !important; }
+    table.mini thead th { background: #eee !important; color: #1d4ed8 !important; }
+    code, pre { background: #f5f5f5 !important; color: black !important; }
+    .check { background: white !important; border: 1px solid #999 !important; break-inside: avoid; }
+    .key-block { background: #fff8e6 !important; color: #666 !important; }
+    .key-block code { color: #7a5a00 !important; }
+    .muted { color: #666 !important; }
+    .toolbar, .no-print { display: none !important; }
+    .signature-box { border-top: 2px solid black; color: black; }
+    a { color: black; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="toolbar no-print">
+  <button class="btn" onclick="window.print()">🖨  Imprimir / Guardar PDF</button>
+  <button class="btn secondary" onclick="toggleAll()">☑ Marcar todos</button>
+</div>
+
+<header>
+  <h1>ATLAS PC SUPPORT</h1>
+  <div class="subtitle">Checklist de Entrega — $(_Esc-Html $hostName)</div>
+  <div class="meta">Generado: $(_Esc-Html $generated) · Operador: $(_Esc-Html $userName)</div>
+</header>
+
+<section>
+  <h2>💻 Equipo</h2>
+  <table>$equipoTable</table>
+</section>
+
+<section>
+  <h2>🔑 Activación Windows</h2>
+  <pre>$activacion</pre>
+</section>
+
+<section>
+  <h2>👤 Usuarios</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+      <h3 style="margin:0 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Locales habilitados</h3>
+      <ul>$usuariosHtml</ul>
+    </div>
+    <div>
+      <h3 style="margin:0 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Administradores</h3>
+      <ul>$adminsHtml</ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>🔒 BitLocker</h2>
+  <table>$bitlockerTable</table>
+  <p class="small muted">Guarda las Recovery Keys en un sitio fuera del PC (gestor de contraseñas, impresión firmada, carpeta cliente).</p>
+</section>
+
+<section>
+  <h2>💾 Discos físicos</h2>
+  $discosHtml
+  <h3 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Volúmenes</h3>
+  $volumenesHtml
+</section>
+
+<section>
+  <h2>🌐 Red</h2>
+  $redHtml
+</section>
+
+<section>
+  <h2>🛡 Windows Defender</h2>
+  <table>$defenderTable</table>
+</section>
+
+<section>
+  <h2>🔄 Últimas actualizaciones (top 10)</h2>
+  $hotfixHtml
+</section>
+
+<section>
+  <h2>✅ Checklist manual pre-entrega</h2>
+  $checklistHtml
+</section>
+
+<section>
+  <h2>✍ Firmas</h2>
+  <div class="signature-grid">
+    <div class="signature-box">Firma Técnico<br/><span class="small">$(_Esc-Html $userName)</span></div>
+    <div class="signature-box">Firma Cliente<br/><span class="small">_______________________</span></div>
+  </div>
+  <p class="small muted" style="margin-top:12px">Fecha entrega: ____________________</p>
+</section>
+
+<footer>
+  Atlas PC Support · Reporte generado automáticamente · Guarda este archivo o impr. a PDF para registro
+</footer>
+
+</div>
+<script>
+function toggleAll(){
+  var b=document.querySelectorAll(".check input[type=checkbox]");
+  var all=true; for(var i=0;i<b.length;i++){ if(!b[i].checked){all=false;break;} }
+  for(var j=0;j<b.length;j++){ b[j].checked=!all; }
+}
+</script>
+</body>
+</html>
+"@
 
     # Guardar
     try {
         $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
         $desktop = [Environment]::GetFolderPath('Desktop')
-        $out = Join-Path $desktop "atlas-entrega-$($env:COMPUTERNAME)-$stamp.txt"
-        Set-Content -Path $out -Value $report -Encoding UTF8
+        $out = Join-Path $desktop "atlas-entrega-$hostName-$stamp.html"
+        Set-Content -Path $out -Value $html -Encoding UTF8
         Write-Host ""
-        Write-Host "   [OK] Reporte guardado en:" -ForegroundColor Green
+        Write-Host "   [OK] Reporte HTML guardado en:" -ForegroundColor Green
         Write-Host "   $out" -ForegroundColor White
-        try { Start-Process notepad.exe $out } catch {}
+        Write-Host ""
+        Write-Host "   Abriendo en navegador..." -ForegroundColor DarkGray
+        try { Start-Process $out } catch {
+            try { Start-Process 'explorer.exe' -ArgumentList $out } catch {}
+        }
     } catch {
         Write-Host ""
         Write-Host "   [ERROR] No se pudo guardar: $($_.Exception.Message)" -ForegroundColor Red
