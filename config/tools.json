@@ -35,6 +35,17 @@
       "dependencies": []
     },
     {
+      "id": "diagnostico-eventos",
+      "name": "Diagnóstico Eventos",
+      "description": "Lee Event Viewer e interpreta errores: reinicios, hardware (WHEA/disk), crashes, drivers, seguridad. Exporta HTML.",
+      "category": "diagnostico",
+      "function": "Invoke-DiagnosticoEventos",
+      "source": "DiagnosticoEventos.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "mantenimiento-pro",
       "name": "Mantenimiento PRO",
       "description": "Suite de mantenimiento completa: Defender, limpieza, DISM/SFC, reparación de sistema, reporte final.",
