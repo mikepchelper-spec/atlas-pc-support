@@ -57,6 +57,17 @@
       "dependencies": ["FastCopy"]
     },
     {
+      "id": "preparar-usb",
+      "name": "Preparar USB Offline",
+      "description": "Copia el panel y sus dependencias a una USB para usarlo sin internet. Auto-actualiza launcher cuando se conecta y hay red.",
+      "category": "copia",
+      "function": "Invoke-PrepararUSB",
+      "source": "PrepararUSB.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "robocopy",
       "name": "Robocopy (Copia Inteligente)",
       "description": "Copia optimizada basada en robocopy: espejo, reintentos, logging centralizado.",
