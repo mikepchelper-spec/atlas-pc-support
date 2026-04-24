@@ -112,6 +112,70 @@ function Optimize-Taskbar {
     } catch { Write-Centered "Error en Taskbar." "Red" }
 }
 
+# 5b. Ocultar barra/icono de busqueda
+function Hide-SearchBar {
+    try {
+        $RegPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
+        if (-not (Test-Path $RegPath)) { New-Item -Path $RegPath -Force | Out-Null }
+        # SearchboxTaskbarMode: 0=Oculto, 1=Icono, 2=Cuadro, 3=Icono+etiqueta
+        $Adv = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+        Set-ItemProperty -Path $Adv -Name "SearchboxTaskbarMode" -Value 0 -Force
+        Write-Centered "Barra de busqueda ocultada." "Green"
+        Write-Centered "Reiniciando Explorer..." "Yellow"
+        Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
+    } catch { Write-Centered ("Error: " + $_.Exception.Message) "Red" }
+}
+
+# 5c. Quitar widgets Win11
+function Hide-Widgets {
+    try {
+        $Adv = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+        # TaskbarDa: 0=Ocultar widget de tiempo/noticias, 1=Mostrar
+        Set-ItemProperty -Path $Adv -Name "TaskbarDa" -Value 0 -Force
+        # TaskbarMn: 0=Ocultar icono Chat (Teams Consumer), 1=Mostrar
+        Set-ItemProperty -Path $Adv -Name "TaskbarMn" -Value 0 -Force
+        # Deshabilitar feed news & interests (Win10/11 precursor)
+        $Feed = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Feeds"
+        if (-not (Test-Path $Feed)) { New-Item -Path $Feed -Force | Out-Null }
+        Set-ItemProperty -Path $Feed -Name "ShellFeedsTaskbarViewMode" -Value 2 -Force
+        Write-Centered "Widgets y Chat de Teams ocultados." "Green"
+        Write-Centered "Reiniciando Explorer..." "Yellow"
+        Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
+    } catch { Write-Centered ("Error: " + $_.Exception.Message) "Red" }
+}
+
+# 5d. Taskbar izquierda SOLO (sin tocar search)
+function Align-TaskbarLeft {
+    try {
+        $Adv = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+        Set-ItemProperty -Path $Adv -Name "TaskbarAl" -Value 0 -Force
+        Write-Centered "Taskbar alineada a la izquierda." "Green"
+        Write-Centered "Reiniciando Explorer..." "Yellow"
+        Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
+    } catch { Write-Centered ("Error: " + $_.Exception.Message) "Red" }
+}
+
+# 5e. Personalizacion RAPIDA Win11 (todo en uno)
+function Apply-Win11Minimal {
+    try {
+        $Adv = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+        Set-ItemProperty -Path $Adv -Name "TaskbarAl" -Value 0 -Force
+        Set-ItemProperty -Path $Adv -Name "SearchboxTaskbarMode" -Value 0 -Force
+        Set-ItemProperty -Path $Adv -Name "TaskbarDa" -Value 0 -Force
+        Set-ItemProperty -Path $Adv -Name "TaskbarMn" -Value 0 -Force
+        $Feed = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Feeds"
+        if (-not (Test-Path $Feed)) { New-Item -Path $Feed -Force | Out-Null }
+        Set-ItemProperty -Path $Feed -Name "ShellFeedsTaskbarViewMode" -Value 2 -Force
+        Write-Centered "Modo Minimalista Win11 aplicado:" "Green"
+        Write-Centered "  - Taskbar izquierda" "Green"
+        Write-Centered "  - Busqueda oculta" "Green"
+        Write-Centered "  - Widgets ocultos" "Green"
+        Write-Centered "  - Chat de Teams oculto" "Green"
+        Write-Centered "Reiniciando Explorer..." "Yellow"
+        Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
+    } catch { Write-Centered ("Error: " + $_.Exception.Message) "Red" }
+}
+
 # 6. Marca de Agua (Registro Seguro)
 function Toggle-Watermark {
     try {
@@ -142,9 +206,14 @@ while ($ejecutar) {
     Write-Host "$M [1] Cambiar Fondo (Wallpaper.jpg local)"
     Write-Host "$M [2] Forzar Tema Oscuro (Apps & Sistema)"
     Write-Host "$M [3] Aplicar Color Acento ATLAS (Dorado)"
-    Write-Host "$M [4] Alinear Barra Tareas a la Izquierda"
+    Write-Host "$M [4] Alinear Taskbar izquierda + ocultar busqueda (original)"
     Write-Host "$M [5] Ocultar Marca de Agua (PaintDesktop)"
-    Write-Host "$M [6] Configurar Menu Inicio (Limpieza)"
+    Write-Host "$M [6] Deshabilitar sugerencias Menu Inicio"
+    Write-Host "$M --- WIN11 MINIMAL ---" -ForegroundColor Cyan
+    Write-Host "$M [7] Solo: Alinear Taskbar a la izquierda"
+    Write-Host "$M [8] Solo: Ocultar barra de Busqueda"
+    Write-Host "$M [9] Solo: Quitar Widgets + icono Chat Teams"
+    Write-Host "$M [A] MODO MINIMAL (taskbar+search+widgets+chat en uno)" -ForegroundColor Green
     Write-Host "`n"
     Write-Host "$M [0] Volver / Salir" -ForegroundColor Gray
     Write-Host "`n"
@@ -154,7 +223,6 @@ while ($ejecutar) {
 
     switch ($sel) {
         '1' { 
-            # Busca una imagen llamada 'wallpaper.jpg' en la misma carpeta del script
             Set-AtlasWallpaper -PathImagen "$ScriptPath\wallpaper.jpg" 
             Start-Sleep 2
         }
@@ -163,11 +231,14 @@ while ($ejecutar) {
         '4' { Optimize-Taskbar; Start-Sleep 2 }
         '5' { Toggle-Watermark; Start-Sleep 1 }
         '6' {
-             # Ejemplo simple para Menu Inicio
              Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_TrackProgs" -Value 0 -Force
              Write-Centered "Sugerencias de inicio deshabilitadas." "Green"
              Start-Sleep 1
         }
+        '7' { Align-TaskbarLeft; Start-Sleep 2 }
+        '8' { Hide-SearchBar;   Start-Sleep 2 }
+        '9' { Hide-Widgets;     Start-Sleep 2 }
+        { $_ -in 'A','a' } { Apply-Win11Minimal; Start-Sleep 2 }
         '0' { $ejecutar = $false }
     }
 }
