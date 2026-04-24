@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 01:51:08
+#  Build:   2026-04-24 02:09:28
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 01:51:08'
+$script:AtlasBuildDate = '2026-04-24 02:09:28'
 
 $script:AtlasToolsManifest = @'
 {
@@ -1125,6 +1125,7 @@ function New-AtlasToolCard {
     $width = 320
     $xaml = @"
 <Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
+        xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'
         Background='$($Palette.SurfaceColor)'
         BorderBrush='$($Palette.BorderColor)'
         BorderThickness='1'

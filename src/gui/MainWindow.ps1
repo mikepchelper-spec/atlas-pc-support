@@ -114,6 +114,7 @@ function New-AtlasToolCard {
     $width = 320
     $xaml = @"
 <Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
+        xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'
         Background='$($Palette.SurfaceColor)'
         BorderBrush='$($Palette.BorderColor)'
         BorderThickness='1'
