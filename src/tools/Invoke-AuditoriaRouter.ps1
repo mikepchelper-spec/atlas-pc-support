@@ -1638,6 +1638,244 @@ function Modulo-PortalCautivo {
 # ================================================================
 #  MODULO I - HISTORIAL DE SESION
 # ================================================================
+function Modulo-WiFiGuardadas {
+    Clear-Host
+    Write-Host ""
+    Write-Host "  [ K ]  CONTRASENAS WIFI GUARDADAS" -ForegroundColor Yellow
+    Write-Host "  $("-" * 60)" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  [!] Se mostraran las redes WiFi guardadas en este PC" -ForegroundColor Cyan
+    Write-Host "      junto con sus contrasenas (requiere admin)." -ForegroundColor Cyan
+    Write-Host "  [!] Es informacion sensible. Usala solo en equipos propios" -ForegroundColor Yellow
+    Write-Host "      o con autorizacion explicita del duenio." -ForegroundColor Yellow
+    Write-Host ""
+    $ok = Read-Host "  Continuar? [S/N]"
+    if ($ok -notmatch '^[SsYy]$') { return }
+
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        Write-Host ""
+        Write-Host "  [X] Esta opcion requiere ejecutar como administrador." -ForegroundColor Red
+        Esperar-Enter
+        return
+    }
+
+    Write-Host ""
+    Write-Host "  Consultando perfiles WLAN..." -ForegroundColor DarkGray
+
+    $raw = netsh wlan show profiles 2>$null
+    $perfiles = @()
+    foreach ($line in $raw) {
+        if ($line -match "Perfil de todos los usuarios\s*:\s*(.+)$" -or $line -match "All User Profile\s*:\s*(.+)$") {
+            $perfiles += ($matches[1]).Trim()
+        }
+    }
+
+    if ($perfiles.Count -eq 0) {
+        Write-Host "  [!] No se detectaron perfiles WLAN guardados." -ForegroundColor Yellow
+        Esperar-Enter
+        return
+    }
+
+    $resultado = @()
+    $resultado += "=== CONTRASENAS WIFI GUARDADAS ==="
+    $resultado += "Equipo: $env:COMPUTERNAME"
+    $resultado += "Fecha:  $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $resultado += ""
+    $resultado += "{0,-40} {1,-15} {2}" -f "SSID", "Autenticacion", "Contrasena"
+    $resultado += ("-" * 80)
+
+    foreach ($p in $perfiles) {
+        $det = netsh wlan show profile name="$p" key=clear 2>$null
+        $auth = ""
+        $pass = ""
+        foreach ($l in $det) {
+            if ($l -match "Autenticaci.n\s*:\s*(.+)$" -or $l -match "Authentication\s*:\s*(.+)$") { $auth = ($matches[1]).Trim() }
+            elseif ($l -match "Contenido de la clave\s*:\s*(.+)$" -or $l -match "Key Content\s*:\s*(.+)$") { $pass = ($matches[1]).Trim() }
+        }
+        if (-not $pass) { $pass = "(sin contrasena / abierta)" }
+        if (-not $auth) { $auth = "?" }
+        $linea = "{0,-40} {1,-15} {2}" -f $p, $auth, $pass
+        $resultado += $linea
+        Write-Host "  $linea" -ForegroundColor Green
+    }
+
+    Write-Host ""
+    Write-Host "  Total perfiles: $($perfiles.Count)" -ForegroundColor Cyan
+    Write-Host ""
+    $x = Read-Host "  Exportar a TXT en Escritorio? [S/N]"
+    if ($x -match '^[SsYy]$') { Exportar-Informe -Contenido $resultado -NombreModulo "WiFiGuardadas" }
+    $script:HistorialSesion.Add("WiFi guardadas: $($perfiles.Count) perfiles") | Out-Null
+    Esperar-Enter
+}
+
+function Modulo-PortScanGateway {
+    Clear-Host
+    Write-Host ""
+    Write-Host "  [ O ]  ESCANEO DE PUERTOS DEL GATEWAY (ROUTER)" -ForegroundColor Yellow
+    Write-Host "  $("-" * 60)" -ForegroundColor DarkGray
+    Write-Host ""
+
+    $gw = Obtener-Router
+    if (-not $gw) {
+        Write-Host "  [X] No se pudo determinar el gateway." -ForegroundColor Red
+        Esperar-Enter; return
+    }
+
+    Write-Host "  Gateway: $gw" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  Escaneando puertos tipicos abiertos..." -ForegroundColor DarkGray
+    Write-Host ""
+
+    $puertos = @(
+        @{ p=21;    s="FTP"         },
+        @{ p=22;    s="SSH"         },
+        @{ p=23;    s="Telnet"      },
+        @{ p=53;    s="DNS"         },
+        @{ p=80;    s="HTTP (panel)"},
+        @{ p=81;    s="HTTP alt"    },
+        @{ p=123;   s="NTP"         },
+        @{ p=139;   s="NetBIOS"     },
+        @{ p=443;   s="HTTPS"       },
+        @{ p=445;   s="SMB"         },
+        @{ p=515;   s="LPD imp."    },
+        @{ p=548;   s="AFP"         },
+        @{ p=554;   s="RTSP"        },
+        @{ p=631;   s="IPP imp."    },
+        @{ p=1900;  s="UPnP"        },
+        @{ p=5000;  s="UPnP alt"    },
+        @{ p=5357;  s="WSD"         },
+        @{ p=7547;  s="TR-069 CWMP" },
+        @{ p=8080;  s="HTTP proxy"  },
+        @{ p=8081;  s="HTTP alt"    },
+        @{ p=8291;  s="MikroTik"    },
+        @{ p=8443;  s="HTTPS alt"   },
+        @{ p=8888;  s="HTTP alt"    },
+        @{ p=9100;  s="JetDirect"   }
+    )
+
+    $resultado = @()
+    $resultado += "=== ESCANEO PUERTOS GATEWAY ==="
+    $resultado += "Gateway: $gw"
+    $resultado += "Fecha:   $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $resultado += ""
+
+    $abiertos = 0; $total = $puertos.Count; $n = 0
+    foreach ($e in $puertos) {
+        $n++
+        Write-Progress -Activity "Escaneando puertos del gateway" -Status ("Puerto {0}/{1} - {2}" -f $n, $total, $e.p) -PercentComplete (($n / $total) * 100)
+        $ok = Test-Puerto -Destino $gw -Puerto $e.p -TimeoutMs 600
+        if ($ok) {
+            $line = ("  [OK] {0,5}/tcp  {1}" -f $e.p, $e.s)
+            Write-Host $line -ForegroundColor Green
+            $resultado += "ABIERTO {0,5}/tcp - {1}" -f $e.p, $e.s
+            $abiertos++
+        }
+    }
+    Write-Progress -Activity "Escaneando puertos del gateway" -Completed
+
+    Write-Host ""
+    Write-Host "  Total abiertos: $abiertos / $total" -ForegroundColor Cyan
+    Write-Host ""
+    if ($abiertos -gt 0) {
+        Write-Host "  NOTA: Un panel web (80/443/8080/8443) es normal." -ForegroundColor DarkGray
+        Write-Host "  Puertos como Telnet (23), SMB (445), FTP (21) abiertos en el router" -ForegroundColor Yellow
+        Write-Host "  suelen indicar configuracion insegura. Revisa el panel." -ForegroundColor Yellow
+    }
+    Write-Host ""
+    $x = Read-Host "  Exportar TXT? [S/N]"
+    if ($x -match '^[SsYy]$') { Exportar-Informe -Contenido $resultado -NombreModulo "PortScanGateway" }
+    $script:HistorialSesion.Add("PortScan Gateway: $abiertos abiertos en $gw") | Out-Null
+    Esperar-Enter
+}
+
+function Modulo-ARPCompleto {
+    Clear-Host
+    Write-Host ""
+    Write-Host "  [ R ]  DISPOSITIVOS EN LA LAN (ARP / NEIGHBOR)" -ForegroundColor Yellow
+    Write-Host "  $("-" * 60)" -ForegroundColor DarkGray
+    Write-Host ""
+
+    $entries = @()
+
+    try {
+        $nbrs = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object {
+            $_.State -in 'Reachable','Stale','Permanent','Delay','Probe' -and
+            $_.IPAddress -notmatch '^(224\.|239\.|255\.)' -and
+            $_.LinkLayerAddress -and $_.LinkLayerAddress -ne '00-00-00-00-00-00'
+        }
+        foreach ($n in $nbrs) {
+            $entries += [pscustomobject]@{
+                IP = $n.IPAddress
+                MAC = ($n.LinkLayerAddress -replace ':', '-').ToUpper()
+                Estado = $n.State
+                Fuente = 'Get-NetNeighbor'
+            }
+        }
+    } catch { }
+
+    # Fallback a arp -a
+    if ($entries.Count -eq 0) {
+        $raw = arp -a 2>$null
+        foreach ($l in $raw) {
+            if ($l -match '(\d+\.\d+\.\d+\.\d+)\s+([0-9a-fA-F]{2}[-:][0-9a-fA-F]{2}[-:][0-9a-fA-F]{2}[-:][0-9a-fA-F]{2}[-:][0-9a-fA-F]{2}[-:][0-9a-fA-F]{2})\s+(\w+)') {
+                $m = ($matches[2] -replace ':', '-').ToUpper()
+                if ($m -ne 'FF-FF-FF-FF-FF-FF' -and $m -ne '00-00-00-00-00-00') {
+                    $entries += [pscustomobject]@{
+                        IP = $matches[1]
+                        MAC = $m
+                        Estado = $matches[3]
+                        Fuente = 'arp -a'
+                    }
+                }
+            }
+        }
+    }
+
+    if ($entries.Count -eq 0) {
+        Write-Host "  [!] No se detectaron dispositivos. Intenta tras hacer ping al gateway." -ForegroundColor Yellow
+        Esperar-Enter; return
+    }
+
+    $gw = Obtener-Router
+
+    $resultado = @()
+    $resultado += "=== DISPOSITIVOS EN LA LAN ==="
+    $resultado += "Gateway: $gw"
+    $resultado += "Fecha:   $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $resultado += ""
+    $resultado += "{0,-16} {1,-18} {2,-10} {3,-12} {4}" -f "IP", "MAC", "Estado", "Fuente", "Fabricante"
+    $resultado += ("-" * 80)
+
+    Write-Host ("  {0,-16} {1,-18} {2,-10} {3,-12} {4}" -f "IP", "MAC", "Estado", "Fuente", "Fabricante") -ForegroundColor Cyan
+    Write-Host "  $('-' * 80)" -ForegroundColor DarkGray
+
+    $porFabricante = @{}
+    foreach ($e in ($entries | Sort-Object { [version]($_.IP -replace '^(\d+)\.(\d+)\.(\d+)\.(\d+)$', '$1.$2.$3.$4') } )) {
+        $fab = Get-Fabricante -MAC $e.MAC
+        $marker = if ($e.IP -eq $gw) { "*" } else { " " }
+        $line = ("{0} {1,-15} {2,-18} {3,-10} {4,-12} {5}" -f $marker, $e.IP, $e.MAC, $e.Estado, $e.Fuente, $fab)
+        Write-Host "  $line" -ForegroundColor White
+        $resultado += $line.Trim()
+        if (-not $porFabricante.ContainsKey($fab)) { $porFabricante[$fab] = 0 }
+        $porFabricante[$fab]++
+    }
+
+    Write-Host ""
+    Write-Host "  Total dispositivos: $($entries.Count)  (* = gateway)" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  Resumen por fabricante:" -ForegroundColor DarkGray
+    foreach ($k in ($porFabricante.Keys | Sort-Object)) {
+        Write-Host ("    {0,-20} {1}" -f $k, $porFabricante[$k]) -ForegroundColor DarkGray
+    }
+    Write-Host ""
+
+    $x = Read-Host "  Exportar TXT? [S/N]"
+    if ($x -match '^[SsYy]$') { Exportar-Informe -Contenido $resultado -NombreModulo "ARPCompleto" }
+    $script:HistorialSesion.Add("ARP LAN: $($entries.Count) dispositivos") | Out-Null
+    Esperar-Enter
+}
+
 function Mostrar-Historial {
     Clear-Host
     Write-Host ""
@@ -1688,6 +1926,9 @@ while ($true) {
     Escribir-Centrado "  |  [F]  Test de DNS           |                              |  " "White"
     Escribir-Centrado "  |  [H]  Puertos WAN           |  [J]  Fabricantes (MAC/OUI) |  " "White"
     Escribir-Centrado "  |                             |                              |  " "DarkGray"
+    Escribir-Centrado "  +--- SEGURIDAD / RECON -------+------------------------------+  " "DarkGray"
+    Escribir-Centrado "  |  [K]  Contrasenas WiFi      |  [O]  Scan puertos gateway  |  " "Cyan"
+    Escribir-Centrado "  |  [R]  Dispositivos LAN (ARP)|                              |  " "Cyan"
     Escribir-Centrado "  +--- SESION ------------------+------------------------------+  " "DarkGray"
     Escribir-Centrado "  |  [I]  Historial de Sesion   |  [S]  Salir                 |  " "DarkGray"
     Escribir-Centrado "  +-----------------------------+------------------------------+  " "DarkGray"
@@ -1709,7 +1950,10 @@ while ($true) {
         "H" { Modulo-PuertosWAN    }
         "I" { Mostrar-Historial    }
         "J" { Modulo-Fabricantes   }
+        "K" { Modulo-WiFiGuardadas }
         "L" { Modulo-Firmware      }
+        "O" { Modulo-PortScanGateway }
+        "R" { Modulo-ARPCompleto   }
         "M" { Modulo-InformeCompleto }
         "N" { Modulo-Comparativa   }
         "P" { Modulo-Velocidad     }
