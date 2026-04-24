@@ -3,17 +3,26 @@
 # Ejecuta una herramienta en una nueva ventana de PowerShell.
 #
 # Enfoque:
-#   * Obtener el cuerpo de la funcion de la tool (Get-Command ....Definition).
-#   * Escribir un .ps1 temporal a %TEMP%\AtlasPC\<id>.ps1.
-#   * Lanzar powershell.exe -File <temp.ps1>, con elevacion si procede.
+#   * Tomar la SOURCE CRUDA del archivo src/tools/Invoke-X.ps1
+#     (inyectada por build.ps1 como base64 en $script:AtlasToolSources).
+#   * Escribir esa fuente + una llamada a Invoke-X + un try/catch/pausa
+#     en un .ps1 temporal.
+#   * Envolverlo en un .cmd que llama powershell.exe -File y DESPUES
+#     hace pause, para sobrevivir llamadas a 'exit' dentro de la tool.
+#   * Lanzar cmd.exe via Start-Process, con elevacion si procede.
+#
+# Por que NO usamos (Get-Command ....Definition):
+#   En Windows PowerShell 5.1, .Definition puede normalizar
+#   whitespace y corromper here-strings / HTML embebidos, lo que
+#   genera errores de parse en tiempo de ejecucion (missing brace,
+#   '<' es operador reservado, etc.). Embebiendo la fuente cruda
+#   en base64 evitamos todo el roundtrip y nos aseguramos de que
+#   lo que se ejecuta es lo que hay en src/tools/.
 #
 # Por que NO usamos -EncodedCommand:
-#   1. Limite de longitud de CreateProcess (~32 KB). Tools grandes como
-#      FastCopy o Robocopy superan el limite y Windows devuelve
-#      "The filename or extension is too long".
-#   2. Al construir el script con here-strings interpolables, variables
-#      como $Host, $code, $WindowWidth presentes en el cuerpo de la tool
-#      se expanden ANTES de mandarse al hijo, produciendo sintaxis rota.
+#   1. Limite de longitud de CreateProcess (~32 KB). Tools grandes
+#      (FastCopy, Robocopy) superan el limite.
+#   2. Interpolacion prematura de variables del cuerpo.
 # ============================================================
 
 function Invoke-AtlasTool {
@@ -26,19 +35,13 @@ function Invoke-AtlasTool {
     Write-AtlasLog "Ejecutando: $($Tool.name) [$($Tool.id)]" -Tool 'Runner'
 
     $function = $Tool.function
-    $cmd = Get-Command $function -CommandType Function -ErrorAction SilentlyContinue
-    if (-not $cmd) {
-        $msg = "La funcion '$function' no esta cargada. Revisa src/tools/ y tools.json."
-        Write-AtlasLog $msg -Level ERROR -Tool 'Runner'
-        [System.Windows.MessageBox]::Show($msg, 'Atlas PC Support', 'OK', 'Error') | Out-Null
-        return
-    }
 
     $runInNew = $true
     if ($Tool.ContainsKey('runsInNewWindow')) {
         $runInNew = [bool]$Tool.runsInNewWindow
     }
 
+    # Ejecucion inline (sin nueva ventana) es para helpers/gui; raro.
     if (-not $runInNew) {
         try { & $function } catch {
             Write-AtlasLog "Error en ${function}: $_" -Level ERROR -Tool 'Runner'
@@ -47,39 +50,52 @@ function Invoke-AtlasTool {
         return
     }
 
-    # ----------- Construir el script temporal -----------
-    $funcBody = $cmd.Definition
-    if (-not $funcBody) {
-        $msg = "No se pudo serializar la funcion '$function'."
-        Write-AtlasLog $msg -Level ERROR -Tool 'Runner'
-        [System.Windows.MessageBox]::Show($msg, 'Atlas PC Support', 'OK', 'Error') | Out-Null
-        return
+    # ----------- Recuperar la source cruda del map embebido -----------
+    $rawSource = $null
+    if ($script:AtlasToolSources -and $script:AtlasToolSources.ContainsKey($function)) {
+        try {
+            $b64   = $script:AtlasToolSources[$function]
+            $bytes = [Convert]::FromBase64String($b64)
+            $rawSource = [System.Text.Encoding]::UTF8.GetString($bytes)
+        } catch {
+            Write-AtlasLog "Fallo decoding base64 de '$function': $_" -Level ERROR -Tool 'Runner'
+        }
     }
 
-    # Limpiar BOM UTF-8 (U+FEFF) y zero-width space (U+200B) en CUALQUIER
-    # posicion del cuerpo. No solo al inicio: algunos archivos fuente tienen
-    # el BOM en medio (p.ej. re-guardados por editor) y el parser revienta
-    # con 'The term ''#'' is not recognized' si el BOM queda antes de un #.
-    $funcBody = $funcBody -replace "[\uFEFF\u200B]", ""
-    $funcBody = $funcBody.TrimStart()
+    if (-not $rawSource) {
+        # Fallback al metodo antiguo (por si alguien usa ToolRunner fuera del
+        # launcher compilado, p.ej. desde src/ directamente).
+        $cmd = Get-Command $function -CommandType Function -ErrorAction SilentlyContinue
+        if (-not $cmd) {
+            $msg = "La funcion '$function' no esta cargada ni disponible como source."
+            Write-AtlasLog $msg -Level ERROR -Tool 'Runner'
+            [System.Windows.MessageBox]::Show($msg, 'Atlas PC Support', 'OK', 'Error') | Out-Null
+            return
+        }
+        $funcBody = $cmd.Definition
+        $funcBody = $funcBody -replace "[\uFEFF\u200B]", ""
+        $rawSource = "function $function {`n$funcBody`n}`n"
+    } else {
+        # Limpiar BOM / zero-width del texto (por si se colaron al guardar).
+        $rawSource = $rawSource -replace "[\uFEFF\u200B]", ""
+    }
 
     $brandName = if ($Branding -and $Branding.brand -and $Branding.brand.shortName) { $Branding.brand.shortName } else { 'Atlas PC Support' }
     $title = "$brandName - $($Tool.name)"
 
-    # Construir el contenido del .ps1 SIN interpolacion del cuerpo:
-    # usamos un StringBuilder para que $Host, $code, etc. del cuerpo de
-    # la tool se escriban literalmente y los evalue el hijo.
+    # ----------- Construir el .ps1 temporal -----------
+    # El orden del script temporal:
+    #   1) set title
+    #   2) source cruda de la tool (define la funcion)
+    #   3) try { call funcion } catch { print error + stacktrace }
+    #   4) NO hacemos Read-Host aqui: el .cmd wrapper hace el pause.
     $sb = [System.Text.StringBuilder]::new()
     [void]$sb.AppendLine('# Atlas PC Support - runner temp script')
     [void]$sb.AppendLine('$ErrorActionPreference = ''Continue''')
     [void]$sb.AppendLine('try { $Host.UI.RawUI.WindowTitle = ' + ("'{0}'" -f ($title -replace "'","''")) + ' } catch {}')
     [void]$sb.AppendLine('')
-    # Define la funcion de la tool:
-    [void]$sb.AppendLine("function $function {")
-    [void]$sb.AppendLine($funcBody)
-    [void]$sb.AppendLine('}')
+    [void]$sb.AppendLine($rawSource)
     [void]$sb.AppendLine('')
-    # Invocar con captura de errores y pausa al final (incluso si revienta).
     [void]$sb.AppendLine('try {')
     [void]$sb.AppendLine("    $function")
     [void]$sb.AppendLine('} catch {')
@@ -89,10 +105,6 @@ function Invoke-AtlasTool {
     [void]$sb.AppendLine('    Write-Host "Traza:" -ForegroundColor DarkGray')
     [void]$sb.AppendLine('    Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray')
     [void]$sb.AppendLine('}')
-    [void]$sb.AppendLine('Write-Host ""')
-    [void]$sb.AppendLine('Write-Host "-----------------------------------" -ForegroundColor DarkGray')
-    [void]$sb.AppendLine('Write-Host "Presiona Enter para cerrar esta ventana..." -ForegroundColor Yellow')
-    [void]$sb.AppendLine('[void][Console]::ReadLine()')
 
     $tempDir = Join-Path $env:TEMP 'AtlasPC'
     if (-not (Test-Path $tempDir)) {
@@ -102,16 +114,12 @@ function Invoke-AtlasTool {
     $tempScript  = Join-Path $tempDir "run-$stamp.ps1"
     $tempWrapper = Join-Path $tempDir "run-$stamp.cmd"
 
-    # Escribir .ps1 SIN BOM (UTF-8 without BOM).
+    # .ps1 en UTF-8 sin BOM.
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($tempScript, $sb.ToString(), $utf8NoBom)
 
-    # Wrapper .cmd: necesario porque muchas tools llaman 'exit' dentro de
-    # PowerShell, lo que termina el proceso antes de que podamos pausar.
-    # Con un wrapper cmd.exe /c, el 'exit' de PS solo sale del child;
-    # cmd.exe sigue vivo y ejecuta 'pause' para que la ventana no se cierre.
-    # El .cmd wrapper se escribe puramente en ASCII (el titulo real de la
-    # ventana lo gestiona el .ps1 via $Host.UI.RawUI.WindowTitle).
+    # .cmd wrapper: sobrevive a 'exit' dentro de la tool (pause al final
+    # siempre se ejecuta porque corre en proceso cmd, no powershell).
     $psFile = $tempScript.Replace('%', '%%')
     $wrapperLines = @(
         '@echo off',

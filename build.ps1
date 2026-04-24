@@ -55,6 +55,21 @@ $toolsContent = foreach ($t in $toolFiles) {
 }
 $toolsContent = $toolsContent -join "`n`n"
 
+# Mapa de sources crudos por nombre de funcion, codificado base64.
+# Usado por ToolRunner para escribir el script temporal SIN depender de
+# (Get-Command).Definition, que en Windows PS 5.1 puede corromper
+# here-strings y HTML embebido. Base64 evita todo problema de escape.
+$toolSourcesBuilder = [System.Text.StringBuilder]::new()
+[void]$toolSourcesBuilder.AppendLine('$script:AtlasToolSources = @{}')
+foreach ($t in $toolFiles) {
+    $raw = Get-EmbeddedContent $t.FullName
+    $fnName = [System.IO.Path]::GetFileNameWithoutExtension($t.Name)
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($raw)
+    $b64   = [Convert]::ToBase64String($bytes)
+    [void]$toolSourcesBuilder.AppendLine(("`$script:AtlasToolSources['{0}'] = '{1}'" -f $fnName, $b64))
+}
+$toolSourcesMap = $toolSourcesBuilder.ToString()
+
 $banner = @"
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
@@ -138,6 +153,12 @@ $output = @(
     "# ============================================================"
     ""
     $toolsContent
+    ""
+    "# ============================================================"
+    "#  SOURCES CRUDOS (base64) — usados por ToolRunner"
+    "# ============================================================"
+    ""
+    $toolSourcesMap
     ""
     $epilog
 ) -join "`n"
