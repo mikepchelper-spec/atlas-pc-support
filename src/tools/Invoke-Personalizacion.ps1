@@ -126,7 +126,11 @@ function Toggle-Watermark {
 # BUCLE PRINCIPAL
 # ==========================================
 $ejecutar = $true
-$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+# La tool se ejecuta inline (no desde un .ps1 fisico), asi que
+# $MyInvocation.MyCommand.Definition devuelve el cuerpo de la funcion.
+# Buscar wallpaper.jpg en %LOCALAPPDATA%\AtlasPC (ubicacion documentada).
+$ScriptPath = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'AtlasPC' } else { $env:TEMP }
+if (-not (Test-Path $ScriptPath)) { New-Item -ItemType Directory -Path $ScriptPath -Force | Out-Null }
 
 while ($ejecutar) {
     Show-Header
