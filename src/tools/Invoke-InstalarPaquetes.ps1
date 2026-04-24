@@ -96,7 +96,10 @@ function Invoke-InstalarPaquetes {
     }
 
     function Show-Catalog {
-        $map = [ordered]@{}
+        # Regular hashtable. IMPORTANTE: NO usar [ordered]@{} aqui — en PS 7 el
+        # indexador [int] sobre un ordered dict busca POSICION, no clave, y
+        # $map[$idx] = ... falla con "index out of range" al crecer.
+        $map = @{}
         $idx = 1
         foreach ($cat in $CATALOG.Keys) {
             Write-Host ''
