@@ -262,7 +262,8 @@ function Generar-ChecklistEntrega {
     try {
         $hotfixHtml += '<table class="mini"><thead><tr><th>HotFix</th><th>Instalado</th><th>Tipo</th></tr></thead><tbody>'
         Get-HotFix -ErrorAction Stop | Sort-Object InstalledOn -Descending | Select-Object -First 10 | ForEach-Object {
-            $hotfixHtml += "<tr><td><code>$(_Esc-Html $_.HotFixID)</code></td><td>$(_Esc-Html $_.InstalledOn.ToString('yyyy-MM-dd'))</td><td>$(_Esc-Html $_.Description)</td></tr>"
+            $installedDate = if ($_.InstalledOn) { $_.InstalledOn.ToString('yyyy-MM-dd') } else { '' }
+            $hotfixHtml += "<tr><td><code>$(_Esc-Html $_.HotFixID)</code></td><td>$(_Esc-Html $installedDate)</td><td>$(_Esc-Html $_.Description)</td></tr>"
         }
         $hotfixHtml += '</tbody></table>'
     } catch {
