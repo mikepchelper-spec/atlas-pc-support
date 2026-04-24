@@ -13,12 +13,12 @@
       "dependencies": []
     },
     {
-      "id": "ram-info",
-      "name": "RAM Info",
-      "description": "Diagnóstico avanzado de módulos de memoria: slots, velocidad, voltaje, XMP, detección soldada.",
+      "id": "parts-upgrade",
+      "name": "Parts Upgrade Advisor",
+      "description": "Analiza RAM, CPU (socket/BGA) y almacenamiento (NVMe/SATA/M.2). Recomendaciones y precauciones de compra.",
       "category": "diagnostico",
-      "function": "Invoke-RAMInfo",
-      "source": "RAMInfo.ps1",
+      "function": "Invoke-PartsUpgrade",
+      "source": "PartsUpgrade.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
