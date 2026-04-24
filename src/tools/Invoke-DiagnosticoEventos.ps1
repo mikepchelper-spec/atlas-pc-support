@@ -15,7 +15,9 @@ function Invoke-DiagnosticoEventos {
 
     # ----- Base de conocimiento de EventIDs comunes -----
     # Key: "LogName|ProviderName|EventID"  (cualquiera de los dos primeros puede ser '*')
-    $KB = @{
+    # Usamos scope 'script' para que las funciones anidadas siempre vean el hashtable
+    # sin depender de dynamic scoping (rompia con ToolRunner en ciertos entornos).
+    $script:AtlasEventsKB = @{
         '*|*|41' = @{
             Level = 'CRITICAL'
             Title = 'Kernel-Power: apagado inesperado'
@@ -212,13 +214,14 @@ function Invoke-DiagnosticoEventos {
 
     function _Kb-Lookup {
         param([string]$LogName, [string]$Provider, [int]$EventId)
+        if ($null -eq $script:AtlasEventsKB) { return $null }
         $keys = @(
             "$LogName|$Provider|$EventId",
             "*|$Provider|$EventId",
             "*|*|$EventId"
         )
         foreach ($k in $keys) {
-            if ($KB.ContainsKey($k)) { return $KB[$k] }
+            if ($script:AtlasEventsKB.ContainsKey($k)) { return $script:AtlasEventsKB[$k] }
         }
         return $null
     }
