@@ -24,6 +24,28 @@
       "dependencies": []
     },
     {
+      "id": "diagnostico-master",
+      "name": "Diagnóstico Master",
+      "description": "Informe integral HTML: sistema, hardware, CPU, RAM, almacenamiento, red, batería, BSOD y Upgrade Advisor.",
+      "category": "diagnostico",
+      "function": "Invoke-DiagnosticoMaster",
+      "source": "DiagnosticoMaster.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "mantenimiento-pro",
+      "name": "Mantenimiento PRO",
+      "description": "Suite de mantenimiento completa: Defender, limpieza, DISM/SFC, reparación de sistema, reporte final.",
+      "category": "mantenimiento",
+      "function": "Invoke-MantenimientoPRO",
+      "source": "MantenimientoPRO.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "mod-personalizacion",
       "name": "Personalización Avanzada",
       "description": "Wallpaper vía API Win32, tema oscuro, color de acento, barra de tareas y marca de agua.",
