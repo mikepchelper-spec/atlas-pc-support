@@ -22,6 +22,7 @@ $ErrorActionPreference = "Continue"
 # ==================== BUSCAR FASTCOPY ====================
 
 function Find-FastCopy {
+    $atlasApps = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'AtlasPC\apps\FastCopy' } else { $null }
     $searchPaths = @(
         (Join-Path $PSScriptRoot "FastCopy.exe"),
         (Join-Path $PSScriptRoot "fastcopy\FastCopy.exe"),
@@ -31,14 +32,80 @@ function Find-FastCopy {
         "C:\Program Files (x86)\FastCopy\FastCopy.exe",
         (Join-Path $env:LOCALAPPDATA "FastCopy\FastCopy.exe")
     )
+    if ($atlasApps) { $searchPaths += (Join-Path $atlasApps 'FastCopy.exe') }
     foreach ($path in $searchPaths) {
-        if (Test-Path $path) { return (Resolve-Path $path).Path }
+        if ($path -and (Test-Path $path)) { return (Resolve-Path $path).Path }
     }
     $inPath = Get-Command "FastCopy.exe" -ErrorAction SilentlyContinue
     if ($inPath) { return $inPath.Source }
-    $found = Get-ChildItem -Path $PSScriptRoot -Filter "FastCopy.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($found) { return $found.FullName }
+    if ($PSScriptRoot) {
+        $found = Get-ChildItem -Path $PSScriptRoot -Filter "FastCopy.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) { return $found.FullName }
+    }
     return $null
+}
+
+function Install-FastCopyAuto {
+    # Descarga el installer oficial de FastCopy (fastcopy.jp redirige a GitHub),
+    # lo ejecuta silenciosamente a %LOCALAPPDATA%\AtlasPC\apps\FastCopy y
+    # devuelve la ruta al .exe.
+    $targetDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\apps\FastCopy'
+    if (-not (Test-Path $targetDir)) {
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+    }
+
+    # URLs en orden de preferencia (version mas reciente primero).
+    # fastcopy.jp hace redirect 302 a GitHub/FastCopyLab.
+    $urls = @(
+        'https://fastcopy.jp/archive/FastCopy5.11.2_installer.exe',
+        'https://github.com/FastCopyLab/FastCopyDist2/raw/main/FastCopy5.11.2_installer.exe',
+        'https://fastcopy.jp/archive/FastCopy5.9.0_installer.exe'
+    )
+
+    $installerPath = Join-Path $env:TEMP ("FastCopy-installer-" + [guid]::NewGuid().ToString('N').Substring(0,8) + ".exe")
+    $ok = $false
+    foreach ($url in $urls) {
+        Write-Host "    Descargando: $url" -ForegroundColor Gray
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri $url -OutFile $installerPath -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+            if ((Get-Item $installerPath).Length -gt 200KB) { $ok = $true; break }
+        } catch {
+            Write-Host "    Fallo: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+    if (-not $ok) { throw "No se pudo descargar el installer de FastCopy." }
+
+    # El installer oficial de FastCopy (InnoSetup) soporta modo silencioso:
+    #   /VERYSILENT /SUPPRESSMSGBOXES /DIR="..." /NOICONS
+    Write-Host "    Instalando silenciosamente en $targetDir ..." -ForegroundColor Gray
+    $procArgs = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NOICONS', ("/DIR=`"$targetDir`""))
+    try {
+        $p = Start-Process -FilePath $installerPath -ArgumentList $procArgs -Wait -PassThru -ErrorAction Stop
+        if ($p.ExitCode -ne 0) {
+            Write-Host "    Instalador termino con codigo $($p.ExitCode). Intentando ejecutar en modo interactivo..." -ForegroundColor Yellow
+            Start-Process -FilePath $installerPath -Wait
+        }
+    } catch {
+        throw "Fallo ejecutando el instalador: $($_.Exception.Message)"
+    } finally {
+        Remove-Item $installerPath -ErrorAction SilentlyContinue
+    }
+
+    # Buscar el .exe en target (el installer puede poner FastCopy.exe directo o en subcarpeta).
+    $exe = Get-ChildItem -Path $targetDir -Filter 'FastCopy.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $exe) {
+        # Si el usuario eligio el default (Program Files), buscar ahi.
+        $fallbacks = @(
+            "$env:ProgramFiles\FastCopy\FastCopy.exe",
+            "${env:ProgramFiles(x86)}\FastCopy\FastCopy.exe"
+        )
+        foreach ($fb in $fallbacks) {
+            if (Test-Path $fb) { $exe = Get-Item $fb; break }
+        }
+    }
+    if (-not $exe) { throw "FastCopy.exe no encontrado tras la instalacion." }
+    return $exe.FullName
 }
 
 # ==================== FUNCIONES BASE ====================
@@ -669,13 +736,35 @@ if (-not $fastCopyExe) {
     Write-Host "    - Carpeta del script ($PSScriptRoot)" -ForegroundColor DarkGray
     Write-Host "    - Program Files" -ForegroundColor DarkGray
     Write-Host "    - PATH del sistema" -ForegroundColor DarkGray
+    Write-Host "    - $env:LOCALAPPDATA\AtlasPC\apps\FastCopy" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "    SOLUCION:" -ForegroundColor Yellow
-    Write-Host "    1. Descarga FastCopy de: https://fastcopy.jp" -ForegroundColor White
-    Write-Host "    2. Coloca FastCopy.exe junto a este script" -ForegroundColor White
+    Write-Host "    Opciones:" -ForegroundColor Yellow
+    Write-Host "      [D] Descargar automaticamente de fastcopy.jp (recomendado)" -ForegroundColor White
+    Write-Host "      [S] Salir e instalarlo manualmente" -ForegroundColor White
     Write-Host ""
-    Read-Host "    ENTER para salir"
-    exit 1
+    $choice = Read-Host "    Seleccion [D/S]"
+
+    if ($choice -match '^[Dd]$') {
+        Write-Host ""
+        Write-Host "    Descargando FastCopy..." -ForegroundColor Cyan
+        try {
+            $fastCopyExe = Install-FastCopyAuto
+            Write-Host ""
+            Write-Host "    FastCopy instalado: $fastCopyExe" -ForegroundColor Green
+            Start-Sleep -Seconds 1
+        } catch {
+            Write-Host ""
+            Write-Host "    ERROR en la descarga: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "    Descarga manual: https://fastcopy.jp" -ForegroundColor Yellow
+            Read-Host "    ENTER para salir"
+            return
+        }
+    } else {
+        Write-Host "    Abre https://fastcopy.jp y coloca FastCopy.exe en:" -ForegroundColor Gray
+        Write-Host "      $env:LOCALAPPDATA\AtlasPC\apps\FastCopy\" -ForegroundColor Gray
+        Read-Host "    ENTER para salir"
+        return
+    }
 }
 
 # ==================== BUCLE PRINCIPAL ====================
