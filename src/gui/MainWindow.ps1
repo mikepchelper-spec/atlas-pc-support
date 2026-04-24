@@ -15,16 +15,21 @@ function Get-AtlasPalette {
 
     $accent = ConvertTo-AtlasHex $Branding.theme.accentColor
     $dark   = [bool]$Branding.theme.darkMode
+    $secondary = if ($Branding.theme.secondaryColor) { ConvertTo-AtlasHex $Branding.theme.secondaryColor } else { $null }
 
     if ($dark) {
+        # Si hay secondaryColor (ej. Atlas navy #002147), tínta sutilmente el fondo
+        $bg      = if ($secondary) { (Get-AtlasColorShift $secondary -15) } else { '#0F1115' }
+        $surface = if ($secondary) { (Get-AtlasColorShift $secondary 0)   } else { '#1A1D23' }
+        $surfAlt = if ($secondary) { (Get-AtlasColorShift $secondary 15)  } else { '#23272F' }
         return @{
-            BgColor          = '#0F1115'
-            SurfaceColor     = '#1A1D23'
-            SurfaceAltColor  = '#23272F'
+            BgColor          = $bg
+            SurfaceColor     = $surface
+            SurfaceAltColor  = $surfAlt
             BorderColor      = '#2E333D'
             TextPrimary      = '#F5F5F5'
             TextSecondary    = '#C5C7CC'
-            TextMuted        = '#7A7D85'
+            TextMuted        = '#9BA0AA'
             AccentColor      = $accent
             AccentHover      = (Get-AtlasColorShift $accent 20)
             AccentPressed    = (Get-AtlasColorShift $accent -20)

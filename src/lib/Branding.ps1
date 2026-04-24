@@ -22,7 +22,8 @@ function Get-AtlasBranding {
             copyright    = "© 2026 Atlas PC Support"
         }
         theme = @{
-            accentColor      = "#FF6600"
+            accentColor      = "#FF5500"
+            secondaryColor   = "#002147"
             darkMode         = $true
             useSystemAccent  = $false
             cornerRadius     = 8
