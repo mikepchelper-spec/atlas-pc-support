@@ -8,10 +8,6 @@ on:
       - 'config/**'
       - 'build.ps1'
   pull_request:
-    paths:
-      - 'src/**'
-      - 'config/**'
-      - 'build.ps1'
   workflow_dispatch:
 
 jobs:
