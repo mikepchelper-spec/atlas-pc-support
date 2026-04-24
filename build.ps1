@@ -39,6 +39,7 @@ $libFiles = @(
     'lib\Admin.ps1'
     'lib\Logging.ps1'
     'lib\Dependencies.ps1'
+    'lib\PS7.ps1'
     'lib\ToolRunner.ps1'
 )
 $libContent = foreach ($f in $libFiles) {
@@ -97,6 +98,14 @@ $branding = Get-AtlasBranding
 $currentLang = Set-AtlasLanguage $branding.language
 Initialize-AtlasLog | Out-Null
 Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion, lang=$currentLang)"
+
+# Detectar PS 7 y cachear la ruta (ToolRunner lo usa para lanzar tools en pwsh).
+$ps7 = Initialize-AtlasPS7
+if ($ps7) {
+    Write-AtlasLog "PowerShell 7 disponible: $ps7"
+} else {
+    Write-AtlasLog "PowerShell 7 NO instalado; tools correran en Windows PowerShell 5.1. Usar la tool 'Actualizar PowerShell'."
+}
 
 try {
     $manifestObj = $script:AtlasToolsManifest | ConvertFrom-Json -AsHashtable

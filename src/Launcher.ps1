@@ -24,6 +24,7 @@ if ($PSScriptRoot) {
 . (Join-Path $script:AtlasSrc 'lib\Admin.ps1')
 . (Join-Path $script:AtlasSrc 'lib\Logging.ps1')
 . (Join-Path $script:AtlasSrc 'lib\Dependencies.ps1')
+. (Join-Path $script:AtlasSrc 'lib\PS7.ps1')
 . (Join-Path $script:AtlasSrc 'lib\ToolRunner.ps1')
 
 # --- Cargar todas las tools ---
@@ -35,6 +36,14 @@ $branding = Get-AtlasBranding
 $currentLang = Set-AtlasLanguage $branding.language
 Initialize-AtlasLog | Out-Null
 Write-AtlasLog "Atlas PC Support iniciado ($($branding.brand.name) v$($branding.brand.version), lang=$currentLang)"
+
+# Detectar PS 7 y cachear la ruta (ToolRunner la usa para lanzar tools en pwsh).
+$ps7 = Initialize-AtlasPS7
+if ($ps7) {
+    Write-AtlasLog "PowerShell 7 disponible: $ps7"
+} else {
+    Write-AtlasLog "PowerShell 7 NO instalado; tools correran en Windows PowerShell 5.1. Recomendado: usar tool 'Actualizar PowerShell'."
+}
 
 $toolsManifestPath = Join-Path $script:AtlasRoot 'config\tools.json'
 $manifest = Get-Content -Raw $toolsManifestPath | ConvertFrom-Json -AsHashtable
