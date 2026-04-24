@@ -160,11 +160,78 @@ function _Row {
     return "<tr><th>$l</th><td>$v</td></tr>"
 }
 
+# --- HELPERS de branding / color (inline, sin dependencias de libs) ---
+function _Brighten-Hex {
+    param([string]$Hex, [int]$Delta = 35)
+    if (-not $Hex) { return $Hex }
+    $h = $Hex.TrimStart('#')
+    if ($h.Length -ne 6) { return $Hex }
+    try {
+        $r = [Math]::Min(255, [Convert]::ToInt32($h.Substring(0,2),16) + $Delta)
+        $g = [Math]::Min(255, [Convert]::ToInt32($h.Substring(2,2),16) + $Delta)
+        $b = [Math]::Min(255, [Convert]::ToInt32($h.Substring(4,2),16) + $Delta)
+        return ('#{0:X2}{1:X2}{2:X2}' -f $r, $g, $b)
+    } catch { return $Hex }
+}
+
+function _Darken-Hex {
+    param([string]$Hex, [int]$Delta = 35)
+    if (-not $Hex) { return $Hex }
+    $h = $Hex.TrimStart('#')
+    if ($h.Length -ne 6) { return $Hex }
+    try {
+        $r = [Math]::Max(0, [Convert]::ToInt32($h.Substring(0,2),16) - $Delta)
+        $g = [Math]::Max(0, [Convert]::ToInt32($h.Substring(2,2),16) - $Delta)
+        $b = [Math]::Max(0, [Convert]::ToInt32($h.Substring(4,2),16) - $Delta)
+        return ('#{0:X2}{1:X2}{2:X2}' -f $r, $g, $b)
+    } catch { return $Hex }
+}
+
+function _Load-AtlasBrand {
+    # Devuelve @{ Name, Accent, Secondary, AccentHover, SecondaryDark }. Defaults
+    # si no hay branding.json. Busca en CWD/branding.json, AppData, LocalAppData.
+    $defaults = @{
+        Name          = 'Atlas PC Support'
+        Accent        = '#FF5500'
+        Secondary     = '#002147'
+    }
+    $candidates = @()
+    if ($env:USERPROFILE)    { $candidates += (Join-Path $env:USERPROFILE 'branding.json') }
+    if ($env:LOCALAPPDATA)   { $candidates += (Join-Path $env:LOCALAPPDATA 'AtlasPC\branding.json') }
+    if ($env:APPDATA)        { $candidates += (Join-Path $env:APPDATA 'AtlasPC\branding.json') }
+    $candidates += (Join-Path (Get-Location) 'branding.json')
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) {
+            try {
+                $obj = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+                if ($obj) {
+                    if ($obj.brand -and $obj.brand.shortName) { $defaults.Name = [string]$obj.brand.shortName }
+                    elseif ($obj.brand -and $obj.brand.name)  { $defaults.Name = [string]$obj.brand.name }
+                    if ($obj.theme -and $obj.theme.accentColor)    { $defaults.Accent    = [string]$obj.theme.accentColor }
+                    if ($obj.theme -and $obj.theme.secondaryColor) { $defaults.Secondary = [string]$obj.theme.secondaryColor }
+                    break
+                }
+            } catch {}
+        }
+    }
+    $defaults.AccentHover   = _Brighten-Hex $defaults.Accent 30
+    $defaults.SecondaryDark = _Darken-Hex   $defaults.Secondary 15
+    return $defaults
+}
+
 # --- FUNCION: Generar Checklist de Entrega (reporte HTML) ---
 function Generar-ChecklistEntrega {
     Escribir-Centrado "--- GENERANDO CHECKLIST DE ENTREGA (HTML) ---" "Cyan"
     Write-Host ""
     Write-Host "   Recopilando informacion del equipo..." -ForegroundColor Yellow
+
+    # Cargar branding (colores corporativos) — fallback a defaults Atlas.
+    $brand         = _Load-AtlasBrand
+    $brandName     = $brand.Name
+    $accent        = $brand.Accent
+    $accentHover   = $brand.AccentHover
+    $secondary     = $brand.Secondary
+    $secondaryDark = $brand.SecondaryDark
 
     # Recopilar datos
     $now = Get-Date
@@ -332,8 +399,10 @@ function Generar-ChecklistEntrega {
     --surface: #171d26;
     --surface-alt: #1e2631;
     --border: #2c3444;
-    --accent: #3b82f6;
-    --accent-hover: #60a5fa;
+    --accent: $accent;
+    --accent-hover: $accentHover;
+    --secondary: $secondary;
+    --secondary-dark: $secondaryDark;
     --text: #e5e7eb;
     --muted: #9ca3af;
     --ok: #22c55e;
@@ -352,12 +421,12 @@ function Generar-ChecklistEntrega {
   }
   .wrap { max-width: 960px; margin: 0 auto; padding: 24px; }
   header {
-    background: linear-gradient(135deg, var(--accent) 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
     color: white;
     padding: 32px 24px;
     border-radius: var(--radius);
     margin-bottom: 24px;
-    box-shadow: 0 6px 24px rgba(59,130,246,0.25);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
   }
   header h1 { margin: 0 0 4px 0; font-size: 28px; letter-spacing: -0.5px; }
   header .subtitle { opacity: .85; font-size: 14px; }
@@ -410,12 +479,12 @@ function Generar-ChecklistEntrega {
   @media print {
     body { background: white !important; color: black !important; font-size: 11pt; }
     .wrap { max-width: 100%; padding: 0; }
-    header { background: white !important; color: black !important; border: 2px solid #333; box-shadow: none; page-break-after: avoid; }
-    header h1, header .subtitle { color: #1d4ed8 !important; }
+    header { background: white !important; color: black !important; border: 2px solid var(--secondary); box-shadow: none; page-break-after: avoid; }
+    header h1, header .subtitle { color: var(--secondary) !important; }
     section { background: white !important; border: 1px solid #999 !important; color: black !important; page-break-inside: avoid; }
-    section h2 { color: #1d4ed8 !important; border-color: #999; }
+    section h2 { color: var(--secondary) !important; border-color: #999; }
     table th, table td { border-bottom: 1px solid #ccc !important; color: black !important; }
-    table.mini thead th { background: #eee !important; color: #1d4ed8 !important; }
+    table.mini thead th { background: #eee !important; color: var(--secondary) !important; }
     code, pre { background: #f5f5f5 !important; color: black !important; }
     .check { background: white !important; border: 1px solid #999 !important; break-inside: avoid; }
     .key-block { background: #fff8e6 !important; color: #666 !important; }
@@ -436,9 +505,9 @@ function Generar-ChecklistEntrega {
 </div>
 
 <header>
-  <h1>ATLAS PC SUPPORT</h1>
-  <div class="subtitle">Checklist de Entrega — $(_Esc-Html $hostName)</div>
-  <div class="meta">Generado: $(_Esc-Html $generated) · Operador: $(_Esc-Html $userName)</div>
+  <h1>$(_Esc-Html $brandName)</h1>
+  <div class="subtitle">Checklist de Entrega &mdash; $(_Esc-Html $hostName)</div>
+  <div class="meta">Generado: $(_Esc-Html $generated) &middot; Operador: $(_Esc-Html $userName)</div>
 </header>
 
 <section>
