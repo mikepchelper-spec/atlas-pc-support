@@ -33,6 +33,8 @@ function Invoke-PrepararUSB {
     $LAUNCHER_URL_PRIMARY   = 'https://tools.atlaspcsupport.com/'
     $LAUNCHER_URL_FALLBACK  = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1'
     $FASTCOPY_URL           = 'https://fastcopy.jp/archive/FastCopy5.11.2_installer.exe'
+    $PS7_VERSION            = '7.5.0'
+    $PS7_URL                = "https://github.com/PowerShell/PowerShell/releases/download/v$PS7_VERSION/PowerShell-$PS7_VERSION-win-x64.msi"
     $USB_ROOT_NAME          = 'ATLAS_PC_SUPPORT'
     $MAX_LAUNCHER_AGE_DAYS  = 7
 
@@ -147,6 +149,38 @@ function Invoke-PrepararUSB {
             }
         } catch {
             Write-Centered "[!] Fallo descarga FastCopy: $($_.Exception.Message)" 'Yellow'
+        }
+        return $false
+    }
+
+    function Download-PS7 {
+        param([string]$DepsDir)
+
+        Write-Host ''
+        Write-Centered '--- Descargando PowerShell 7 MSI (~120 MB, opcional) ---' 'Yellow'
+        Write-Centered 'Permite que el cliente instale PS7 sin internet desde esta USB.' 'DarkGray'
+
+        if (-not (Test-Path $DepsDir)) {
+            New-Item -ItemType Directory -Path $DepsDir -Force | Out-Null
+        }
+        $msiFile = Join-Path $DepsDir "PowerShell-$PS7_VERSION-win-x64.msi"
+        if ((Test-Path $msiFile) -and ((Get-Item $msiFile).Length -gt 50MB)) {
+            Write-Centered "[OK] Ya existe: $msiFile" 'Green'
+            return $true
+        }
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri $PS7_URL -OutFile $msiFile -UseBasicParsing -TimeoutSec 300 -ErrorAction Stop
+            $sz = (Get-Item $msiFile).Length
+            if ($sz -gt 50MB) {
+                Write-Centered "[OK] PS7 MSI descargado ($(Format-Size $sz))" 'Green'
+                return $true
+            } else {
+                Write-Centered "[!] Descarga parece incompleta ($(Format-Size $sz))" 'Yellow'
+                Remove-Item $msiFile -ErrorAction SilentlyContinue
+            }
+        } catch {
+            Write-Centered "[!] Fallo descarga PS7: $($_.Exception.Message)" 'Yellow'
         }
         return $false
     }
@@ -365,6 +399,16 @@ Generado por Atlas PC Support - Preparar USB Offline
     if ($dfc -match '^[SsYy]$') {
         $fcDir = Join-Path $appsDir 'FastCopy'
         Download-FastCopy -AppsDir $fcDir | Out-Null
+    }
+
+    # 6) PowerShell 7 MSI opcional (para instalacion offline desde la USB)
+    Write-Host ''
+    Write-Centered '¿Descargar PowerShell 7 MSI en la USB? [S/N] (~120 MB)' 'Yellow'
+    Write-Centered 'Permite al cliente instalar PS7 sin internet con la tool "Actualizar PowerShell".' 'DarkGray'
+    $dps = Read-Host '  '
+    if ($dps -match '^[SsYy]$') {
+        $depsDir = Join-Path $targetDir 'deps'
+        Download-PS7 -DepsDir $depsDir | Out-Null
     }
 
     Write-Host ''

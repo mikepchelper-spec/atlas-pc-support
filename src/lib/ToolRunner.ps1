@@ -125,10 +125,17 @@ function Invoke-AtlasTool {
     # .cmd wrapper: sobrevive a 'exit' dentro de la tool (pause al final
     # siempre se ejecuta porque corre en proceso cmd, no powershell).
     $psFile = $tempScript.Replace('%', '%%')
+    # Preferimos pwsh.exe (PS 7+) si esta instalado: mejor encoding por
+    # defecto, enums modernos (AutomaticDelayedStart, etc.) y Set-Service
+    # con mas parametros. Caemos a powershell.exe 5.1 solo si PS 7 no esta.
+    $psExe = 'powershell.exe'
+    if ($script:AtlasPS7CachedPath -and (Test-Path -LiteralPath $script:AtlasPS7CachedPath)) {
+        $psExe = "`"$($script:AtlasPS7CachedPath)`""
+    }
     $wrapperLines = @(
         '@echo off',
         'chcp 65001 > nul 2>&1',
-        ('powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + $psFile + '"'),
+        ($psExe + ' -NoProfile -ExecutionPolicy Bypass -File "' + $psFile + '"'),
         'echo.',
         'echo ============================================',
         'echo   Tool finalizada. Presiona una tecla para cerrar.',
