@@ -405,15 +405,18 @@ $(Get-AtlasString 'about.description')
         $btnRestart.Add_Click({
             try {
                 $bootstrapUrl = 'https://tools.atlaspcsupport.com/?v=' + [guid]::NewGuid().ToString('N')
+                # WPF requiere apartment STA. PS7 (pwsh) arranca MTA por defecto; forzar -Sta.
+                # Usar Windows PowerShell 5.1 (siempre STA en consola) para maxima robustez
+                # en este caso concreto de relanzamiento; el panel sigue detectando PS7 al
+                # arrancar y lanzando tools en pwsh como siempre.
                 $psExe = 'powershell.exe'
-                # Preferir pwsh (PS7) si esta disponible, para consistencia con el entorno de las tools.
-                if ($script:AtlasPS7Path -and (Test-Path -LiteralPath $script:AtlasPS7Path)) {
-                    $psExe = $script:AtlasPS7Path
-                }
-                $cmd = "irm '$bootstrapUrl' | iex"
-                Write-AtlasLog "Reinicio solicitado desde UI ($psExe)" -Tool 'UI'
-                Start-Process -FilePath $psExe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command',$cmd | Out-Null
-                Start-Sleep -Milliseconds 400
+                # Capturar errores del child a un log conocido para poder diagnosticar.
+                $errLog = Join-Path $env:TEMP 'atlas-restart.log'
+                $cmd = "try { `$ErrorActionPreference='Continue'; (Get-Date).ToString('u') + ' --- restart child START' | Out-File -Append -Encoding UTF8 '$errLog'; irm '$bootstrapUrl' | iex } catch { `"`$(Get-Date -Format u) ERR: `$(`$_ | Out-String)`" | Out-File -Append -Encoding UTF8 '$errLog' }"
+                Write-AtlasLog "Reinicio solicitado desde UI (psExe=$psExe, log=$errLog)" -Tool 'UI'
+                Start-Process -FilePath $psExe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-Command',$cmd -WindowStyle Hidden | Out-Null
+                Start-Sleep -Milliseconds 600
+                Write-AtlasLog "Reinicio: cerrando ventana actual" -Tool 'UI'
                 if ($script:MainWindow) { $script:MainWindow.Close() }
             } catch {
                 Write-AtlasLog "Error al reiniciar el panel: $_" -Level WARN -Tool 'UI'
