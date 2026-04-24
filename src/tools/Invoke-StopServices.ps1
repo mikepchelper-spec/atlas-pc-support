@@ -203,8 +203,12 @@ function Invoke-StopServices {
                 try {
                     Set-Service -Name $s.Name -StartupType $mode -ErrorAction Stop
                     # Escribir el flag DelayedAutostart directamente en el registro
-                    # (compatible con PS 5.1 y PS 7+).
-                    if ($mode -eq 'Automatic') {
+                    # (compatible con PS 5.1 y PS 7+). Solo se toca el registro
+                    # cuando la entrada de backup tiene el campo DelayedAutoStart;
+                    # backups antiguos (anteriores a PR #19) no lo tienen y no
+                    # debemos sobreescribir el delay actual del servicio.
+                    $hasDelayedProp = $s.PSObject.Properties.Name -contains 'DelayedAutoStart'
+                    if ($mode -eq 'Automatic' -and $hasDelayedProp) {
                         $regKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$($s.Name)"
                         $flagVal = if ($s.DelayedAutoStart) { 1 } else { 0 }
                         try {
