@@ -363,7 +363,7 @@ $(Get-AtlasString 'about.description')
 
     # Coffee / donacion (footer)
     if ($coffeeLink) {
-        $coffeeUrl = 'https://www.paypal.me/florinmihaisuciu'
+        $coffeeUrl = 'https://www.paypal.me/atlaspcsupport'
         $coffeeLink.Add_MouseLeftButtonUp({
             try {
                 Start-Process $coffeeUrl
