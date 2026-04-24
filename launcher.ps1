@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 13:55:43
+#  Build:   2026-04-24 14:01:13
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 13:55:43'
+$script:AtlasBuildDate = '2026-04-24 14:01:13'
 
 $script:AtlasToolsManifest = @'
 {
@@ -442,6 +442,7 @@ $script:AtlasXamlTemplate = @'
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0"
                            x:Name="StatusText"
@@ -450,6 +451,16 @@ $script:AtlasXamlTemplate = @'
                            FontSize="11"
                            VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="1"
+                           x:Name="CoffeeLink"
+                           Text="☕ {{COFFEE_LABEL}}"
+                           Foreground="{StaticResource AccentBrush}"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Cursor="Hand"
+                           VerticalAlignment="Center"
+                           Margin="0,0,16,0"
+                           ToolTip="{{COFFEE_TOOLTIP}}"/>
+                <TextBlock Grid.Column="2"
                            Text="{{BRAND_COPYRIGHT}} · v{{BRAND_VERSION}}"
                            Foreground="{StaticResource TextMutedBrush}"
                            FontSize="11"
@@ -613,6 +624,8 @@ $script:AtlasStringsDict = @{
         'tool.closePrompt'        = 'Presiona Enter para cerrar esta ventana...'
         'tool.error'              = '[!] Error en {0}: {1}'
         'tool.notLoaded'          = "No se pudo serializar la función '{0}'. ¿Está cargada?"
+        'footer.coffee'           = 'Invítame un café'
+        'footer.coffeeTooltip'    = 'Apoya el proyecto con una donación vía PayPal'
     }
     'en' = @{
         'app.tagline'             = 'Unified Windows tech-support panel'
@@ -642,6 +655,8 @@ $script:AtlasStringsDict = @{
         'tool.closePrompt'        = 'Press Enter to close this window...'
         'tool.error'              = '[!] Error in {0}: {1}'
         'tool.notLoaded'          = "Could not serialize the function '{0}'. Is it loaded?"
+        'footer.coffee'           = 'Buy me a coffee'
+        'footer.coffeeTooltip'    = 'Support the project with a PayPal donation'
     }
     'ro' = @{
         'app.tagline'             = 'Panou unificat de suport tehnic pentru Windows'
@@ -671,6 +686,8 @@ $script:AtlasStringsDict = @{
         'tool.closePrompt'        = 'Apasă Enter pentru a închide această fereastră...'
         'tool.error'              = '[!] Eroare în {0}: {1}'
         'tool.notLoaded'          = "Nu s-a putut serializa funcția '{0}'. Este încărcată?"
+        'footer.coffee'           = 'Oferă-mi o cafea'
+        'footer.coffeeTooltip'    = 'Susține proiectul cu o donație prin PayPal'
     }
 }
 
@@ -1408,6 +1425,8 @@ function Expand-AtlasXaml {
         'HEADER_LOGS'        = (Get-AtlasString 'header.logs')
         'HEADER_ABOUT'       = (Get-AtlasString 'header.about')
         'STATUS_READY'       = (Get-AtlasString 'status.ready')
+        'COFFEE_LABEL'       = (Get-AtlasString 'footer.coffee')
+        'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -1511,6 +1530,7 @@ function Show-AtlasWindow {
     $adminBadge  = $window.FindName('AdminBadge')
     $btnLogs     = $window.FindName('BtnLogs')
     $btnAbout    = $window.FindName('BtnAbout')
+    $coffeeLink  = $window.FindName('CoffeeLink')
 
     # Badge de admin en header
     if (Test-IsAdmin) {
@@ -1635,6 +1655,18 @@ $(Get-AtlasString 'about.description')
 "@
         [System.Windows.MessageBox]::Show($msg, (Get-AtlasString 'about.title'), "OK", "Information") | Out-Null
     })
+
+    # Coffee / donacion (footer)
+    if ($coffeeLink) {
+        $coffeeUrl = 'https://www.paypal.me/florinmihaisuciu'
+        $coffeeLink.Add_MouseLeftButtonUp({
+            try {
+                Start-Process $coffeeUrl
+            } catch {
+                Write-AtlasLog "No se pudo abrir URL de donacion: $_" -Level WARN
+            }
+        })
+    }
 
     $script:MainWindow = $window
     $script:Branding = $Branding

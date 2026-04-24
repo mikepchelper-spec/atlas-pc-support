@@ -33,6 +33,8 @@ $script:AtlasStringsDict = @{
         'tool.closePrompt'        = 'Presiona Enter para cerrar esta ventana...'
         'tool.error'              = '[!] Error en {0}: {1}'
         'tool.notLoaded'          = "No se pudo serializar la función '{0}'. ¿Está cargada?"
+        'footer.coffee'           = 'Invítame un café'
+        'footer.coffeeTooltip'    = 'Apoya el proyecto con una donación vía PayPal'
     }
     'en' = @{
         'app.tagline'             = 'Unified Windows tech-support panel'
@@ -62,6 +64,8 @@ $script:AtlasStringsDict = @{
         'tool.closePrompt'        = 'Press Enter to close this window...'
         'tool.error'              = '[!] Error in {0}: {1}'
         'tool.notLoaded'          = "Could not serialize the function '{0}'. Is it loaded?"
+        'footer.coffee'           = 'Buy me a coffee'
+        'footer.coffeeTooltip'    = 'Support the project with a PayPal donation'
     }
     'ro' = @{
         'app.tagline'             = 'Panou unificat de suport tehnic pentru Windows'
@@ -91,6 +95,8 @@ $script:AtlasStringsDict = @{
         'tool.closePrompt'        = 'Apasă Enter pentru a închide această fereastră...'
         'tool.error'              = '[!] Eroare în {0}: {1}'
         'tool.notLoaded'          = "Nu s-a putut serializa funcția '{0}'. Este încărcată?"
+        'footer.coffee'           = 'Oferă-mi o cafea'
+        'footer.coffeeTooltip'    = 'Susține proiectul cu o donație prin PayPal'
     }
 }
 

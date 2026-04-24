@@ -130,6 +130,8 @@ function Expand-AtlasXaml {
         'HEADER_LOGS'        = (Get-AtlasString 'header.logs')
         'HEADER_ABOUT'       = (Get-AtlasString 'header.about')
         'STATUS_READY'       = (Get-AtlasString 'status.ready')
+        'COFFEE_LABEL'       = (Get-AtlasString 'footer.coffee')
+        'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -233,6 +235,7 @@ function Show-AtlasWindow {
     $adminBadge  = $window.FindName('AdminBadge')
     $btnLogs     = $window.FindName('BtnLogs')
     $btnAbout    = $window.FindName('BtnAbout')
+    $coffeeLink  = $window.FindName('CoffeeLink')
 
     # Badge de admin en header
     if (Test-IsAdmin) {
@@ -357,6 +360,18 @@ $(Get-AtlasString 'about.description')
 "@
         [System.Windows.MessageBox]::Show($msg, (Get-AtlasString 'about.title'), "OK", "Information") | Out-Null
     })
+
+    # Coffee / donacion (footer)
+    if ($coffeeLink) {
+        $coffeeUrl = 'https://www.paypal.me/florinmihaisuciu'
+        $coffeeLink.Add_MouseLeftButtonUp({
+            try {
+                Start-Process $coffeeUrl
+            } catch {
+                Write-AtlasLog "No se pudo abrir URL de donacion: $_" -Level WARN
+            }
+        })
+    }
 
     $script:MainWindow = $window
     $script:Branding = $Branding
