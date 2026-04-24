@@ -46,6 +46,17 @@
       "dependencies": []
     },
     {
+      "id": "instalar-paquetes",
+      "name": "Instalar Paquetes (winget)",
+      "description": "Instala software en lote con winget. Catálogo de apps comunes por categoría + perfiles JSON reutilizables entre clientes.",
+      "category": "software",
+      "function": "Invoke-InstalarPaquetes",
+      "source": "InstalarPaquetes.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "actualizar-powershell",
       "name": "Actualizar PowerShell",
       "description": "Instala o actualiza PowerShell 7 (runtime moderno). Mejor encoding, enums modernos y menos bugs que Windows PowerShell 5.1.",
