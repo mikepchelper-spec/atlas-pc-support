@@ -133,6 +133,7 @@ function Expand-AtlasXaml {
         'COFFEE_LABEL'       = (Get-AtlasString 'footer.coffee')
         'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
         'LANG_TOOLTIP'       = (Get-AtlasString 'header.languageTooltip')
+        'RESTART_TOOLTIP'    = (Get-AtlasString 'header.restartTooltip')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -236,6 +237,7 @@ function Show-AtlasWindow {
     $adminBadge  = $window.FindName('AdminBadge')
     $btnLogs     = $window.FindName('BtnLogs')
     $btnAbout    = $window.FindName('BtnAbout')
+    $btnRestart  = $window.FindName('BtnRestart')
     $coffeeLink  = $window.FindName('CoffeeLink')
     $langCombo   = $window.FindName('LanguageCombo')
 
@@ -395,6 +397,28 @@ $(Get-AtlasString 'about.description')
             $msg = $script:AtlasStringsDict[$newLang]['language.restartRequired']
             if (-not $msg) { $msg = Get-AtlasString 'language.restartRequired' }
             [System.Windows.MessageBox]::Show($msg, $brand, 'OK', 'Information') | Out-Null
+        })
+    }
+
+    # Boton Reiniciar (relanzar via irm|iex y cerrar ventana actual)
+    if ($btnRestart) {
+        $btnRestart.Add_Click({
+            try {
+                $bootstrapUrl = 'https://tools.atlaspcsupport.com/?v=' + [guid]::NewGuid().ToString('N')
+                $psExe = 'powershell.exe'
+                # Preferir pwsh (PS7) si esta disponible, para consistencia con el entorno de las tools.
+                if ($script:AtlasPS7Path -and (Test-Path -LiteralPath $script:AtlasPS7Path)) {
+                    $psExe = $script:AtlasPS7Path
+                }
+                $cmd = "irm '$bootstrapUrl' | iex"
+                Write-AtlasLog "Reinicio solicitado desde UI ($psExe)" -Tool 'UI'
+                Start-Process -FilePath $psExe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command',$cmd | Out-Null
+                Start-Sleep -Milliseconds 400
+                if ($script:MainWindow) { $script:MainWindow.Close() }
+            } catch {
+                Write-AtlasLog "Error al reiniciar el panel: $_" -Level WARN -Tool 'UI'
+                [System.Windows.MessageBox]::Show("No se pudo reiniciar: $_", 'Atlas', 'OK', 'Error') | Out-Null
+            }
         })
     }
 

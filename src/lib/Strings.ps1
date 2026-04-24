@@ -37,6 +37,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Apoya el proyecto con una donación vía PayPal'
         'header.language'         = 'Idioma'
         'header.languageTooltip'  = 'Cambiar idioma del panel'
+        'header.restartTooltip'   = 'Reiniciar el panel (aplica el cambio de idioma)'
         'language.restartRequired'= 'Reinicia el panel para aplicar el nuevo idioma.'
     }
     'en' = @{
@@ -71,6 +72,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Support the project with a PayPal donation'
         'header.language'         = 'Language'
         'header.languageTooltip'  = 'Change panel language'
+        'header.restartTooltip'   = 'Restart the panel (apply language change)'
         'language.restartRequired'= 'Restart the panel to apply the new language.'
     }
     'ro' = @{
@@ -105,6 +107,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Susține proiectul cu o donație prin PayPal'
         'header.language'         = 'Limbă'
         'header.languageTooltip'  = 'Schimbă limba panoului'
+        'header.restartTooltip'   = 'Repornește panoul (aplică schimbarea de limbă)'
         'language.restartRequired'= 'Repornește panoul pentru a aplica noua limbă.'
     }
     'pt' = @{
@@ -139,6 +142,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Apoia o projeto com um donativo PayPal'
         'header.language'         = 'Idioma'
         'header.languageTooltip'  = 'Mudar idioma do painel'
+        'header.restartTooltip'   = 'Reiniciar o painel (aplicar mudança de idioma)'
         'language.restartRequired'= 'Reinicia o painel para aplicar o novo idioma.'
     }
     'fr' = @{
@@ -173,6 +177,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Soutiens le projet avec un don PayPal'
         'header.language'         = 'Langue'
         'header.languageTooltip'  = 'Changer la langue du panneau'
+        'header.restartTooltip'   = 'Redémarrer le panneau (appliquer le changement de langue)'
         'language.restartRequired'= 'Redémarre le panneau pour appliquer la nouvelle langue.'
     }
     'de' = @{
@@ -207,6 +212,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Unterstütze das Projekt mit einer PayPal-Spende'
         'header.language'         = 'Sprache'
         'header.languageTooltip'  = 'Panel-Sprache ändern'
+        'header.restartTooltip'   = 'Panel neu starten (Sprache anwenden)'
         'language.restartRequired'= 'Starte das Panel neu, um die neue Sprache anzuwenden.'
     }
     'it' = @{
@@ -241,6 +247,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Sostieni il progetto con una donazione PayPal'
         'header.language'         = 'Lingua'
         'header.languageTooltip'  = 'Cambia lingua del pannello'
+        'header.restartTooltip'   = 'Riavviare il pannello (applicare il cambio lingua)'
         'language.restartRequired'= 'Riavvia il pannello per applicare la nuova lingua.'
     }
 }

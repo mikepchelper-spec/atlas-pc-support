@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 17:48:41
+#  Build:   2026-04-24 18:21:59
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 17:48:41'
+$script:AtlasBuildDate = '2026-04-24 18:21:59'
 
 $script:AtlasToolsManifest = @'
 {
@@ -535,10 +535,17 @@ $script:AtlasXamlTemplate = @'
                               Style="{StaticResource AtlasComboBox}"
                               Width="130"
                               Height="34"
-                              Margin="0,0,8,0"
+                              Margin="0,0,6,0"
                               FontSize="12"
                               VerticalContentAlignment="Center"
                               ToolTip="{{LANG_TOOLTIP}}"/>
+                    <Button x:Name="BtnRestart"
+                            Content="↻"
+                            Style="{StaticResource AtlasSecondaryButton}"
+                            Margin="0,0,8,0"
+                            Padding="10,6"
+                            FontSize="16"
+                            ToolTip="{{RESTART_TOOLTIP}}"/>
                     <Button x:Name="BtnLogs"
                             Content="{{HEADER_LOGS}}"
                             Style="{StaticResource AtlasSecondaryButton}"
@@ -769,6 +776,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Apoya el proyecto con una donación vía PayPal'
         'header.language'         = 'Idioma'
         'header.languageTooltip'  = 'Cambiar idioma del panel'
+        'header.restartTooltip'   = 'Reiniciar el panel (aplica el cambio de idioma)'
         'language.restartRequired'= 'Reinicia el panel para aplicar el nuevo idioma.'
     }
     'en' = @{
@@ -803,6 +811,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Support the project with a PayPal donation'
         'header.language'         = 'Language'
         'header.languageTooltip'  = 'Change panel language'
+        'header.restartTooltip'   = 'Restart the panel (apply language change)'
         'language.restartRequired'= 'Restart the panel to apply the new language.'
     }
     'ro' = @{
@@ -837,6 +846,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Susține proiectul cu o donație prin PayPal'
         'header.language'         = 'Limbă'
         'header.languageTooltip'  = 'Schimbă limba panoului'
+        'header.restartTooltip'   = 'Repornește panoul (aplică schimbarea de limbă)'
         'language.restartRequired'= 'Repornește panoul pentru a aplica noua limbă.'
     }
     'pt' = @{
@@ -871,6 +881,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Apoia o projeto com um donativo PayPal'
         'header.language'         = 'Idioma'
         'header.languageTooltip'  = 'Mudar idioma do painel'
+        'header.restartTooltip'   = 'Reiniciar o painel (aplicar mudança de idioma)'
         'language.restartRequired'= 'Reinicia o painel para aplicar o novo idioma.'
     }
     'fr' = @{
@@ -905,6 +916,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Soutiens le projet avec un don PayPal'
         'header.language'         = 'Langue'
         'header.languageTooltip'  = 'Changer la langue du panneau'
+        'header.restartTooltip'   = 'Redémarrer le panneau (appliquer le changement de langue)'
         'language.restartRequired'= 'Redémarre le panneau pour appliquer la nouvelle langue.'
     }
     'de' = @{
@@ -939,6 +951,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Unterstütze das Projekt mit einer PayPal-Spende'
         'header.language'         = 'Sprache'
         'header.languageTooltip'  = 'Panel-Sprache ändern'
+        'header.restartTooltip'   = 'Panel neu starten (Sprache anwenden)'
         'language.restartRequired'= 'Starte das Panel neu, um die neue Sprache anzuwenden.'
     }
     'it' = @{
@@ -973,6 +986,7 @@ $script:AtlasStringsDict = @{
         'footer.coffeeTooltip'    = 'Sostieni il progetto con una donazione PayPal'
         'header.language'         = 'Lingua'
         'header.languageTooltip'  = 'Cambia lingua del pannello'
+        'header.restartTooltip'   = 'Riavviare il pannello (applicare il cambio lingua)'
         'language.restartRequired'= 'Riavvia il pannello per applicare la nuova lingua.'
     }
 }
@@ -1783,6 +1797,7 @@ function Expand-AtlasXaml {
         'COFFEE_LABEL'       = (Get-AtlasString 'footer.coffee')
         'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
         'LANG_TOOLTIP'       = (Get-AtlasString 'header.languageTooltip')
+        'RESTART_TOOLTIP'    = (Get-AtlasString 'header.restartTooltip')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -1886,6 +1901,7 @@ function Show-AtlasWindow {
     $adminBadge  = $window.FindName('AdminBadge')
     $btnLogs     = $window.FindName('BtnLogs')
     $btnAbout    = $window.FindName('BtnAbout')
+    $btnRestart  = $window.FindName('BtnRestart')
     $coffeeLink  = $window.FindName('CoffeeLink')
     $langCombo   = $window.FindName('LanguageCombo')
 
@@ -2045,6 +2061,28 @@ $(Get-AtlasString 'about.description')
             $msg = $script:AtlasStringsDict[$newLang]['language.restartRequired']
             if (-not $msg) { $msg = Get-AtlasString 'language.restartRequired' }
             [System.Windows.MessageBox]::Show($msg, $brand, 'OK', 'Information') | Out-Null
+        })
+    }
+
+    # Boton Reiniciar (relanzar via irm|iex y cerrar ventana actual)
+    if ($btnRestart) {
+        $btnRestart.Add_Click({
+            try {
+                $bootstrapUrl = 'https://tools.atlaspcsupport.com/?v=' + [guid]::NewGuid().ToString('N')
+                $psExe = 'powershell.exe'
+                # Preferir pwsh (PS7) si esta disponible, para consistencia con el entorno de las tools.
+                if ($script:AtlasPS7Path -and (Test-Path -LiteralPath $script:AtlasPS7Path)) {
+                    $psExe = $script:AtlasPS7Path
+                }
+                $cmd = "irm '$bootstrapUrl' | iex"
+                Write-AtlasLog "Reinicio solicitado desde UI ($psExe)" -Tool 'UI'
+                Start-Process -FilePath $psExe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command',$cmd | Out-Null
+                Start-Sleep -Milliseconds 400
+                if ($script:MainWindow) { $script:MainWindow.Close() }
+            } catch {
+                Write-AtlasLog "Error al reiniciar el panel: $_" -Level WARN -Tool 'UI'
+                [System.Windows.MessageBox]::Show("No se pudo reiniciar: $_", 'Atlas', 'OK', 'Error') | Out-Null
+            }
         })
     }
 
@@ -14487,9 +14525,15 @@ $script:AtlasToolSources['Invoke-StopServices'] = 'IyA9PT09PT09PT09PT09PT09PT09P
 $ErrorActionPreference = 'Stop'
 
 $branding = Get-AtlasBranding
-$currentLang = Set-AtlasLanguage $branding.language
+# Preferencia guardada por el usuario (selector de idioma) manda sobre branding / auto-detect.
+$savedLang = Get-AtlasLanguagePref
+if ($savedLang) {
+    $currentLang = Set-AtlasLanguage $savedLang
+} else {
+    $currentLang = Set-AtlasLanguage $branding.language
+}
 Initialize-AtlasLog | Out-Null
-Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion, lang=$currentLang)"
+Write-AtlasLog "Atlas PC Support iniciado (launcher compilado v$script:AtlasVersion, lang=$currentLang, savedPref=$savedLang)"
 
 # Detectar PS 7 y cachear la ruta (ToolRunner lo usa para lanzar tools en pwsh).
 $ps7 = Initialize-AtlasPS7
