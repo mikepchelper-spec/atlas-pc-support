@@ -5,6 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue)
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6)
+[![Buy me a coffee](https://img.shields.io/badge/PayPal-Buy%20me%20a%20coffee-ffdd00?logo=paypal&logoColor=white)](https://www.paypal.me/florinmihaisuciu)
 
 Atlas PC Support es un launcher WPF (tema Fluent / Windows 11) que agrupa herramientas de diagnóstico, mantenimiento, redes, seguridad y entrega para técnicos que dan soporte a equipos Windows. Inspirado en [WinUtil de Chris Titus](https://github.com/ChrisTitusTech/winutil).
 
