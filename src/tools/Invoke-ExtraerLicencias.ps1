@@ -440,6 +440,333 @@ function Get-OsInfo {
     $null = Read-Host
 }
 
+# ============================================================================
+#  OPCION 5: Claves de Office (SPP/OSPP + registro)
+# ============================================================================
+function Get-OfficeKeys {
+    Show-Header
+    Write-Centered -Text "--- CLAVES DE OFFICE (SPP/OSPP) ---" -Color Cyan
+    Write-Host ""
+
+    $encontradas = @()
+
+    # 5.1 Via OSPP / SPP: listar las licencias activas de Office via WMI
+    try {
+        $lics = Get-WmiObject -Query "SELECT * FROM SoftwareLicensingProduct WHERE ApplicationID='59A52881-A989-479D-AF46-F275C6370663' AND PartialProductKey IS NOT NULL" -ErrorAction Stop
+        foreach ($l in $lics) {
+            $statusMap = @{ 0='Unlicensed'; 1='Licensed'; 2='OOB Grace'; 3='OOT Grace'; 4='Non-Genuine Grace'; 5='Notification'; 6='Extended Grace' }
+            $status = if ($statusMap.ContainsKey([int]$l.LicenseStatus)) { $statusMap[[int]$l.LicenseStatus] } else { "Code $($l.LicenseStatus)" }
+            $encontradas += [pscustomobject]@{
+                Producto = $l.Name
+                Descripcion = $l.Description
+                ParcialPK = "XXXXX-XXXXX-XXXXX-XXXXX-$($l.PartialProductKey)"
+                Estado = $status
+                Fuente = 'OSPP / SoftwareLicensingProduct'
+            }
+        }
+    } catch {
+        Write-Centered -Text "[!] No se pudo consultar OSPP: $($_.Exception.Message)" -Color Yellow
+    }
+
+    # 5.2 Buscar keys en registro HKLM:\SOFTWARE\Microsoft\Office\*\Registration\*\DigitalProductId
+    try {
+        $baseKeys = @(
+            'HKLM:\SOFTWARE\Microsoft\Office',
+            'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Office'
+        )
+        foreach ($bk in $baseKeys) {
+            if (-not (Test-Path $bk)) { continue }
+            $regs = Get-ChildItem -Path "$bk\*\Registration\*" -ErrorAction SilentlyContinue
+            foreach ($r in $regs) {
+                $dpi = (Get-ItemProperty -Path $r.PSPath -Name DigitalProductId -ErrorAction SilentlyContinue).DigitalProductId
+                $prodName = (Get-ItemProperty -Path $r.PSPath -Name ProductName -ErrorAction SilentlyContinue).ProductName
+                if ($dpi) {
+                    $key = Decode-DigitalProductId -BinKey $dpi
+                    if ($key) {
+                        $encontradas += [pscustomobject]@{
+                            Producto = if ($prodName) { $prodName } else { $r.PSChildName }
+                            Descripcion = 'DigitalProductId en Registry'
+                            ParcialPK = $key
+                            Estado = 'Activo (registro)'
+                            Fuente = 'Registry Office'
+                        }
+                    }
+                }
+            }
+        }
+    } catch { }
+
+    if ($encontradas.Count -eq 0) {
+        Write-Centered -Text "[!] No se detectaron claves Office activas." -Color Yellow
+    } else {
+        foreach ($e in $encontradas) {
+            Write-Centered -Text ("Producto : {0}" -f $e.Producto) -Color White
+            Write-Centered -Text ("Estado   : {0}" -f $e.Estado) -Color Cyan
+            Write-Centered -Text ("Clave    : {0}" -f $e.ParcialPK) -Color Yellow
+            Write-Centered -Text ("Fuente   : {0}" -f $e.Fuente) -Color DarkGray
+            Write-Host ""
+        }
+    }
+
+    Write-Host ""
+    $exp = Read-Host " Exportar resultado a TXT en el Escritorio? [S/N]"
+    if ($exp -match '^[SsYy]$') {
+        $out = [Environment]::GetFolderPath('Desktop') + "\ATLAS_OfficeKeys_$(Get-Date -Format 'yyyyMMdd_HHmm').txt"
+        $txt = "=== ATLAS - CLAVES DE OFFICE ===`r`nFecha: $(Get-Date)`r`n`r`n"
+        foreach ($e in $encontradas) {
+            $txt += "Producto    : $($e.Producto)`r`nEstado      : $($e.Estado)`r`nClave       : $($e.ParcialPK)`r`nFuente      : $($e.Fuente)`r`n`r`n"
+        }
+        [System.IO.File]::WriteAllText($out, $txt, [System.Text.UTF8Encoding]::new($true))
+        Write-Centered -Text "[OK] Guardado: $out" -Color Green
+    }
+
+    Write-Host ""
+    Read-Host " ENTER para volver"
+}
+
+# ============================================================================
+#  Helper: Decodificar DigitalProductId (algoritmo Microsoft)
+# ============================================================================
+function Decode-DigitalProductId {
+    param([byte[]]$BinKey)
+    if (-not $BinKey -or $BinKey.Length -lt 67) { return $null }
+    $isWin8 = ($BinKey[66] -band 0x8) -eq 0x8
+    $chars = 'BCDFGHJKMPQRTVWXY2346789'
+    $keyOffset = 52
+    $out = ''
+
+    if ($isWin8) {
+        # Algoritmo Win8+ (25 chars, con N al 10)
+        $bin = @($BinKey[$keyOffset..($keyOffset + 14)])
+        $bin[14] = ($bin[14] -band 0xF7)
+        $lastIdx = 0
+        $decoded = New-Object 'System.Collections.Generic.List[char]'
+        for ($i = 24; $i -ge 0; $i--) {
+            $cur = 0
+            for ($j = 14; $j -ge 0; $j--) {
+                $cur = ($cur * 256) -bxor $bin[$j]
+                $bin[$j] = [byte]([Math]::Floor($cur / 24))
+                $cur = $cur % 24
+            }
+            $decoded.Insert(0, [char]$chars[$cur])
+            $lastIdx = $cur
+        }
+        $first = $decoded[0]
+        $decoded.RemoveAt(0)
+        $decoded.Insert($lastIdx, 'N')
+        $decoded.Insert(0, $first)
+        $s = -join $decoded
+        # Formato XXXXX-XXXXX-XXXXX-XXXXX-XXXXX (25 chars agrupados 5+5+5+5+5)
+        $parts = @()
+        for ($i = 0; $i -lt 25; $i += 5) { $parts += $s.Substring($i, [Math]::Min(5, 25 - $i)) }
+        return ($parts -join '-')
+    } else {
+        # Algoritmo legacy
+        $bin = @($BinKey[$keyOffset..($keyOffset + 14)])
+        $decoded = New-Object 'System.Collections.Generic.List[char]'
+        for ($i = 24; $i -ge 0; $i--) {
+            $cur = 0
+            for ($j = 14; $j -ge 0; $j--) {
+                $cur = ($cur * 256) -bxor $bin[$j]
+                $bin[$j] = [byte]([Math]::Floor($cur / 24))
+                $cur = $cur % 24
+            }
+            $decoded.Insert(0, [char]$chars[$cur])
+        }
+        $s = -join $decoded
+        $parts = @()
+        for ($i = 0; $i -lt 25; $i += 5) { $parts += $s.Substring($i, [Math]::Min(5, 25 - $i)) }
+        return ($parts -join '-')
+    }
+}
+
+# ============================================================================
+#  OPCION 6: Claves de productos instalados (DigitalProductId en Registry)
+# ============================================================================
+function Get-InstalledProductKeys {
+    Show-Header
+    Write-Centered -Text "--- CLAVES DE PRODUCTOS INSTALADOS (DigitalProductId) ---" -Color Cyan
+    Write-Host ""
+    Write-Centered -Text "Escaneando HKLM y HKCU buscando DigitalProductId..." -Color DarkGray
+    Write-Host ""
+
+    $roots = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Office',
+        'HKCU:\SOFTWARE\Microsoft\Office'
+    )
+
+    $resultados = @()
+    foreach ($root in $roots) {
+        if (-not (Test-Path $root)) { continue }
+        try {
+            $hits = Get-ChildItem -Path $root -Recurse -ErrorAction SilentlyContinue | Where-Object {
+                $_.GetValue('DigitalProductId') -ne $null
+            }
+            foreach ($h in $hits) {
+                $bin = $h.GetValue('DigitalProductId')
+                $prod = $h.GetValue('ProductName')
+                if (-not $prod) { $prod = $h.GetValue('ProductID') }
+                if (-not $prod) { $prod = $h.PSChildName }
+                $key = Decode-DigitalProductId -BinKey $bin
+                if ($key -match '^[A-Z0-9]{5}(-[A-Z0-9]{5}){4}$') {
+                    $resultados += [pscustomobject]@{
+                        Producto = $prod
+                        Clave = $key
+                        Ruta = $h.PSPath -replace '^Microsoft\.PowerShell\.Core\\Registry::', ''
+                    }
+                }
+            }
+        } catch { }
+    }
+
+    if ($resultados.Count -eq 0) {
+        Write-Centered -Text "[!] No se encontraron DigitalProductId decodificables." -Color Yellow
+    } else {
+        foreach ($r in ($resultados | Sort-Object Producto -Unique)) {
+            Write-Centered -Text ("{0}" -f $r.Producto) -Color White
+            Write-Centered -Text ("  Clave: {0}" -f $r.Clave) -Color Yellow
+            Write-Centered -Text ("  {0}" -f $r.Ruta) -Color DarkGray
+            Write-Host ""
+        }
+    }
+
+    Write-Host ""
+    $exp = Read-Host " Exportar TXT? [S/N]"
+    if ($exp -match '^[SsYy]$') {
+        $out = [Environment]::GetFolderPath('Desktop') + "\ATLAS_ProductKeys_$(Get-Date -Format 'yyyyMMdd_HHmm').txt"
+        $txt = "=== ATLAS - CLAVES PRODUCTOS (DigitalProductId) ===`r`nFecha: $(Get-Date)`r`n`r`n"
+        foreach ($r in ($resultados | Sort-Object Producto -Unique)) {
+            $txt += "Producto : $($r.Producto)`r`nClave    : $($r.Clave)`r`nRuta     : $($r.Ruta)`r`n`r`n"
+        }
+        [System.IO.File]::WriteAllText($out, $txt, [System.Text.UTF8Encoding]::new($true))
+        Write-Centered -Text "[OK] Guardado: $out" -Color Green
+    }
+
+    Write-Host ""
+    Read-Host " ENTER para volver"
+}
+
+# ============================================================================
+#  OPCION 7: Navegadores (Edge / Chrome) - con consentimiento explicito
+# ============================================================================
+function Get-BrowserPasswords {
+    Show-Header
+    Write-Centered -Text "--- CONTRASENAS DE NAVEGADORES (Edge / Chrome) ---" -Color Red
+    Write-Host ""
+    Write-Centered -Text "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" -Color Yellow
+    Write-Centered -Text "                 ADVERTENCIA LEGAL" -Color Yellow
+    Write-Centered -Text "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" -Color Yellow
+    Write-Host ""
+    Write-Centered -Text " - Esta funcion extrae credenciales almacenadas en el navegador" -Color White
+    Write-Centered -Text "   del USUARIO ACTUAL de Windows." -Color White
+    Write-Centered -Text " - Es informacion EXTREMADAMENTE sensible." -Color White
+    Write-Centered -Text " - Solo debe usarse en equipos propios o con autorizacion" -Color White
+    Write-Centered -Text "   EXPLICITA y por ESCRITO del duenio del equipo." -Color White
+    Write-Centered -Text " - El usuario de Windows debe confirmar que acepta la extraccion." -Color White
+    Write-Centered -Text " - Atlas PC Support no almacena ni transmite estos datos." -Color White
+    Write-Host ""
+    $c1 = Read-Host " Escribe exactamente: AUTORIZO  para continuar"
+    if ($c1 -ne 'AUTORIZO') {
+        Write-Centered -Text "[X] Cancelado. No se extrajo ninguna contrasena." -Color Red
+        Write-Host ""
+        Read-Host " ENTER para volver"
+        return
+    }
+
+    $results = @()
+
+    # Browsers basados en Chromium: Edge, Chrome, Brave, Opera GX
+    $profiles = @(
+        @{ Nombre='Edge';   Base="$env:LOCALAPPDATA\Microsoft\Edge\User Data" },
+        @{ Nombre='Chrome'; Base="$env:LOCALAPPDATA\Google\Chrome\User Data" },
+        @{ Nombre='Brave';  Base="$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data" },
+        @{ Nombre='Opera';  Base="$env:APPDATA\Opera Software\Opera Stable" }
+    )
+
+    try {
+        Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
+    } catch { }
+
+    foreach ($br in $profiles) {
+        if (-not (Test-Path $br.Base)) { continue }
+        Write-Host ""
+        Write-Centered -Text ("--- Analizando {0} ---" -f $br.Nombre) -Color Cyan
+
+        # Obtener master key (DPAPI)
+        $localState = Join-Path $br.Base 'Local State'
+        $masterKey = $null
+        if (Test-Path $localState) {
+            try {
+                $ls = Get-Content $localState -Raw -Encoding UTF8 | ConvertFrom-Json
+                $b64 = $ls.os_crypt.encrypted_key
+                if ($b64) {
+                    $buf = [Convert]::FromBase64String($b64)
+                    # Prefijo "DPAPI" de 5 bytes
+                    $dpapiBlob = $buf[5..($buf.Length - 1)]
+                    $mk = [System.Security.Cryptography.ProtectedData]::Unprotect($dpapiBlob, $null, 'CurrentUser')
+                    $masterKey = $mk
+                }
+            } catch {
+                Write-Centered -Text ("[!] No se pudo obtener master key de {0}: {1}" -f $br.Nombre, $_.Exception.Message) -Color Yellow
+            }
+        }
+        if (-not $masterKey) {
+            Write-Centered -Text ("[!] Sin master key, no se pueden descifrar contrasenas de {0}." -f $br.Nombre) -Color Yellow
+            continue
+        }
+
+        # Enumerar todos los perfiles ("Default", "Profile 1", etc)
+        $dirs = @(Get-ChildItem -Path $br.Base -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Default' -or $_.Name -like 'Profile*' })
+        if ($br.Nombre -eq 'Opera') { $dirs = @([PSCustomObject]@{ FullName = $br.Base; Name = 'Opera Stable' }) }
+
+        foreach ($d in $dirs) {
+            $loginDb = Join-Path $d.FullName 'Login Data'
+            if (-not (Test-Path $loginDb)) { continue }
+            $tmp = Join-Path $env:TEMP "atlas_logindb_$([guid]::NewGuid().ToString('N')).db"
+            try {
+                Copy-Item $loginDb $tmp -Force -ErrorAction Stop
+            } catch {
+                Write-Centered -Text ("[!] No se puedo copiar DB de {0} ({1}). Cierra el navegador." -f $br.Nombre, $d.Name) -Color Yellow
+                continue
+            }
+            try {
+                Add-Type -Path 'System.Data.SQLite.dll' -ErrorAction SilentlyContinue
+            } catch { }
+            # Sin System.Data.SQLite no podemos leer la DB directamente. Dejamos el info:
+            Write-Centered -Text ("   Login DB: {0}" -f $loginDb) -Color DarkGray
+            Write-Centered -Text "   [i] Extraccion SQLite no disponible sin dependencia externa." -Color DarkGray
+            Write-Centered -Text "       Copia la DB manualmente con un visor de SQLite si necesitas ver las entradas." -Color DarkGray
+            $results += [pscustomobject]@{
+                Navegador = $br.Nombre
+                Perfil = $d.Name
+                Ruta = $loginDb
+                Estado = 'DB localizada; decifrado requiere herramienta SQLite externa'
+            }
+            Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    Write-Host ""
+    if ($results.Count -eq 0) {
+        Write-Centered -Text "[!] No se detectaron navegadores con credenciales accesibles." -Color Yellow
+    } else {
+        Write-Centered -Text "[i] Navegadores con DB localizada:" -Color Cyan
+        foreach ($r in $results) {
+            Write-Centered -Text ("  - {0} / {1}" -f $r.Navegador, $r.Perfil) -Color White
+        }
+        Write-Host ""
+        Write-Centered -Text "Para exportar contrasenas de forma legitima:" -Color Yellow
+        Write-Centered -Text "  Edge:   edge://settings/passwords -> menu ... -> Exportar contrasenas" -Color Gray
+        Write-Centered -Text "  Chrome: chrome://settings/passwords -> ... -> Exportar contrasenas" -Color Gray
+        Write-Centered -Text "  Brave:  brave://settings/passwords -> ... -> Exportar" -Color Gray
+        Write-Centered -Text "(Este metodo oficial pide la contrasena de Windows del usuario actual.)" -Color DarkGray
+    }
+
+    Write-Host ""
+    Read-Host " ENTER para volver"
+}
+
 # Bucle principal
 $menuLoop = $true
 while ($menuLoop) {
@@ -450,6 +777,9 @@ while ($menuLoop) {
     Write-Centered -Text "[ 2 ] Extraer y Diagnosticar Clave Actual (Registro)" -Color White
     Write-Centered -Text "[ 3 ] Auditoría Nativa y Originalidad (SLMGR)" -Color White
     Write-Centered -Text "[ 4 ] Reporte Completo (OS, BIOS, Actual y Originalidad)" -Color White
+    Write-Centered -Text "[ 5 ] Extraer Claves de Office (OSPP/SPP + Registro)" -Color Cyan
+    Write-Centered -Text "[ 6 ] Claves de productos instalados (DigitalProductId)" -Color Cyan
+    Write-Centered -Text "[ 7 ] Navegadores (Edge/Chrome) - REQUIERE AUTORIZACION" -Color Yellow
     Write-Centered -Text "[ 0 ] Salir" -Color Red
     Write-Host "`n"
     
@@ -460,6 +790,9 @@ while ($menuLoop) {
         '2' { Get-CurrentKey }
         '3' { Invoke-NativeAudit }
         '4' { Get-OsInfo }
+        '5' { Get-OfficeKeys }
+        '6' { Get-InstalledProductKeys }
+        '7' { Get-BrowserPasswords }
         '0' { $menuLoop = $false }
     }
 }
