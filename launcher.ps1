@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 16:32:54
+#  Build:   2026-04-24 17:03:07
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 16:32:54'
+$script:AtlasBuildDate = '2026-04-24 17:03:07'
 
 $script:AtlasToolsManifest = @'
 {
@@ -421,15 +421,33 @@ $script:AtlasXamlTemplate = @'
                                Margin="0,0,12,0"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="LanguageCombo"
-                              Width="110"
+                              Width="120"
                               Margin="0,0,8,0"
                               Padding="8,4"
-                              Background="{StaticResource SurfaceAltBrush}"
-                              Foreground="{StaticResource TextPrimaryBrush}"
-                              BorderBrush="{StaticResource BorderBrush}"
+                              Background="#0C2340"
+                              Foreground="#FFFFFF"
+                              BorderBrush="#1E3A5F"
                               FontSize="12"
                               VerticalContentAlignment="Center"
-                              ToolTip="{{LANG_TOOLTIP}}"/>
+                              ToolTip="{{LANG_TOOLTIP}}">
+                        <ComboBox.Resources>
+                            <Style TargetType="ComboBoxItem">
+                                <Setter Property="Background" Value="#0C2340"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                <Setter Property="Padding" Value="8,4"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter Property="Background" Value="#1E3A5F"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#1E3A5F"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ComboBox.Resources>
+                    </ComboBox>
                     <Button x:Name="BtnLogs"
                             Content="{{HEADER_LOGS}}"
                             Style="{StaticResource AtlasSecondaryButton}"
