@@ -1,0 +1,170 @@
+{
+  "$comment": "Manifiesto de herramientas. Cada entrada describe una tool. El launcher usa esto para generar los botones de la UI.",
+  "tools": [
+    {
+      "id": "fase-0",
+      "name": "Fase 0 — IPv6 Hardening",
+      "description": "Blindaje inicial: desactiva Teredo, 6to4 e ISATAP. Incluye bitácora técnica exportable.",
+      "category": "seguridad",
+      "function": "Invoke-Fase0",
+      "source": "Fase0.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "ram-info",
+      "name": "RAM Info",
+      "description": "Diagnóstico avanzado de módulos de memoria: slots, velocidad, voltaje, XMP, detección soldada.",
+      "category": "diagnostico",
+      "function": "Invoke-RAMInfo",
+      "source": "RAMInfo.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "mod-personalizacion",
+      "name": "Personalización Avanzada",
+      "description": "Wallpaper vía API Win32, tema oscuro, color de acento, barra de tareas y marca de agua.",
+      "category": "mantenimiento",
+      "function": "Invoke-Personalizacion",
+      "source": "Personalizacion.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "stop-services",
+      "name": "Stop Services (Optimizar)",
+      "description": "Detiene y pasa a Manual servicios no esenciales: telemetría, Xbox, sensores, fax, etc.",
+      "category": "mantenimiento",
+      "function": "Invoke-StopServices",
+      "source": "StopServices.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "fastcopy",
+      "name": "FastCopy",
+      "description": "Copia multi-origen con perfiles, comparación, MD5 y resumen exportable. Reemplaza Robocopy con mejor UX.",
+      "category": "copia",
+      "function": "Invoke-FastCopy",
+      "source": "FastCopy.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": ["FastCopy"]
+    },
+    {
+      "id": "robocopy",
+      "name": "Robocopy (Copia Inteligente)",
+      "description": "Copia optimizada basada en robocopy: espejo, reintentos, logging centralizado.",
+      "category": "copia",
+      "function": "Invoke-Robocopy",
+      "source": "Robocopy.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "selector-dns",
+      "name": "Selector DNS",
+      "description": "Cambia el servidor DNS entre perfiles (Cloudflare, Google, OpenDNS, personalizado) con un clic.",
+      "category": "redes",
+      "function": "Invoke-SelectorDNS",
+      "source": "SelectorDNS.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "hosts",
+      "name": "Gestor HOSTS",
+      "description": "Editor del archivo HOSTS de Windows con respaldo automático.",
+      "category": "redes",
+      "function": "Invoke-HostsManager",
+      "source": "HostsManager.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "auditoria-router",
+      "name": "Auditoría Router",
+      "description": "Escaneo y auditoría de seguridad del router de la red local.",
+      "category": "redes",
+      "function": "Invoke-AuditoriaRouter",
+      "source": "AuditoriaRouter.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "gestor-bitlocker",
+      "name": "Gestor BitLocker",
+      "description": "Estado, activación, suspensión y exportación de claves BitLocker.",
+      "category": "seguridad",
+      "function": "Invoke-GestorBitLocker",
+      "source": "GestorBitLocker.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "menor-privilegio",
+      "name": "Principio de Menor Privilegio",
+      "description": "Auditoría y aplicación del principio de menor privilegio en cuentas locales.",
+      "category": "seguridad",
+      "function": "Invoke-MenorPrivilegio",
+      "source": "MenorPrivilegio.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "extraer-licencias",
+      "name": "Extraer Licencias",
+      "description": "Extracción de claves de producto de Windows y Office (lectura segura).",
+      "category": "seguridad",
+      "function": "Invoke-ExtraerLicencias",
+      "source": "ExtraerLicencias.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "software-installer",
+      "name": "Software Installer",
+      "description": "Panel maestro de instalación de software vía winget: navegadores, utilidades, suite Atlas.",
+      "category": "software",
+      "function": "Invoke-SoftwareInstaller",
+      "source": "SoftwareInstaller.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": ["winget"]
+    },
+    {
+      "id": "bundle-atlas",
+      "name": "Bundle Atlas Recomendado",
+      "description": "Instala el pack pre-configurado de Atlas: Opera GX, 7-Zip, Chrome, VLC, WhatsApp, Zoom, PowerShell 7, digiKam, etc.",
+      "category": "software",
+      "function": "Invoke-BundleAtlas",
+      "source": "BundleAtlas.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": ["winget"]
+    },
+    {
+      "id": "entrega-pc",
+      "name": "Entrega PC",
+      "description": "Protocolo de cierre: limpieza final, resumen, bitácora y preparación para entrega al cliente.",
+      "category": "entrega",
+      "function": "Invoke-EntregaPC",
+      "source": "EntregaPC.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    }
+  ]
+}
