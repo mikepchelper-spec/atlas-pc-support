@@ -33,7 +33,13 @@ Get-ChildItem -Path $toolsDir -Filter 'Invoke-*.ps1' | ForEach-Object { . $_.Ful
 
 # --- Cargar branding + manifiesto ---
 $branding = Get-AtlasBranding
-$currentLang = Set-AtlasLanguage $branding.language
+# Preferencia guardada por el usuario (selector de idioma) manda sobre branding / auto-detect.
+$savedLang = Get-AtlasLanguagePref
+if ($savedLang) {
+    $currentLang = Set-AtlasLanguage $savedLang
+} else {
+    $currentLang = Set-AtlasLanguage $branding.language
+}
 Initialize-AtlasLog | Out-Null
 Write-AtlasLog "Atlas PC Support iniciado ($($branding.brand.name) v$($branding.brand.version), lang=$currentLang)"
 

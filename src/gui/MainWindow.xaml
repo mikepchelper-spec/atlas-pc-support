@@ -167,6 +167,16 @@
                                FontSize="11"
                                Margin="0,0,12,0"
                                VerticalAlignment="Center"/>
+                    <ComboBox x:Name="LanguageCombo"
+                              Width="110"
+                              Margin="0,0,8,0"
+                              Padding="8,4"
+                              Background="{StaticResource SurfaceAltBrush}"
+                              Foreground="{StaticResource TextPrimaryBrush}"
+                              BorderBrush="{StaticResource BorderBrush}"
+                              FontSize="12"
+                              VerticalContentAlignment="Center"
+                              ToolTip="{{LANG_TOOLTIP}}"/>
                     <Button x:Name="BtnLogs"
                             Content="{{HEADER_LOGS}}"
                             Style="{StaticResource AtlasSecondaryButton}"
