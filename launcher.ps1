@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-24 17:14:08
+#  Build:   2026-04-24 17:48:41
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-24 17:14:08'
+$script:AtlasBuildDate = '2026-04-24 17:48:41'
 
 $script:AtlasToolsManifest = @'
 {
@@ -368,6 +368,117 @@ $script:AtlasXamlTemplate = @'
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Width" Value="10"/>
         </Style>
+
+        <!-- ComboBox Atlas (header) - ControlTemplate completo para que el combo se integre
+             visualmente con la barra superior. Usa las brushes del tema (SurfaceBrush,
+             BorderBrush, TextPrimaryBrush) para que empalme con el header como una sola pieza.
+             Sin ControlTemplate, WPF pinta el combo con chrome Aero blanco aunque se fije
+             Background/Foreground. -->
+        <Style x:Key="AtlasComboBox" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="TBBorder"
+                                                CornerRadius="{{CORNER_RADIUS}}"
+                                                Background="{StaticResource SurfaceBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="22"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Path Grid.Column="1"
+                                                      Data="M 0 0 L 4 4 L 8 0 Z"
+                                                      Fill="{StaticResource TextSecondaryBrush}"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="TBBorder" Property="Background" Value="{StaticResource SurfaceAltBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="TBBorder" Property="Background" Value="{StaticResource SurfaceAltBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="ContentSite"
+                                              IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"
+                                              TextElement.Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border Background="{StaticResource SurfaceBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{{CORNER_RADIUS}}"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        SnapsToDevicePixels="True">
+                                    <ScrollViewer SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True"
+                                                    KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Resources>
+                <Style TargetType="ComboBoxItem">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                    <Setter Property="Padding" Value="10,6"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ComboBoxItem">
+                                <Border x:Name="ItemBorder"
+                                        Background="{TemplateBinding Background}"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource SurfaceAltBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource SurfaceAltBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Style.Resources>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -421,33 +532,13 @@ $script:AtlasXamlTemplate = @'
                                Margin="0,0,12,0"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="LanguageCombo"
-                              Width="120"
+                              Style="{StaticResource AtlasComboBox}"
+                              Width="130"
+                              Height="34"
                               Margin="0,0,8,0"
-                              Padding="8,4"
-                              Background="#0C2340"
-                              Foreground="#FFFFFF"
-                              BorderBrush="#1E3A5F"
                               FontSize="12"
                               VerticalContentAlignment="Center"
-                              ToolTip="{{LANG_TOOLTIP}}">
-                        <ComboBox.Resources>
-                            <Style TargetType="ComboBoxItem">
-                                <Setter Property="Background" Value="#0C2340"/>
-                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                                <Setter Property="Padding" Value="8,4"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsHighlighted" Value="True">
-                                        <Setter Property="Background" Value="#1E3A5F"/>
-                                        <Setter Property="Foreground" Value="#FFFFFF"/>
-                                    </Trigger>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#1E3A5F"/>
-                                        <Setter Property="Foreground" Value="#FFFFFF"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ComboBox.Resources>
-                    </ComboBox>
+                              ToolTip="{{LANG_TOOLTIP}}"/>
                     <Button x:Name="BtnLogs"
                             Content="{{HEADER_LOGS}}"
                             Style="{StaticResource AtlasSecondaryButton}"
