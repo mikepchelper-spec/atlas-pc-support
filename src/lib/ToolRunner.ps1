@@ -114,9 +114,13 @@ function Invoke-AtlasTool {
     $tempScript  = Join-Path $tempDir "run-$stamp.ps1"
     $tempWrapper = Join-Path $tempDir "run-$stamp.cmd"
 
-    # .ps1 en UTF-8 sin BOM.
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($tempScript, $sb.ToString(), $utf8NoBom)
+    # .ps1 en UTF-8 CON BOM. CRITICO: Windows PowerShell 5.1 lee los .ps1
+    # como ANSI/CP-1252 si no detecta BOM, lo que corrompe caracteres
+    # acentuados (UTF-8 'Ó' bytes C3 93 -> se interpreta como 'Ã"' que
+    # contiene un caracter de comilla y rompe el parse en cascada).
+    # Con BOM, PS 5.1 reconoce UTF-8 y lo decodifica correctamente.
+    $utf8WithBom = New-Object System.Text.UTF8Encoding($true)
+    [System.IO.File]::WriteAllText($tempScript, $sb.ToString(), $utf8WithBom)
 
     # .cmd wrapper: sobrevive a 'exit' dentro de la tool (pause al final
     # siempre se ejecuta porque corre en proceso cmd, no powershell).
