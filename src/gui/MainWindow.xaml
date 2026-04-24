@@ -159,7 +159,7 @@
                          BorderBrush="{StaticResource BorderBrush}"
                          FontSize="13"
                          VerticalContentAlignment="Center"
-                         Tag="🔍  Buscar herramienta..."/>
+                         Tag="🔍  {{SEARCH_PLACEHOLDER}}"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="AdminBadge"
@@ -169,11 +169,11 @@
                                Margin="0,0,12,0"
                                VerticalAlignment="Center"/>
                     <Button x:Name="BtnLogs"
-                            Content="📋 Logs"
+                            Content="{{HEADER_LOGS}}"
                             Style="{StaticResource AtlasSecondaryButton}"
                             Margin="0,0,8,0"/>
                     <Button x:Name="BtnAbout"
-                            Content="ℹ️ Acerca de"
+                            Content="{{HEADER_ABOUT}}"
                             Style="{StaticResource AtlasSecondaryButton}"/>
                 </StackPanel>
             </Grid>
@@ -215,7 +215,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0"
                            x:Name="StatusText"
-                           Text="Listo"
+                           Text="{{STATUS_READY}}"
                            Foreground="{StaticResource TextMutedBrush}"
                            FontSize="11"
                            VerticalAlignment="Center"/>

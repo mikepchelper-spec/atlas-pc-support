@@ -28,6 +28,7 @@ function Get-AtlasBranding {
             cornerRadius     = 8
             fontFamily       = "Segoe UI Variable"
         }
+        language = "auto"
         window = @{
             title       = "ATLAS PC SUPPORT · Panel v1.0"
             width       = 1100
@@ -57,9 +58,16 @@ function Get-AtlasBranding {
 
     $candidatePaths = @()
     if ($OverridePath) { $candidatePaths += $OverridePath }
-    $candidatePaths += (Join-Path $PSScriptRoot "..\..\branding.json")
-    $candidatePaths += (Join-Path $env:LOCALAPPDATA "AtlasPC\branding.json")
-    $candidatePaths += (Join-Path $env:APPDATA "AtlasPC\branding.json")
+    if ($PSScriptRoot) {
+        $candidatePaths += (Join-Path $PSScriptRoot "..\..\branding.json")
+        $candidatePaths += (Join-Path $PSScriptRoot "branding.json")
+    }
+    if ($env:LOCALAPPDATA) {
+        $candidatePaths += (Join-Path $env:LOCALAPPDATA "AtlasPC\branding.json")
+    }
+    if ($env:APPDATA) {
+        $candidatePaths += (Join-Path $env:APPDATA "AtlasPC\branding.json")
+    }
 
     foreach ($path in $candidatePaths) {
         if ($path -and (Test-Path $path)) {

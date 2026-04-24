@@ -16,6 +16,7 @@
     "cornerRadius": 8,
     "fontFamily": "Segoe UI Variable"
   },
+  "language": "auto",
   "window": {
     "title": "ATLAS PC SUPPORT · Panel v1.0",
     "width": 1100,

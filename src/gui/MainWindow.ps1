@@ -63,6 +63,9 @@ function Expand-AtlasXaml {
         [hashtable]$Branding,
         [hashtable]$Palette
     )
+    $tagline = $Branding.brand.tagline
+    if (-not $tagline) { $tagline = Get-AtlasString 'app.tagline' }
+
     $map = @{
         'WINDOW_TITLE'       = $Branding.window.title
         'WINDOW_WIDTH'       = $Branding.window.width
@@ -70,7 +73,7 @@ function Expand-AtlasXaml {
         'WINDOW_MIN_WIDTH'   = $Branding.window.minWidth
         'WINDOW_MIN_HEIGHT'  = $Branding.window.minHeight
         'BRAND_NAME'         = $Branding.brand.name
-        'BRAND_TAGLINE'      = $Branding.brand.tagline
+        'BRAND_TAGLINE'      = $tagline
         'BRAND_VERSION'      = $Branding.brand.version
         'BRAND_COPYRIGHT'    = $Branding.brand.copyright
         'FONT_FAMILY'        = $Branding.theme.fontFamily
@@ -85,6 +88,10 @@ function Expand-AtlasXaml {
         'TEXT_PRIMARY'       = $Palette.TextPrimary
         'TEXT_SECONDARY'     = $Palette.TextSecondary
         'TEXT_MUTED'         = $Palette.TextMuted
+        'SEARCH_PLACEHOLDER' = (Get-AtlasString 'search.placeholder')
+        'HEADER_LOGS'        = (Get-AtlasString 'header.logs')
+        'HEADER_ABOUT'       = (Get-AtlasString 'header.about')
+        'STATUS_READY'       = (Get-AtlasString 'status.ready')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -121,7 +128,7 @@ function New-AtlasToolCard {
                    Height='56'
                    Margin='0,0,0,10'/>
         <StackPanel Orientation='Horizontal'>
-            <Button x:Name='BtnRun' Content='▶  Ejecutar' Tag='{{ID}}' Padding='14,6'
+            <Button x:Name='BtnRun' Content='{{BTN_RUN}}' Tag='{{ID}}' Padding='14,6'
                     Background='$($Palette.AccentColor)' Foreground='White'
                     BorderBrush='$($Palette.AccentColor)' BorderThickness='1'
                     Cursor='Hand'/>
@@ -145,12 +152,14 @@ function New-AtlasToolCard {
     $icon = $iconMap[$Tool.category]
     if (-not $icon) { $icon = '⚙' }
 
-    $adminBadge = if ($Tool.requiresAdmin) { "🛡  requiere admin" } else { "" }
+    $adminBadge = if ($Tool.requiresAdmin) { (Get-AtlasString 'badge.requiresAdmin') } else { "" }
+    $btnRunText = Get-AtlasString 'button.run'
 
     $xaml = $xaml.Replace('{{ICON}}', $icon).
                   Replace('{{NAME}}', [System.Security.SecurityElement]::Escape($Tool.name)).
                   Replace('{{DESCRIPTION}}', [System.Security.SecurityElement]::Escape($Tool.description)).
                   Replace('{{ID}}', $Tool.id).
+                  Replace('{{BTN_RUN}}', [System.Security.SecurityElement]::Escape($btnRunText)).
                   Replace('{{ADMIN_BADGE}}', $adminBadge)
 
     return $xaml
@@ -188,16 +197,16 @@ function Show-AtlasWindow {
 
     # Badge de admin en header
     if (Test-IsAdmin) {
-        $adminBadge.Text = "🛡  Admin"
+        $adminBadge.Text = Get-AtlasString 'header.admin'
         $adminBadge.Foreground = [System.Windows.Media.Brushes]::LimeGreen
     } else {
-        $adminBadge.Text = "👤 Usuario"
+        $adminBadge.Text = Get-AtlasString 'header.user'
     }
 
-    # Categorías
+    # Categorías — usa label traducido si el brand no sobreescribe
     $categories = @($Branding.categories) | Sort-Object -Property order
     $allCat = New-Object System.Windows.Controls.RadioButton
-    $allCat.Content = "Todo"
+    $allCat.Content = Get-AtlasString 'category.all'
     $allCat.Style = $window.FindResource('CategoryPill')
     $allCat.Tag = '__all__'
     $allCat.IsChecked = $true
@@ -205,7 +214,9 @@ function Show-AtlasWindow {
 
     foreach ($cat in $categories) {
         $rb = New-Object System.Windows.Controls.RadioButton
-        $rb.Content = "$($cat.icon) $($cat.label)"
+        $translatedLabel = Get-AtlasString "category.$($cat.id)"
+        $label = if ($translatedLabel -ne "category.$($cat.id)") { $translatedLabel } else { $cat.label }
+        $rb.Content = "$($cat.icon) $label"
         $rb.Style = $window.FindResource('CategoryPill')
         $rb.Tag = $cat.id
         [void]$categoryBar.Children.Add($rb)
@@ -236,9 +247,9 @@ function Show-AtlasWindow {
                 $t = $script:AllTools | Where-Object { $_.id -eq $id } | Select-Object -First 1
                 if ($t) {
                     $statusText = $script:MainWindow.FindName('StatusText')
-                    $statusText.Text = "Lanzando: $($t.name)..."
+                    $statusText.Text = Get-AtlasString 'status.launching' $t.name
                     Invoke-AtlasTool -Tool $t -Branding $script:Branding
-                    $statusText.Text = "Listo — última: $($t.name)"
+                    $statusText.Text = Get-AtlasString 'status.lastRun' $t.name
                 }
             }.GetNewClosure())
         }
@@ -251,7 +262,6 @@ function Show-AtlasWindow {
     $applyFilter = {
         $selectedCat = ($categoryBar.Children | Where-Object { $_.IsChecked }).Tag
         $query = $searchBox.Text.Trim().ToLower()
-        if ($query -eq '🔍  buscar herramienta...') { $query = '' }
 
         $toolsGrid.Items.Clear()
         foreach ($entry in $script:AllCards) {
@@ -262,7 +272,7 @@ function Show-AtlasWindow {
                 [void]$toolsGrid.Items.Add($entry.Card)
             }
         }
-        $statusText.Text = "$($toolsGrid.Items.Count) herramienta(s) mostrada(s)"
+        $statusText.Text = Get-AtlasString 'status.toolsShown' $toolsGrid.Items.Count
     }
 
     foreach ($rb in $categoryBar.Children) {
@@ -276,22 +286,23 @@ function Show-AtlasWindow {
         if (Test-Path $logPath) {
             Start-Process notepad.exe -ArgumentList $logPath
         } else {
-            [System.Windows.MessageBox]::Show("Aún no hay logs. Ejecuta alguna herramienta primero.", "Atlas PC Support") | Out-Null
+            [System.Windows.MessageBox]::Show((Get-AtlasString 'logs.empty'), $script:Branding.brand.shortName) | Out-Null
         }
     })
     $btnAbout.Add_Click({
+        $webLabel = Get-AtlasString 'about.web'
+        $tagline = if ($script:Branding.brand.tagline) { $script:Branding.brand.tagline } else { Get-AtlasString 'app.tagline' }
         $msg = @"
 $($script:Branding.brand.name) v$($script:Branding.brand.version)
 
-$($script:Branding.brand.tagline)
+$tagline
 
-Web: $($script:Branding.brand.companyUrl)
+$($webLabel): $($script:Branding.brand.companyUrl)
 $($script:Branding.brand.copyright)
 
-Panel basado en WinUtil (Chris Titus Tech).
-Licencia: MIT.
+$(Get-AtlasString 'about.description')
 "@
-        [System.Windows.MessageBox]::Show($msg, "Acerca de", "OK", "Information") | Out-Null
+        [System.Windows.MessageBox]::Show($msg, (Get-AtlasString 'about.title'), "OK", "Information") | Out-Null
     })
 
     $script:MainWindow = $window

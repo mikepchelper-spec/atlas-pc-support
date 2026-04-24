@@ -40,6 +40,7 @@ El primero que exista se usa.
     "cornerRadius": 4,
     "fontFamily": "Segoe UI Variable"
   },
+  "language": "auto",
   "window": {
     "title": "Soporte Premium · Panel Cliente v1.0",
     "width": 1200,
@@ -81,6 +82,11 @@ El primero que exista se usa.
 | `companyUrl` | string | URL del botón "Acerca de". |
 | `supportEmail` | string | Email de soporte (opcional). |
 | `copyright` | string | Texto legal en el footer. |
+
+### `language`
+
+Idioma de la interfaz. Valores: `"auto"` (detecta del sistema), `"es"`,
+`"en"`, `"ro"`. Detalles en [LANGUAGES.md](LANGUAGES.md).
 
 ### `theme`
 
