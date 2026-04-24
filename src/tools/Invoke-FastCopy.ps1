@@ -76,15 +76,26 @@ function Install-FastCopyAuto {
     }
     if (-not $ok) { throw "No se pudo descargar el installer de FastCopy." }
 
-    # El installer oficial de FastCopy (InnoSetup) soporta modo silencioso:
-    #   /VERYSILENT /SUPPRESSMSGBOXES /DIR="..." /NOICONS
-    Write-Host "    Instalando silenciosamente en $targetDir ..." -ForegroundColor Gray
-    $procArgs = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NOICONS', ("/DIR=`"$targetDir`""))
+    # El installer oficial de FastCopy NO es InnoSetup; es custom.
+    # Switches (segun el propio instalador):
+    #   /SILENT ... silent install
+    #   /DIR=<dir> ... target dir
+    #   /EXTRACT64 ... extraer solo archivos (sin instalar)
+    #   /NOSUBDIR ... no crear subcarpeta
+    #   /AGREE_LICENSE ... aceptar licencia
+    # Usamos /EXTRACT64 para solo dejar los archivos en $targetDir
+    # sin modificar menu inicio / Program Files / registro.
+    Write-Host "    Extrayendo FastCopy a $targetDir ..." -ForegroundColor Gray
+    $procArgs = @('/EXTRACT64', '/NOSUBDIR', '/AGREE_LICENSE', ("/DIR=`"$targetDir`""))
     try {
         $p = Start-Process -FilePath $installerPath -ArgumentList $procArgs -Wait -PassThru -ErrorAction Stop
         if ($p.ExitCode -ne 0) {
-            Write-Host "    Instalador termino con codigo $($p.ExitCode). Intentando ejecutar en modo interactivo..." -ForegroundColor Yellow
-            Start-Process -FilePath $installerPath -Wait
+            Write-Host "    /EXTRACT64 termino con codigo $($p.ExitCode). Probando /SILENT install..." -ForegroundColor Yellow
+            $p2 = Start-Process -FilePath $installerPath -ArgumentList @('/SILENT', '/AGREE_LICENSE', ("/DIR=`"$targetDir`"")) -Wait -PassThru -ErrorAction Stop
+            if ($p2.ExitCode -ne 0) {
+                Write-Host "    /SILENT tambien fallo. Ejecutando en modo interactivo..." -ForegroundColor Yellow
+                Start-Process -FilePath $installerPath -Wait
+            }
         }
     } catch {
         throw "Fallo ejecutando el instalador: $($_.Exception.Message)"
