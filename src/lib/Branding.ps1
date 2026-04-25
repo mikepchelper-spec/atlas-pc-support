@@ -5,6 +5,33 @@
 # nombre, logo, colores, título de ventana, etc. sin tocar el código.
 # ============================================================
 
+# Convierte recursivamente un objeto salido de ConvertFrom-Json a hashtable.
+# Necesario porque ConvertFrom-Json -AsHashtable solo existe en PS 7+ y
+# el panel debe funcionar tambien en Windows PowerShell 5.1.
+function ConvertTo-AtlasHashtable {
+    param($Obj)
+    if ($null -eq $Obj) { return $null }
+    if ($Obj -is [System.Management.Automation.PSCustomObject]) {
+        $ht = @{}
+        foreach ($p in $Obj.PSObject.Properties) {
+            $ht[$p.Name] = ConvertTo-AtlasHashtable $p.Value
+        }
+        return $ht
+    }
+    if ($Obj -is [System.Collections.IEnumerable] -and -not ($Obj -is [string])) {
+        $list = New-Object System.Collections.ArrayList
+        foreach ($item in $Obj) { [void]$list.Add((ConvertTo-AtlasHashtable $item)) }
+        return ,$list.ToArray()
+    }
+    return $Obj
+}
+
+function ConvertFrom-AtlasJson {
+    param([Parameter(Mandatory)][string]$Json)
+    $obj = $Json | ConvertFrom-Json
+    return (ConvertTo-AtlasHashtable $obj)
+}
+
 function Get-AtlasBranding {
     [CmdletBinding()]
     param(
@@ -73,7 +100,7 @@ function Get-AtlasBranding {
     foreach ($path in $candidatePaths) {
         if ($path -and (Test-Path $path)) {
             try {
-                $userBranding = Get-Content -Raw -Path $path | ConvertFrom-Json -AsHashtable
+                $userBranding = ConvertFrom-AtlasJson (Get-Content -Raw -Path $path)
                 Write-Verbose "Branding cargado desde: $path"
                 return (Merge-AtlasBranding $defaultBranding $userBranding)
             } catch {
