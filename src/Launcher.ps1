@@ -52,7 +52,7 @@ if ($ps7) {
 }
 
 $toolsManifestPath = Join-Path $script:AtlasRoot 'config\tools.json'
-$manifest = Get-Content -Raw $toolsManifestPath | ConvertFrom-Json -AsHashtable
+$manifest = ConvertFrom-AtlasJson (Get-Content -Raw $toolsManifestPath)
 $tools = @($manifest.tools)
 
 # --- Cargar XAML GUI ---

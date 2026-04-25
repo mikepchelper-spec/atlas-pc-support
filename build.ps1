@@ -114,7 +114,7 @@ if ($ps7) {
 }
 
 try {
-    $manifestObj = $script:AtlasToolsManifest | ConvertFrom-Json -AsHashtable
+    $manifestObj = ConvertFrom-AtlasJson $script:AtlasToolsManifest
     $tools = @($manifestObj.tools)
 } catch {
     throw "No se pudo parsear el manifiesto embebido: $_"
