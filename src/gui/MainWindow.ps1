@@ -400,26 +400,52 @@ $(Get-AtlasString 'about.description')
         })
     }
 
-    # Boton Reiniciar (relanzar via irm|iex y cerrar ventana actual)
+    # Boton Reiniciar:
+    # Estrategia: escribir un .ps1 wrapper a %TEMP% (sin escapes anidados) y
+    # lanzarlo con powershell.exe -Sta -File. Asi evitamos romper el parser de
+    # -Command con quoting complejo. Captura todo en %TEMP%\atlas-restart.log
+    # para diagnostico.
     if ($btnRestart) {
         $btnRestart.Add_Click({
             try {
                 $bootstrapUrl = 'https://tools.atlaspcsupport.com/?v=' + [guid]::NewGuid().ToString('N')
-                # WPF requiere apartment STA. PS7 (pwsh) arranca MTA por defecto; forzar -Sta.
-                # Usar Windows PowerShell 5.1 (siempre STA en consola) para maxima robustez
-                # en este caso concreto de relanzamiento; el panel sigue detectando PS7 al
-                # arrancar y lanzando tools en pwsh como siempre.
-                $psExe = 'powershell.exe'
-                # Capturar errores del child a un log conocido para poder diagnosticar.
-                $errLog = Join-Path $env:TEMP 'atlas-restart.log'
-                $cmd = "try { `$ErrorActionPreference='Continue'; (Get-Date).ToString('u') + ' --- restart child START' | Out-File -Append -Encoding UTF8 '$errLog'; irm '$bootstrapUrl' | iex } catch { `"`$(Get-Date -Format u) ERR: `$(`$_ | Out-String)`" | Out-File -Append -Encoding UTF8 '$errLog' }"
-                Write-AtlasLog "Reinicio solicitado desde UI (psExe=$psExe, log=$errLog)" -Tool 'UI'
-                Start-Process -FilePath $psExe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-Command',$cmd -WindowStyle Hidden | Out-Null
-                Start-Sleep -Milliseconds 600
+                $logPath  = Join-Path $env:TEMP 'atlas-restart.log'
+                $bootPath = Join-Path $env:TEMP 'atlas-restart-bootstrap.ps1'
+
+                # Wrapper limpio: log paso a paso para que cualquier fallo deje rastro.
+                $bootContent = @"
+# Atlas PC Support - restart bootstrap (auto-generado)
+`$ErrorActionPreference = 'Continue'
+`$logPath = '$logPath'
+`$bootstrapUrl = '$bootstrapUrl'
+function _Atlas-Log { param([string]`$Msg) "{0}  {1}" -f (Get-Date -Format u), `$Msg | Out-File -FilePath `$logPath -Append -Encoding UTF8 }
+_Atlas-Log "child START (PSVersion=`$(`$PSVersionTable.PSVersion), PID=`$PID, Apartment=`$([System.Threading.Thread]::CurrentThread.GetApartmentState()))"
+try {
+    _Atlas-Log "downloading: `$bootstrapUrl"
+    `$payload = Invoke-RestMethod -Uri `$bootstrapUrl -UseBasicParsing
+    _Atlas-Log ("payload size = {0} bytes" -f `$payload.Length)
+    _Atlas-Log "executing payload (Invoke-Expression)"
+    Invoke-Expression `$payload
+    _Atlas-Log "child END (panel cerrado normal)"
+} catch {
+    _Atlas-Log ("child ERR: " + (`$_ | Out-String))
+}
+"@
+                Set-Content -Path $bootPath -Value $bootContent -Encoding UTF8
+
+                # Inicializar log con marca de inicio (desde el padre, antes de spawn).
+                $stamp = (Get-Date).ToString('u')
+                "$stamp  parent: requesting restart, bootPath=$bootPath, url=$bootstrapUrl" |
+                    Out-File -FilePath $logPath -Append -Encoding UTF8
+
+                Write-AtlasLog "Reinicio: bootstrap ps1 escrito en $bootPath, log=$logPath" -Tool 'UI'
+                Start-Process -FilePath 'powershell.exe' `
+                              -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-File',$bootPath | Out-Null
+                Start-Sleep -Milliseconds 800
                 Write-AtlasLog "Reinicio: cerrando ventana actual" -Tool 'UI'
                 if ($script:MainWindow) { $script:MainWindow.Close() }
             } catch {
-                Write-AtlasLog "Error al reiniciar el panel: $_" -Level WARN -Tool 'UI'
+                Write-AtlasLog "Error al preparar reinicio: $_" -Level WARN -Tool 'UI'
                 [System.Windows.MessageBox]::Show("No se pudo reiniciar: $_", 'Atlas', 'OK', 'Error') | Out-Null
             }
         })
