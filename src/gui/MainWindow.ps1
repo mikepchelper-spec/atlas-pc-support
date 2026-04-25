@@ -440,7 +440,8 @@ try {
 
                 Write-AtlasLog "Reinicio: bootstrap ps1 escrito en $bootPath, log=$logPath" -Tool 'UI'
                 Start-Process -FilePath 'powershell.exe' `
-                              -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-File',$bootPath | Out-Null
+                              -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-File',$bootPath `
+                              -WindowStyle Hidden | Out-Null
                 Start-Sleep -Milliseconds 800
                 Write-AtlasLog "Reinicio: cerrando ventana actual" -Tool 'UI'
                 if ($script:MainWindow) { $script:MainWindow.Close() }
