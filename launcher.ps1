@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-25 01:35:50
+#  Build:   2026-04-25 01:39:54
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-25 01:35:50'
+$script:AtlasBuildDate = '2026-04-25 01:39:54'
 
 $script:AtlasToolsManifest = @'
 {
@@ -2104,7 +2104,8 @@ try {
 
                 Write-AtlasLog "Reinicio: bootstrap ps1 escrito en $bootPath, log=$logPath" -Tool 'UI'
                 Start-Process -FilePath 'powershell.exe' `
-                              -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-File',$bootPath | Out-Null
+                              -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-File',$bootPath `
+                              -WindowStyle Hidden | Out-Null
                 Start-Sleep -Milliseconds 800
                 Write-AtlasLog "Reinicio: cerrando ventana actual" -Tool 'UI'
                 if ($script:MainWindow) { $script:MainWindow.Close() }
