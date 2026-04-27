@@ -358,7 +358,7 @@ function Get-PathFromUser {
     Write-Host ""
     $input = Read-Host "      ${Prompt}"
 
-    if ($input -match '^[SsYy]$') { return "EXIT" }
+    if ($input -eq "S" -or $input -eq "s") { return "EXIT" }
     if ($input -eq "B" -or $input -eq "b") { return "BACK" }
 
     if ($input -eq "E" -or $input -eq "e") {
@@ -753,7 +753,7 @@ do {
         Write-Host ""
         Write-Host $L.VerifyAsk -ForegroundColor DarkGray
         $verSel = Read-Host "    >"
-        if ($verSel -match '^[SsYy]$' -or $verSel -eq "Y" -or $verSel -eq "y") {
+        if ($verSel -match '^[SsYy]$') {
             $integrity = Test-CopyIntegrity -Origen $origen -Destino $rutaFinal
         }
     }
@@ -807,7 +807,7 @@ do {
                     if ($result2.OK -and -not $isFile) {
                         Write-Host ""; Write-Host $L.VerifyMD5Q -ForegroundColor DarkGray
                         $v2 = Read-Host "    >"
-                        if ($v2 -match '^[SsYy]$' -or $v2 -eq "Y" -or $v2 -eq "y") { Test-CopyIntegrity -Origen $origen -Destino $newRutaFinal | Out-Null }
+                        if ($v2 -match '^[SsYy]$') { Test-CopyIntegrity -Origen $origen -Destino $newRutaFinal | Out-Null }
                     }
                 }
             }
