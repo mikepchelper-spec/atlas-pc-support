@@ -178,7 +178,14 @@ $output = @(
     $epilog
 ) -join "`n"
 
-Set-Content -Path $OutFile -Value $output -Encoding UTF8 -NoNewline
+# Write UTF-8 WITH BOM. Windows PowerShell 5.1 reads BOM-less .ps1 files
+# as ANSI/CP1252, which mojibakes accents and emojis in the embedded
+# Spanish strings / XAML (e.g. "Diagnóstico" → "DiagnÃ³stico"). Set-Content
+# -Encoding UTF8 adds a BOM on Windows PS 5.1 but NOT on pwsh 7+ — and this
+# repo's CI builds on Linux with pwsh 7+. Use WriteAllText with an explicit
+# BOM-emitting UTF8Encoding so both hosts produce identical output.
+$utf8Bom = [System.Text.UTF8Encoding]::new($true)
+[System.IO.File]::WriteAllText($OutFile, $output, $utf8Bom)
 
 Write-Host ""
 Write-Host "  Atlas PC Support — build completado" -ForegroundColor Green
