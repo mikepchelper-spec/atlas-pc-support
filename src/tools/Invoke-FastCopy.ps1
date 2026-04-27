@@ -209,7 +209,7 @@ function Get-PathFromUser {
     Write-Host "      [B] Volver  [S] Salir" -ForegroundColor DarkGray
     Write-Host ""
     $userInput = Read-Host "      ${Prompt}"
-    if ($userInput -eq "S" -or $userInput -eq "s") { return "EXIT" }
+    if ($userInput -match '^[SsYy]$') { return "EXIT" }
     if ($userInput -eq "B" -or $userInput -eq "b") { return "BACK" }
     if ($userInput -eq "E" -or $userInput -eq "e") {
         if ($Mode -eq "folder") {
@@ -796,7 +796,7 @@ do {
     Write-Host ""
     
     $menuSel = Read-Host "      >"
-    if ($menuSel -eq "S" -or $menuSel -eq "s") { exit }
+    if ($menuSel -match '^[SsYy]$') { exit }
 
     # =============================================
     # OBTENER ORIGENES
@@ -937,7 +937,7 @@ do {
         "4" {
             Write-Host "      [!!!] Will delete files from SOURCE. Sure? [Y/N]" -ForegroundColor Red
             $mc = Read-Host "      >"
-            if ($mc -eq "S" -or $mc -eq "s") { "MOVER" } else { "SKIP" }
+            if ($mc -match '^[SsYy]$') { "MOVER" } else { "SKIP" }
         }
         default { "COMPLETA" }
     }
@@ -961,7 +961,7 @@ do {
         Write-Host ""
         Write-Host "      Destino ya existe. Analizar diferencias? [Y/N]" -ForegroundColor Yellow
         $compSel = Read-Host "      >"
-        if ($compSel -eq "S" -or $compSel -eq "s") {
+        if ($compSel -match '^[SsYy]$') {
             $comparison = Compare-BeforeCopy -Origins $origenes -Destino $rutaFinal
         }
     }
@@ -1040,7 +1040,7 @@ do {
         Write-Host ""
         Write-Host "    Verificar integridad MD5? [Y/N]" -ForegroundColor DarkGray
         $verSel = Read-Host "    >"
-        if ($verSel -eq "S" -or $verSel -eq "s") {
+        if ($verSel -match '^[SsYy]$') {
             # Verificar el primer origen (el más importante)
             $integrity = Test-CopyIntegrity -Origen $origenes[0] -Destino $rutaFinal
         }
@@ -1081,7 +1081,7 @@ do {
                 Write-Host "    [S] Copiar  [N] Cancelar" -ForegroundColor White
                 $rc = Read-Host "    >"
 
-                if ($rc -eq "S" -or $rc -eq "s") {
+                if ($rc -match '^[SsYy]$') {
                     Clear-Host; Write-Host "`n"
                     $r2 = Start-FastCopy -FastCopyExe $fastCopyExe -Origins $origenes -Destino $newRutaFinal `
                         -Mode $modo -SpeedMode $newDriveInfo.Speed -DiskType $newDriveInfo.Type `
@@ -1093,7 +1093,7 @@ do {
                     if ($r2.OK -and $modo -ne "MOVER") {
                         Write-Host "    Verificar MD5? [Y/N]" -ForegroundColor DarkGray
                         $v2 = Read-Host "    >"
-                        if ($v2 -eq "S" -or $v2 -eq "s") { Test-CopyIntegrity -Origen $origenes[0] -Destino $newRutaFinal | Out-Null }
+                        if ($v2 -match '^[SsYy]$') { Test-CopyIntegrity -Origen $origenes[0] -Destino $newRutaFinal | Out-Null }
                     }
                 }
             }
@@ -1106,7 +1106,7 @@ do {
                 
                 Write-Host "    Abrir? [Y/N]" -ForegroundColor DarkGray
                 $openReport = Read-Host "    >"
-                if ($openReport -eq "S" -or $openReport -eq "s") { Start-Process notepad $reportFile }
+                if ($openReport -match '^[SsYy]$') { Start-Process notepad $reportFile }
             }
             "N" { break }
             "L" {

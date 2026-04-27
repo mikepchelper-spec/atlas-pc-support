@@ -358,7 +358,7 @@ function Get-PathFromUser {
     Write-Host ""
     $input = Read-Host "      ${Prompt}"
 
-    if ($input -eq "S" -or $input -eq "s") { return "EXIT" }
+    if ($input -match '^[SsYy]$') { return "EXIT" }
     if ($input -eq "B" -or $input -eq "b") { return "BACK" }
 
     if ($input -eq "E" -or $input -eq "e") {
@@ -753,7 +753,7 @@ do {
         Write-Host ""
         Write-Host $L.VerifyAsk -ForegroundColor DarkGray
         $verSel = Read-Host "    >"
-        if ($verSel -eq "S" -or $verSel -eq "s" -or $verSel -eq "Y" -or $verSel -eq "y") {
+        if ($verSel -match '^[SsYy]$' -or $verSel -eq "Y" -or $verSel -eq "y") {
             $integrity = Test-CopyIntegrity -Origen $origen -Destino $rutaFinal
         }
     }
@@ -798,7 +798,7 @@ do {
                 Write-Host $L.CopyOrCancel -ForegroundColor White
                 $repConf = Read-Host "    >"
 
-                if ($repConf -eq "S" -or $repConf -eq "s") {
+                if ($repConf -match '^[SsYy]$') {
                     Clear-Host; Write-Host "`n"
                     $result2 = Start-SmartCopy -Origen $origen -Destino $newRutaFinal -IsFile $isFile -FileName $fileName `
                         -MT $newDriveInfo.MT -DiskType $newDriveInfo.Type -Mode $modo `
@@ -807,7 +807,7 @@ do {
                     if ($result2.OK -and -not $isFile) {
                         Write-Host ""; Write-Host $L.VerifyMD5Q -ForegroundColor DarkGray
                         $v2 = Read-Host "    >"
-                        if ($v2 -eq "S" -or $v2 -eq "s" -or $v2 -eq "Y" -or $v2 -eq "y") { Test-CopyIntegrity -Origen $origen -Destino $newRutaFinal | Out-Null }
+                        if ($v2 -match '^[SsYy]$' -or $v2 -eq "Y" -or $v2 -eq "y") { Test-CopyIntegrity -Origen $origen -Destino $newRutaFinal | Out-Null }
                     }
                 }
             }

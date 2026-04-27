@@ -761,7 +761,7 @@ function Modulo-Auditoria {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Auditoria" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "Auditoria" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -850,7 +850,7 @@ function Modulo-Escaneo {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Escaneo" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "Escaneo" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -955,7 +955,7 @@ function Modulo-Latencia {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Latencia" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "Latencia" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -1031,7 +1031,7 @@ function Modulo-InfoAdaptador {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Adaptador" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "Adaptador" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -1086,7 +1086,7 @@ function Modulo-TestDNS {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "DNS" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "DNS" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -1157,7 +1157,7 @@ function Modulo-PuertosWAN {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "WAN" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "WAN" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -1227,7 +1227,7 @@ function Modulo-Fabricantes {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Fabricantes" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "Fabricantes" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -1333,7 +1333,7 @@ function Modulo-Firmware {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Firmware" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "Firmware" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -1488,7 +1488,7 @@ function Modulo-Comparativa {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Comparativa" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "Comparativa" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -1553,7 +1553,7 @@ function Modulo-Velocidad {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Velocidad" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "Velocidad" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
@@ -1629,7 +1629,7 @@ function Modulo-PortalCautivo {
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
         $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
-        if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "PortalCautivo" | Out-Null }
+        if ($Exp -match '^[SsYy]$') { Exportar-Informe -Contenido $Log -NombreModulo "PortalCautivo" | Out-Null }
     }
 
     Esperar-Enter -Silencioso:$Silencioso
