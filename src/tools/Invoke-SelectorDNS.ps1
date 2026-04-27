@@ -312,8 +312,20 @@ function Register-DoHTemplates {
 }
 
 function Set-InterfaceDoH {
-    # Usa reg.exe (Win32 API) para evitar el bug de parsing de '::' de PowerShell.
-    # Escribe en DOS paths: GUID y Index, por si Windows usa uno u otro segun build.
+    # Per-interface DoH config. Uses reg.exe (Win32 API) so the registry
+    # provider's '::' parsing bug for IPv6 keys doesn't bite.
+    #
+    # Microsoft's documented Win11 layout puts each IP under a Doh\ or
+    # Doh6\ subkey:
+    #   ...\InterfaceSpecificParameters\<GUID>\DohInterfaceSettings\Doh\<IPv4>
+    #   ...\InterfaceSpecificParameters\<GUID>\DohInterfaceSettings\Doh6\<IPv6>
+    # The previous version of this code wrote directly under
+    # DohInterfaceSettings\<IP> (no Doh\ prefix). On builds that follow
+    # the documented layout, those writes were ignored — the global
+    # EnableAutoDoh=2 flag was set, which made our status read-back show
+    # ENABLED, but Windows never picked up the per-interface templates so
+    # actual DNS traffic still went over plaintext UDP. Write to BOTH
+    # paths to cover legacy + current builds.
     param([string]$AdapterName, [string[]]$Addresses)
     try {
         $adapter = Get-NetAdapter -Name $AdapterName -ErrorAction Stop
@@ -324,12 +336,25 @@ function Set-InterfaceDoH {
         foreach ($ip in $Addresses) {
             if (-not $dohTemplates.ContainsKey($ip)) { continue }
             $tmpl = $dohTemplates[$ip]
-            # Intentar con GUID y con Index — Windows usa uno segun version/build
+            # Detect IPv4 vs IPv6 to pick the correct subkey name.
+            $isV6 = $ip -match ':'
+            $bucket = if ($isV6) { 'Doh6' } else { 'Doh' }
+            # Try GUID and Index identifiers (Windows uses one or the
+            # other depending on build) AND both layouts (with/without
+            # Doh\ prefix) for maximum coverage.
             foreach ($id in @($guid, "$idx")) {
-                $p = "$iscBase\$id\DohInterfaceSettings\$ip"
-                & reg add $p /v DohTemplate       /t REG_SZ    /d $tmpl /f 2>&1 | Out-Null
-                & reg add $p /v AutoUpgrade        /t REG_DWORD /d 1     /f 2>&1 | Out-Null
-                & reg add $p /v AllowFallbackToUdp /t REG_DWORD /d 0     /f 2>&1 | Out-Null
+                foreach ($p in @(
+                    "$iscBase\$id\DohInterfaceSettings\$bucket\$ip",
+                    "$iscBase\$id\DohInterfaceSettings\$ip"
+                )) {
+                    & reg add $p /v DohTemplate       /t REG_SZ    /d $tmpl /f 2>&1 | Out-Null
+                    & reg add $p /v AutoUpgrade       /t REG_DWORD /d 1     /f 2>&1 | Out-Null
+                    & reg add $p /v AllowFallbackToUdp /t REG_DWORD /d 0    /f 2>&1 | Out-Null
+                    # Newer Windows builds also read DohFlags (REG_QWORD).
+                    # Bit 0 = enabled, bit 1 = require encrypted (no UDP
+                    # fallback). Set both → 3.
+                    & reg add $p /v DohFlags          /t REG_QWORD /d 3     /f 2>&1 | Out-Null
+                }
             }
             $ok = ($LASTEXITCODE -eq 0)
             Write-Host "    DoH iface [$AdapterName][$ip] $(if ($ok) { '[OK]' } else { '[FAIL]' })" `
@@ -434,7 +459,17 @@ function Invoke-LatencyTest {
         Write-Host -NoNewline "  $($entry.Key.PadRight(26))$($entry.Value.PadRight(18))"
         try {
             $pings = Test-Connection -ComputerName $entry.Value -Count 3 -ErrorAction Stop
-            $avg   = [math]::Round(($pings | Measure-Object -Property ResponseTime -Average).Average, 1)
+            # PowerShell 5.1: Test-Connection returns Win32_PingStatus
+            # objects with the property `ResponseTime` (int, ms).
+            # PowerShell 7+: returns PingStatus objects with `Latency`
+            # (long, ms) instead. Pull whichever one exists; otherwise
+            # the average comes back as 0 and every server reads 0 ms.
+            $times = @($pings | ForEach-Object {
+                if ($_.PSObject.Properties['Latency'] -and $null -ne $_.Latency) { [int]$_.Latency }
+                elseif ($_.PSObject.Properties['ResponseTime'] -and $null -ne $_.ResponseTime) { [int]$_.ResponseTime }
+            })
+            if ($times.Count -eq 0) { throw 'No ping samples returned' }
+            $avg   = [math]::Round(($times | Measure-Object -Average).Average, 1)
             $bar   = if ($avg -lt 20)  { "Green" }
                      elseif ($avg -lt 60) { "Yellow" }
                      else { "Red" }
@@ -542,11 +577,31 @@ function Invoke-DoHToggle {
         foreach ($adName in $adapterDNS.Keys) {
             Set-InterfaceDoH -AdapterName $adName -Addresses $adapterDNS[$adName]
         }
+        # Dnscache caches the DoH config in memory at service-start
+        # time. Without restarting it the registry writes don't take
+        # effect until the next reboot, so the read-back shows ENABLED
+        # but actual DNS traffic still goes over plaintext UDP. Try a
+        # restart; if it fails (locked, AV, etc.) fall back to the old
+        # advice of "reboot to apply".
+        try {
+            Restart-Service -Name 'Dnscache' -Force -ErrorAction Stop
+            Write-Host "  (Dnscache service restarted)" -ForegroundColor DarkGray
+        } catch {
+            Write-Host "  (Could not restart Dnscache; reboot to apply: $($_.Exception.Message))" -ForegroundColor DarkYellow
+        }
+        Clear-DnsClientCache -ErrorAction SilentlyContinue
         Write-Host "  -> $($txt.DoHOn)" -ForegroundColor Green
         Write-Log "DoH ENABLED"
 
     } elseif ($ans -eq '2') {
         Set-ItemProperty -Path $regPath -Name "EnableAutoDoh" -Value 0 -Type DWord
+        try {
+            Restart-Service -Name 'Dnscache' -Force -ErrorAction Stop
+            Write-Host "  (Dnscache service restarted)" -ForegroundColor DarkGray
+        } catch {
+            Write-Host "  (Could not restart Dnscache; reboot to apply: $($_.Exception.Message))" -ForegroundColor DarkYellow
+        }
+        Clear-DnsClientCache -ErrorAction SilentlyContinue
         Write-Host "  -> $($txt.DoHOff)" -ForegroundColor Yellow
         Write-Log "DoH DISABLED"
 
