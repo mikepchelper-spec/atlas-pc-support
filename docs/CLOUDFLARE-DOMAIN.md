@@ -39,24 +39,33 @@ Cloudflare al añadir el sitio). Trámite normal de 15 min - 24 h.
 
    ```javascript
    // atlas-launcher — sirve el launcher.ps1 desde GitHub bajo tu dominio.
-   // Permite pinnear versión vía ?v=1.2.3 (tag git) o ?ref=branch.
+   // - ?ref=<branch|tag|sha>  pinear versión (default: main)
+   // - ?v=<lo-que-sea>        cache buster (URL única → entrada nueva)
+   // - cache TTL corto (30s)  para que cada merge llegue rápido
+   //
+   // IMPORTANTE: NO usar ?v como ref (versiones antiguas del Worker lo
+   // hacían y rompía el patrón `?v=$(Get-Random)` con números aleatorios).
 
-   const DEFAULT_REF = "main";
    const REPO = "mikepchelper-spec/atlas-pc-support";
 
    export default {
      async fetch(request) {
        const url = new URL(request.url);
-       const ref = url.searchParams.get("v")
-                 || url.searchParams.get("ref")
-                 || DEFAULT_REF;
+       const ref = url.searchParams.get("ref") || "main";
 
-       const gh = `https://raw.githubusercontent.com/${REPO}/${encodeURIComponent(ref)}/launcher.ps1`;
+       const fetchRef = (r) => fetch(
+         `https://raw.githubusercontent.com/${REPO}/${encodeURIComponent(r)}/launcher.ps1`,
+         {
+           headers: { "User-Agent": "atlas-launcher-worker" },
+           cf: { cacheTtl: 30, cacheEverything: true }
+         }
+       );
 
-       const upstream = await fetch(gh, {
-         headers: { "User-Agent": "atlas-launcher-worker" },
-         cf: { cacheTtl: 300, cacheEverything: true }
-       });
+       let upstream = await fetchRef(ref);
+       // Fallback a main si el ref pinneado no existe.
+       if (!upstream.ok && ref !== "main") {
+         upstream = await fetchRef("main");
+       }
 
        if (!upstream.ok) {
          return new Response(
@@ -66,12 +75,11 @@ Cloudflare al añadir el sitio). Trámite normal de 15 min - 24 h.
          );
        }
 
-       const body = await upstream.text();
-       return new Response(body, {
+       return new Response(await upstream.text(), {
          status: 200,
          headers: {
            "Content-Type": "text/plain; charset=utf-8",
-           "Cache-Control": "public, max-age=300",
+           "Cache-Control": "public, max-age=30",
            "X-Atlas-Source-Ref": ref
          }
        });
@@ -95,8 +103,11 @@ Ya funciona bajo `atlas-launcher.<tu-subdominio>.workers.dev`. Falta atarlo a tu
 # Ejecutable directo:
 irm https://tools.atlaspcsupport.com | iex
 
+# Forzar bypass del cache de Cloudflare/PowerShell:
+irm "https://tools.atlaspcsupport.com/?v=$(Get-Random)" | iex
+
 # Pinnear versión (cuando hagamos releases con tags):
-irm "https://tools.atlaspcsupport.com?v=v1.2.0" | iex
+irm "https://tools.atlaspcsupport.com?ref=v1.2.0" | iex
 
 # Probar un branch específico antes de merge:
 irm "https://tools.atlaspcsupport.com?ref=devin/alguna-rama" | iex
