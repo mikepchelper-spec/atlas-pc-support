@@ -399,17 +399,34 @@ function Invoke-InstalarPaquetes {
         # NOTE: do NOT name this $args — that's a PowerShell automatic
         # variable and PSScriptAnalyzer flags it; future PS versions may
         # make it read-only and break splatting silently.
+        #
+        # Note on flags:
+        #   --silent: passes /S (or installer-equivalent) to the
+        #     application's installer so it doesn't pop a GUI.
+        #   --accept-*: suppress winget's own prompts.
+        # We do NOT pass --disable-interactivity here, even though it's
+        # used in Search-Winget. Search-Winget captures output and parses
+        # it (interactivity = spinner garbage), but install runs live —
+        # the user explicitly asked for download/progress feedback while
+        # packages install ("Cuando instalo no aparece nada en absoluto,
+        # para saber más o menos cuanto le falta a la tarea"). winget's
+        # native progress bar uses CR redraws which only render properly
+        # when the process owns the console (no '2>&1' capture), so we
+        # let it stream straight to the host.
         $wingetArgs = @('install', '--id', $Pkg.Id, '--exact', '--silent',
-                        '--accept-package-agreements', '--accept-source-agreements',
-                        '--disable-interactivity')
+                        '--accept-package-agreements', '--accept-source-agreements')
         # Pkg.Source may be 'winget', 'msstore', or empty/null (unknown
         # — e.g. results from the no-source-filter search fallback). When
         # empty we omit --source entirely so winget resolves it itself.
         if ($Pkg.Source -and [string]$Pkg.Source -ne '') {
             $wingetArgs += @('--source', [string]$Pkg.Source)
         }
-        $output = & winget.exe @wingetArgs 2>&1
-        return @{ Exit = $LASTEXITCODE; Output = $output }
+        # Run winget without output capture so its native progress UI
+        # (download bar, percentage, "Successfully installed") streams
+        # directly to the user's console. We only need the exit code —
+        # if winget fails, the failure messages are already on screen.
+        & winget.exe @wingetArgs
+        return @{ Exit = $LASTEXITCODE; Output = $null }
     }
 
     function Install-Packages {
@@ -467,11 +484,8 @@ function Invoke-InstalarPaquetes {
                     default {
                         Write-Host ('  ' + ($L.InstallFailed -f $r.Exit)) -ForegroundColor Red
                         $fail++
-                        if ($r.Output) {
-                            $r.Output | Select-Object -Last 3 | ForEach-Object {
-                                Write-Host ('          ' + $_) -ForegroundColor DarkGray
-                            }
-                        }
+                        # winget's own output is already on screen
+                        # (no 2>&1 capture) so no need to echo a tail.
                     }
                 }
             } catch {
