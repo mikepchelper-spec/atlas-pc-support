@@ -209,7 +209,7 @@ function Get-PathFromUser {
     Write-Host "      [B] Volver  [S] Salir" -ForegroundColor DarkGray
     Write-Host ""
     $userInput = Read-Host "      ${Prompt}"
-    if ($userInput -match '^[SsYy]$') { return "EXIT" }
+    if ($userInput -eq "S" -or $userInput -eq "s") { return "EXIT" }
     if ($userInput -eq "B" -or $userInput -eq "b") { return "BACK" }
     if ($userInput -eq "E" -or $userInput -eq "e") {
         if ($Mode -eq "folder") {
@@ -796,7 +796,7 @@ do {
     Write-Host ""
     
     $menuSel = Read-Host "      >"
-    if ($menuSel -match '^[SsYy]$') { exit }
+    if ($menuSel -eq "S" -or $menuSel -eq "s") { exit }
 
     # =============================================
     # OBTENER ORIGENES
