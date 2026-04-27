@@ -651,8 +651,16 @@ function Invoke-InstalarPaquetes {
                 # Use [char]0x1B instead of `e — `e is PowerShell 6+ only and
                 # this panel supports Windows PowerShell 5.1.
                 $s = [regex]::Replace($s, $esc + '\[[\d;\?]*[A-Za-z]', '')
-                # Drop CR-only redraws; keep last segment after any CR
-                if ($s.Contains("`r")) { $s = ($s -split "`r")[-1] }
+                # Drop CR-only redraws; keep the LAST NON-EMPTY segment
+                # after any CR. The naive "-split then [-1]" eats lines whose
+                # only CR is trailing (Windows line-terminator leftover from
+                # `winget 2>&1` capture), because split gives ('content','')
+                # and [-1] is the empty string → table rows silently vanish
+                # and Search-Winget reports "No results" for real hits.
+                if ($s.IndexOf([char]13) -ge 0) {
+                    $segs = @($s -split "`r" | Where-Object { $_.Length -gt 0 })
+                    if ($segs.Count -gt 0) { $s = $segs[-1] } else { $s = '' }
+                }
                 $stripped = $s.Trim()
                 # Skip pure spinner / progress frames (single char -,\,|,/,or
                 # just the Unicode spinner glyphs winget uses).
