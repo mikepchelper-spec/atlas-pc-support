@@ -19,7 +19,7 @@ Write-Host "  ==========================================================" -Foreg
 Write-Host "           ATLAS PC SUPPORT - Maintenance Suite v8.3" -ForegroundColor Yellow
 Write-Host "  ==========================================================" -ForegroundColor DarkGray
 Write-Host "`n"
-Write-Host "  Nombre del cliente (Enter para usar hostname): " -NoNewline -ForegroundColor Cyan
+Write-Host "  Client name (Enter to use hostname): " -NoNewline -ForegroundColor Cyan
 $inputName = Read-Host
 $script:ClientName = if ($inputName.Trim()) { $inputName.Trim() } else { $env:COMPUTERNAME }
 Write-Host "  Cliente: $($script:ClientName)" -ForegroundColor Green
@@ -53,20 +53,20 @@ function Write-Log {
 # --- 5. INTERPRETADOR DE ERRORES ---
 $script:ErrorPatterns = @(
     @{ Pattern='CHKDSK.*error.*Codigo:\s*11'; Diag='Volumen en uso o bloqueado por otro proceso'; Fix='Ejecute "chkdsk X: /r" programado en el proximo reinicio'; Prio='Media' }
-    @{ Pattern='CHKDSK.*error.*Codigo:\s*3';  Diag='Sistema de archivos con errores criticos'; Fix='Programe "chkdsk X: /r" offline urgentemente'; Prio='Alta' }
-    @{ Pattern='CHKDSK.*error';               Diag='Error en verificacion de disco'; Fix='Revise el disco manualmente con "chkdsk /r"'; Prio='Alta' }
+    @{ Pattern='CHKDSK.*error.*Codigo:\s*3';  Diag='File system con errores criticos'; Fix='Programe "chkdsk X: /r" offline urgentemente'; Prio='Alta' }
+    @{ Pattern='CHKDSK.*error';               Diag='Error en verificacion de disk'; Fix='Revise el disk manualmente con "chkdsk /r"'; Prio='Alta' }
     @{ Pattern='SFC finalizo con codigo';      Diag='Se encontraron problemas de integridad del sistema'; Fix='Revise CBS.log en C:\Windows\Logs\CBS\CBS.log'; Prio='Media' }
-    @{ Pattern='DISM finalizo con codigo';     Diag='Reparacion de imagen completada con advertencias'; Fix='Considere reparacion con ISO de Windows usando /Source'; Prio='Media' }
-    @{ Pattern='No MSFT_Volume';               Diag='Unidad no optimizable (particion de recuperacion o virtual)'; Fix='Esto es normal - excluya esta unidad del proceso'; Prio='Baja' }
+    @{ Pattern='DISM finalizo con codigo';     Diag='Reparacion de imagen completed con advertencias'; Fix='Considere reparacion con ISO de Windows usando /Source'; Prio='Media' }
+    @{ Pattern='No MSFT_Volume';               Diag='Unidad no optimizable (particion de recovery o virtual)'; Fix='Esto es normal - excluya esta unidad del proceso'; Prio='Baja' }
     @{ Pattern='SIN INTERNET';                 Diag='No hay conectividad de red activa'; Fix='Verifique cable de red, WiFi, o adaptador de red'; Prio='Alta' }
-    @{ Pattern='Restore Point fallo';          Diag='Proteccion del sistema posiblemente deshabilitada'; Fix='Habilite en: Sistema > Proteccion del sistema > Configurar'; Prio='Alta' }
-    @{ Pattern='DISM WinSxS finalizo';         Diag='Limpieza de componentes completada parcialmente'; Fix='Reintente o use Disk Cleanup (cleanmgr) manualmente'; Prio='Baja' }
-    @{ Pattern='Kernel-Power';                 Diag='Apagado inesperado o corte de energia detectado'; Fix='Verifique fuente de poder, UPS, y temperatura del equipo'; Prio='Alta' }
-    @{ Pattern='WHEA';                         Diag='Error de hardware (memoria, CPU, o disco) detectado'; Fix='Ejecute diagnostico de memoria (mdsched.exe) y revise temperaturas'; Prio='Critica' }
+    @{ Pattern='Restore Point fallo';          Diag='Proteccion del sistema posiblemente desenabled'; Fix='Habilite en: Sistema > Proteccion del sistema > Configurar'; Prio='Alta' }
+    @{ Pattern='DISM WinSxS finalizo';         Diag='Limpieza de componentes completed parcialmente'; Fix='Reintente o use Disk Cleanup (cleanmgr) manualmente'; Prio='Baja' }
+    @{ Pattern='Kernel-Power';                 Diag='Apagado inesperado o corte de energia detectado'; Fix='Verifique fuente de poder, UPS, y temperatura del computer'; Prio='Alta' }
+    @{ Pattern='WHEA';                         Diag='Error de hardware (memoria, CPU, o disk) detectado'; Fix='Ejecute diagnostico de memoria (mdsched.exe) y revise temperaturas'; Prio='Critica' }
     @{ Pattern='BugCheck|BlueScreen';          Diag='Pantalla azul (BSOD) registrada en el sistema'; Fix='Analice minidumps en C:\Windows\Minidump con WinDbg'; Prio='Critica' }
     @{ Pattern='amenaza|threat';               Diag='Posible malware detectado por Windows Defender'; Fix='Ejecute scan completo y revise la cuarentena de Defender'; Prio='Critica' }
-    @{ Pattern='disco.*9[0-9]%|disco.*100%';   Diag='Unidad de disco casi llena'; Fix='Libere espacio urgentemente para evitar degradacion del sistema'; Prio='Alta' }
-    @{ Pattern='ConfigManagerErrorCode';       Diag='Dispositivo con driver problematico'; Fix='Actualice o reinstale el driver desde el Administrador de dispositivos'; Prio='Media' }
+    @{ Pattern='disk.*9[0-9]%|disk.*100%';   Diag='Unidad de disk casi llena'; Fix='Libere espacio urgentemente para evitar degradacion del sistema'; Prio='Alta' }
+    @{ Pattern='ConfigManagerErrorCode';       Diag='Device con driver problematico'; Fix='Actualice o reinstale el driver desde el Administrador de devices'; Prio='Media' }
 )
 
 function Get-Recommendations {
@@ -154,13 +154,13 @@ function Show-Menu-Frame {
     SepT "SEGURIDAD"
     ItemMenu "1"  "Crear Punto de Restauracion"           $script:s1  $script:c1
     SepT "DIAGNOSTICO"
-    ItemMenu "2"  "Info del Sistema (Specs completas)"     $script:s2  $script:c2
+    ItemMenu "2"  "System Info (Full Specs)"     $script:s2  $script:c2
     ItemMenu "3"  "Reparacion de Nucleo (SFC + DISM)"      $script:s3  $script:c3
     ItemMenu "4"  "Health Check de Drivers"                $script:s4  $script:c4
     ItemMenu "5"  "Event Log Scanner (Errores Criticos)"   $script:s5  $script:c5
     SepT "MANTENIMIENTO"
     ItemMenu "6"  "Windows Update (Clean + Pendientes)"    $script:s6  $script:c6
-    ItemMenu "7"  "Discos (CHKDSK + Espacio + SMART)"      $script:s7  $script:c7
+    ItemMenu "7"  "Disks (CHKDSK + Espacio + SMART)"      $script:s7  $script:c7
     ItemMenu "8"  "Limpieza de Temporales"                 $script:s8  $script:c8
     ItemMenu "9"  "Limpieza de Navegadores"                $script:s9  $script:c9
     ItemMenu "10" "Startup Programs (Analisis)"            $script:s10 $script:c10
@@ -181,7 +181,7 @@ function Show-Menu-Frame {
 }
 
 # --- 7. GENERADOR DE REPORTE HTML ---
-function Generar-Reporte {
+function Generar-Report {
     param([bool]$IncluirLog = $false)
 
     $Fecha = Get-Date -Format "dd/MM/yyyy HH:mm"
@@ -203,20 +203,20 @@ function Generar-Reporte {
     
     $Rows = ""
     $Rows += Build-Row -Mod "Seguridad"      -Acc "Restore Point"   -Det "Punto de restauracion"              -Num 1
-    $Rows += Build-Row -Mod "Diagnostico"    -Acc "System Info"      -Det "Informacion del sistema recopilada" -Num 2
+    $Rows += Build-Row -Mod "Diagnostico"    -Acc "System Info"      -Det "System information collected" -Num 2
     $Rows += Build-Row -Mod "Reparacion"     -Acc "SFC + DISM"       -Det "Integridad de Windows"              -Num 3
     $Rows += Build-Row -Mod "Drivers"        -Acc "Health Check"     -Det $script:DriverIssues                 -Num 4
     $Rows += Build-Row -Mod "Event Log"      -Acc "Error Scanner"    -Det $script:EventErrors                  -Num 5
     $Rows += Build-Row -Mod "Windows Update" -Acc "Clean + Check"    -Det $script:PendingUpdates               -Num 6
-    $Rows += Build-Row -Mod "Discos"         -Acc "CHKDSK + SMART"   -Det "$($script:ChkDskResult) | $($script:DiskSpaceInfo)" -Num 7
+    $Rows += Build-Row -Mod "Disks"         -Acc "CHKDSK + SMART"   -Det "$($script:ChkDskResult) | $($script:DiskSpaceInfo)" -Num 7
     $Rows += Build-Row -Mod "Temporales"     -Acc "Deep Clean"       -Det $script:TempMB                       -Num 8
     $Rows += Build-Row -Mod "Navegadores"    -Acc "Cache Clear"      -Det "Chrome, Edge, Firefox"              -Num 9
     $Rows += Build-Row -Mod "Startup"        -Acc "Analisis"         -Det $script:StartupItems                 -Num 10
     $Rows += Build-Row -Mod "Red"            -Acc "Reset + Perfil"   -Det $script:NetworkInfo                  -Num 11
     $Rows += Build-Row -Mod "Seguridad"      -Acc "Defender Scan"    -Det $script:DefenderResult               -Num 12
-    $Rows += Build-Row -Mod "Bateria"        -Acc "Health Report"    -Det $script:BatteryInfo                  -Num 13
+    $Rows += Build-Row -Mod "Battery"        -Acc "Health Report"    -Det $script:BatteryInfo                  -Num 13
     $Rows += Build-Row -Mod "Sistema"        -Acc "WinSxS Clean"     -Det $script:SxSResult                    -Num 14
-    $Rows += Build-Row -Mod "Almacenamiento" -Acc "TRIM / Defrag"    -Det "Optimizacion completada"            -Num 15
+    $Rows += Build-Row -Mod "Almacenamiento" -Acc "TRIM / Defrag"    -Det "Optimizacion completed"            -Num 15
     
     if (-not $Rows) { $Rows = "<tr><td colspan='4' style='text-align:center'>No se realizaron acciones.</td></tr>" }
 
@@ -238,7 +238,7 @@ function Generar-Reporte {
                 <div class="sys-item"><span class="sys-label">RAM</span><span class="sys-value">$SafeRAM</span></div>
                 <div class="sys-item"><span class="sys-label">GPU</span><span class="sys-value">$SafeGPU</span></div>
                 <div class="sys-item"><span class="sys-label">Uptime</span><span class="sys-value">$SafeUp</span></div>
-                <div class="sys-item"><span class="sys-label">Discos</span><span class="sys-value">$SafeDsk</span></div>
+                <div class="sys-item"><span class="sys-label">Disks</span><span class="sys-value">$SafeDsk</span></div>
                 <div class="sys-item"><span class="sys-label">PowerShell</span><span class="sys-value">$($script:SysPSVer)</span></div>
             </div>
         </div>
@@ -311,7 +311,7 @@ function Generar-Reporte {
             <h2>LOG DE EJECUCION</h2>
             <div class="log-summary">
                 <span class="badge badge-ok">$OkC OK</span>
-                <span class="badge badge-warn">$WrnC AVISOS</span>
+                <span class="badge badge-warn">$WrnC WARNINGS</span>
                 <span class="badge badge-error">$ErrC ERRORES</span>
             </div>
         </div>
@@ -321,7 +321,7 @@ function Generar-Reporte {
 
     $HTML = @"
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>Reporte - ATLAS PC SUPPORT - $Cliente</title>
+<title>Report - ATLAS PC SUPPORT - $Cliente</title>
 <style>
 body{font-family:'Segoe UI',sans-serif;background:#f4f4f9;color:#333;margin:0;padding:20px}
 .container{max-width:1100px;margin:0 auto;background:#fff;box-shadow:0 0 15px rgba(0,0,0,.1);border-radius:8px;overflow:hidden}
@@ -366,8 +366,8 @@ th{background:#002147;color:#fff;font-weight:600;text-transform:uppercase;font-s
     <div class="header"><h1>ATLAS PC SUPPORT</h1><p>REPORTE DE MANTENIMIENTO TECNICO</p></div>
     <div class="info-box">
         <div class="info-item"><strong>Cliente:</strong> $Cliente</div>
-        <div class="info-item"><strong>Equipo:</strong> $PC \ $User</div>
-        <div class="info-item"><strong>Fecha:</strong> $Fecha</div>
+        <div class="info-item"><strong>Computer:</strong> $PC \ $User</div>
+        <div class="info-item"><strong>Date:</strong> $Fecha</div>
     </div>
     $SysSection
     <table><thead><tr><th>Modulo</th><th>Accion</th><th>Detalle Tecnico</th><th>Resultado</th></tr></thead><tbody>$Rows</tbody></table>
@@ -379,7 +379,7 @@ th{background:#002147;color:#fff;font-weight:600;text-transform:uppercase;font-s
     </div>
 </div></body></html>
 "@
-    $ReportFile = "Reporte_${PC}_${FechaFile}.html"
+    $ReportFile = "Report_${PC}_${FechaFile}.html"
     $Path = "$env:USERPROFILE\Desktop\$ReportFile"
     $HTML | Out-File $Path -Encoding UTF8
     
@@ -423,12 +423,12 @@ function Run-Task-Safe {
     $Success = $false
     try {
         & $ScriptBlock; $Success = $true
-        if (-not $AutoMode) { Write-Host "`n  [OK] Tarea completada." -ForegroundColor Green }
+        if (-not $AutoMode) { Write-Host "`n  [OK] Tarea completed." -ForegroundColor Green }
     } catch {
         if (-not $AutoMode) { Write-Host "`n  [!] Error: $_" -ForegroundColor Red }
         Write-Log "[$Title] EXCEPCION: $_" "ERROR"
     }
-    if (-not $AutoMode) { Write-Host "`n  Presione Enter para volver..."; Read-Host }
+    if (-not $AutoMode) { Write-Host "`n  Press Enter to go back..."; Read-Host }
     return $Success
 }
 
@@ -463,20 +463,20 @@ function Show-AutoProgress {
 $script:TaskDefinitions = @(
 
     @{ Num=1; Title="CREAR PUNTO DE RESTAURACION"; Est=10; Code={
-        Write-Host "  Verificando servicio..." -ForegroundColor Gray
+        Write-Host "  Verifying servicio..." -ForegroundColor Gray
         try {
             Enable-ComputerRestore -Drive "C:\" -ErrorAction SilentlyContinue
             $Desc = "ATLAS_Mantenimiento_$(Get-Date -Format 'yyyyMMdd')"
-            Write-Host "  Creando punto: $Desc" -ForegroundColor Cyan
+            Write-Host "  Creating punto: $Desc" -ForegroundColor Cyan
             $SRP = [System.Management.ManagementClass]"\\.\root\default:SystemRestore"
             $Res = $SRP.CreateRestorePoint($Desc, 12, 100)
-            if ($Res.ReturnValue -eq 0) { Write-Host "  Punto creado." -ForegroundColor Green; Write-Log "Restore Point creado: $Desc" "OK" }
+            if ($Res.ReturnValue -eq 0) { Write-Host "  Punto created." -ForegroundColor Green; Write-Log "Restore Point created: $Desc" "OK" }
             else { Write-Log "Restore Point fallo. Codigo: $($Res.ReturnValue)" "WARN"; throw "Restore point failed" }
         } catch { Write-Warning "  $_"; throw }
     }},
 
     @{ Num=2; Title="INFO DEL SISTEMA (SPECS)"; Est=15; Code={
-        Write-Host "  Recopilando informacion del sistema..." -ForegroundColor Cyan
+        Write-Host "  Collecting system information..." -ForegroundColor Cyan
         $os = Get-CimInstance Win32_OperatingSystem
         $script:SysOS = "$($os.Caption) Build $($os.BuildNumber)"
         $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
@@ -495,7 +495,7 @@ $script:TaskDefinitions = @(
             $total = [math]::Round($d.Size/1GB,1); $free = [math]::Round($d.FreeSpace/1GB,1)
             $pct = if($d.Size -gt 0){[math]::Round((($d.Size-$d.FreeSpace)/$d.Size)*100,0)}else{0}
             $dInfo += "$($d.DeviceID) ${free}GB libre de ${total}GB (${pct}% usado)"
-            if ($pct -ge 90) { Write-Log "disco $($d.DeviceID) al ${pct}% - casi lleno (ver Tarea 7)" "INFO" }
+            if ($pct -ge 90) { Write-Log "disk $($d.DeviceID) al ${pct}% - casi lleno (ver Tarea 7)" "INFO" }
         }
         $script:SysDiskInfo = $dInfo -join " | "
         Write-Host "  OS:     $($script:SysOS)" -ForegroundColor White
@@ -503,7 +503,7 @@ $script:TaskDefinitions = @(
         Write-Host "  RAM:    $($script:SysRAM)" -ForegroundColor White
         Write-Host "  GPU:    $($script:SysGPU)" -ForegroundColor White
         Write-Host "  Uptime: $($script:SysUptime)" -ForegroundColor White
-        Write-Host "  Discos: $($script:SysDiskInfo)" -ForegroundColor White
+        Write-Host "  Disks: $($script:SysDiskInfo)" -ForegroundColor White
         Write-Host "  PS:     $($script:SysPSVer)" -ForegroundColor White
         Write-Log "System Info recopilada" "OK"
     }},
@@ -511,16 +511,16 @@ $script:TaskDefinitions = @(
     @{ Num=3; Title="REPARACION DE NUCLEO (SFC + DISM)"; Est=300; Code={
         Write-Host "  1. SFC /scannow ..." -ForegroundColor Cyan
         $SFC = Start-Process "sfc.exe" -ArgumentList "/scannow" -NoNewWindow -Wait -PassThru
-        if ($SFC.ExitCode -eq 0) { Write-Host "  SFC: OK" -ForegroundColor Green; Write-Log "SFC completado sin errores." "OK" }
+        if ($SFC.ExitCode -eq 0) { Write-Host "  SFC: OK" -ForegroundColor Green; Write-Log "SFC completed without errors." "OK" }
         else { Write-Host "  SFC: Codigo $($SFC.ExitCode)" -ForegroundColor Yellow; Write-Log "SFC finalizo con codigo $($SFC.ExitCode)" "WARN" }
         Write-Host "  2. DISM RestoreHealth ..." -ForegroundColor Cyan
         $DISM = Start-Process "dism.exe" -ArgumentList "/Online /Cleanup-Image /RestoreHealth" -NoNewWindow -Wait -PassThru
-        if ($DISM.ExitCode -eq 0) { Write-Host "  DISM: OK" -ForegroundColor Green; Write-Log "DISM RestoreHealth completado." "OK" }
+        if ($DISM.ExitCode -eq 0) { Write-Host "  DISM: OK" -ForegroundColor Green; Write-Log "DISM RestoreHealth completed." "OK" }
         else { Write-Host "  DISM: Codigo $($DISM.ExitCode)" -ForegroundColor Yellow; Write-Log "DISM finalizo con codigo $($DISM.ExitCode)" "WARN" }
     }},
 
     @{ Num=4; Title="HEALTH CHECK DE DRIVERS"; Est=20; Code={
-        Write-Host "  Buscando dispositivos con problemas..." -ForegroundColor Cyan
+        Write-Host "  Searching for devices with issues..." -ForegroundColor Cyan
         $problems = Get-CimInstance Win32_PnPEntity | Where-Object { $_.ConfigManagerErrorCode -ne 0 }
         if ($problems) {
             $list = @()
@@ -530,16 +530,16 @@ $script:TaskDefinitions = @(
                 $list += $msg
                 Write-Log "ConfigManagerErrorCode - $msg" "WARN"
             }
-            $script:DriverIssues = "$($problems.Count) dispositivo(s) con problemas: $($list[0..2] -join ', ')"
+            $script:DriverIssues = "$($problems.Count) device(s) con problemas: $($list[0..2] -join ', ')"
         } else {
-            Write-Host "  Todos los drivers OK." -ForegroundColor Green
-            $script:DriverIssues = "Todos los drivers funcionando correctamente"
+            Write-Host "  All drivers OK." -ForegroundColor Green
+            $script:DriverIssues = "All drivers working correctly"
             Write-Log "Drivers: todos OK" "OK"
         }
     }},
 
     @{ Num=5; Title="EVENT LOG SCANNER (ERRORES CRITICOS)"; Est=30; Code={
-        Write-Host "  Buscando errores criticos (ultimos 7 dias)..." -ForegroundColor Cyan
+        Write-Host "  Searching errores criticos (ultimos 7 dias)..." -ForegroundColor Cyan
         $since = (Get-Date).AddDays(-7)
         $events = Get-WinEvent -FilterHashtable @{LogName='System'; Level=1,2; StartTime=$since} -MaxEvents 25 -ErrorAction SilentlyContinue
         if ($events) {
@@ -556,19 +556,19 @@ $script:TaskDefinitions = @(
             Write-Log "Event Log: $($events.Count) errores criticos en 7 dias" "WARN"
         } else {
             Write-Host "  Sin errores criticos." -ForegroundColor Green
-            $script:EventErrors = "Sin errores criticos en los ultimos 7 dias"
+            $script:EventErrors = "No critical errors in the last 7 days"
             Write-Log "Event Log: limpio" "OK"
         }
     }},
 
     @{ Num=6; Title="WINDOWS UPDATE (CLEAN + PENDIENTES)"; Est=45; Code={
-        Write-Host "  Limpiando servicios de Update..." -ForegroundColor Gray
+        Write-Host "  Cleaning servicios de Update..." -ForegroundColor Gray
         Stop-Service wuauserv, bits, cryptSvc -Force -EA SilentlyContinue
         Remove-Item "$env:windir\SoftwareDistribution\Download\*" -Recurse -Force -EA SilentlyContinue
         Start-Service cryptSvc, wuauserv, bits -EA SilentlyContinue
         Write-Host "  Servicios reiniciados." -ForegroundColor Green
         Write-Log "Windows Update limpiado." "OK"
-        Write-Host "  Buscando updates pendientes..." -ForegroundColor Cyan
+        Write-Host "  Searching updates pendientes..." -ForegroundColor Cyan
         try {
             $Session = New-Object -ComObject Microsoft.Update.Session
             $Searcher = $Session.CreateUpdateSearcher()
@@ -589,8 +589,8 @@ $script:TaskDefinitions = @(
                 Write-Log "Windows Update: al dia" "OK"
             }
         } catch {
-            Write-Host "  No se pudo verificar updates." -ForegroundColor Gray
-            $script:PendingUpdates = "No se pudo verificar"
+            Write-Host "  Could not verify updates." -ForegroundColor Gray
+            $script:PendingUpdates = "Could not verify"
             Write-Log "Windows Update check fallo: $_" "WARN"
         }
     }},
@@ -616,9 +616,9 @@ $script:TaskDefinitions = @(
             $total = [math]::Round($_.Size/1GB,1); $free = [math]::Round($_.FreeSpace/1GB,1)
             $pct = if($_.Size -gt 0){[math]::Round((($_.Size-$_.FreeSpace)/$_.Size)*100,0)}else{0}
             $color = if($pct -ge 90){"Red"}elseif($pct -ge 75){"Yellow"}else{"Green"}
-            Write-Host "  $($_.DeviceID) ${free}GB libre de ${total}GB (${pct}%)" -ForegroundColor $color
+            Write-Host "  $($_.DeviceID) ${free}GB free of ${total}GB (${pct}%)" -ForegroundColor $color
             $spaceInfo += "$($_.DeviceID) ${pct}%"
-            if ($pct -ge 90) { Write-Log "disco $($_.DeviceID) al ${pct}% - critico" "ERROR" }
+            if ($pct -ge 90) { Write-Log "disk $($_.DeviceID) al ${pct}% - critico" "ERROR" }
         }
         $script:DiskSpaceInfo = $spaceInfo -join " | "
 
@@ -640,7 +640,7 @@ $script:TaskDefinitions = @(
                     if ($temp) { Write-Host "    Temp: ${temp}C | Horas: $hours | Desgaste: $wear" -ForegroundColor Gray }
                 }
             }
-            Write-Log "SMART check completado" "OK"
+            Write-Log "SMART check completed" "OK"
         } catch { Write-Host "  SMART no disponible." -ForegroundColor Gray; Write-Log "SMART no disponible" "WARN" }
     }},
 
@@ -659,7 +659,7 @@ $script:TaskDefinitions = @(
                         $TotalSize += $MB
                         $TotalFiles += $Count
                     }
-                    Write-Host "  -> Eliminando $MB MB ($Count archivos)..." -NoNewline
+                    Write-Host "  -> Removing $MB MB ($Count archivos)..." -NoNewline
                     Remove-Item "$Folder\*" -Recurse -Force -EA SilentlyContinue
                     Write-Host " [OK]" -ForegroundColor Green
                 } else {
@@ -674,7 +674,7 @@ $script:TaskDefinitions = @(
     }},
 
     @{ Num=9; Title="LIMPIEZA DE NAVEGADORES"; Est=20; Code={
-        Write-Host "  Cerrando navegadores..." -ForegroundColor Yellow
+        Write-Host "  Closing navegadores..." -ForegroundColor Yellow
         Start-Sleep 2
         Stop-Process -Name "chrome","msedge","firefox" -Force -EA SilentlyContinue
         $cacheFolders = @("Cache", "Cache_Data", "Code Cache", "GPUCache", "Service Worker\CacheStorage")
@@ -703,7 +703,7 @@ $script:TaskDefinitions = @(
     }},
 
     @{ Num=10; Title="STARTUP PROGRAMS (ANALISIS)"; Est=10; Code={
-        Write-Host "  Analizando programas de inicio..." -ForegroundColor Cyan
+        Write-Host "  Analyzing programas de inicio..." -ForegroundColor Cyan
         $items = @()
         $hklm = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -EA SilentlyContinue
         if ($hklm) { $hklm.PSObject.Properties | Where-Object { $_.Name -notmatch '^PS' } | ForEach-Object { $items += @{Name=$_.Name; Source="HKLM\Run"; Cmd=$_.Value} } }
@@ -756,15 +756,15 @@ $script:TaskDefinitions = @(
     }},
 
     @{ Num=12; Title="DEFENDER QUICK SCAN"; Est=120; Code={
-        Write-Host "  Iniciando Windows Defender Quick Scan..." -ForegroundColor Cyan
+        Write-Host "  Starting Windows Defender Quick Scan..." -ForegroundColor Cyan
         Write-Host "  (Timeout: 5 min)" -ForegroundColor Gray
         try {
             # Verificar que Defender esté activo
             $mpStatus = Get-MpComputerStatus -ErrorAction Stop
             if (-not $mpStatus.AntivirusEnabled) {
-                Write-Host "  Defender deshabilitado (antivirus de terceros?)." -ForegroundColor Yellow
-                $script:DefenderResult = "Defender deshabilitado"
-                Write-Log "Defender deshabilitado - posible AV de terceros" "WARN"
+                Write-Host "  Defender desenabled (antivirus de terceros?)." -ForegroundColor Yellow
+                $script:DefenderResult = "Defender desenabled"
+                Write-Log "Defender disabled - possible third-party AV" "WARN"
                 return
             }
             Write-Host "  Defender activo. Firmas: $($mpStatus.AntivirusSignatureLastUpdated.ToString('dd/MM/yyyy'))" -ForegroundColor Gray
@@ -773,15 +773,15 @@ $script:TaskDefinitions = @(
             $completed = $scanJob | Wait-Job -Timeout 300
             if (-not $completed) {
                 $scanJob | Stop-Job; $scanJob | Remove-Job -Force
-                Write-Host "  Scan excedio 5 min - cancelado." -ForegroundColor Yellow
-                $script:DefenderResult = "Scan cancelado por timeout (5 min)"
+                Write-Host "  Scan excedio 5 min - cancelled." -ForegroundColor Yellow
+                $script:DefenderResult = "Scan cancelled by timeout (5 min)"
                 Write-Log "Defender scan: timeout 5 min" "WARN"
                 return
             }
             $scanJob | Receive-Job -EA SilentlyContinue
             $scanJob | Remove-Job -Force
             
-            Write-Host "  Scan completado." -ForegroundColor Green
+            Write-Host "  Scan completed." -ForegroundColor Green
             $threats = Get-MpThreatDetection -EA SilentlyContinue
             $recent = $threats | Where-Object { $_.InitialDetectionTime -gt (Get-Date).AddDays(-7) }
             if ($recent) {
@@ -790,7 +790,7 @@ $script:TaskDefinitions = @(
                 foreach ($th in $recent | Select-Object -First 3) {
                     Write-Host "      - $($th.ThreatName)" -ForegroundColor Red
                 }
-                Write-Log "amenaza encontrada: $(@($recent).Count) threat(s)" "ERROR"
+                Write-Log "amenaza found: $(@($recent).Count) threat(s)" "ERROR"
             } else {
                 $script:DefenderResult = "Sin amenazas detectadas"
                 Write-Host "  Sin amenazas." -ForegroundColor Green
@@ -806,19 +806,19 @@ $script:TaskDefinitions = @(
     @{ Num=13; Title="BATTERY REPORT (LAPTOPS)"; Est=10; Code={
         $battery = Get-CimInstance Win32_Battery -EA SilentlyContinue
         if (-not $battery) {
-            Write-Host "  No se detecto bateria (equipo de escritorio)." -ForegroundColor Gray
-            $script:BatteryInfo = "Equipo de escritorio - N/A"
-            Write-Log "Battery: equipo de escritorio, omitido" "OK"
+            Write-Host "  No battery detected (desktop computer)." -ForegroundColor Gray
+            $script:BatteryInfo = "Desktop computer - N/A"
+            Write-Log "Battery: desktop computer, skipped" "OK"
             return
         }
         $charge = $battery.EstimatedChargeRemaining
         $status = switch ($battery.BatteryStatus) { 1{"Descargando"} 2{"Cargando"} 3{"Carga completa"} default{"Desconocido"} }
-        Write-Host "  Bateria: ${charge}% - $status" -ForegroundColor $(if($charge -lt 30){"Red"}elseif($charge -lt 60){"Yellow"}else{"Green"})
+        Write-Host "  Battery: ${charge}% - $status" -ForegroundColor $(if($charge -lt 30){"Red"}elseif($charge -lt 60){"Yellow"}else{"Green"})
         $battPath = "$env:USERPROFILE\Desktop\battery-report.html"
         Start-Process "powercfg.exe" -ArgumentList "/batteryreport /output `"$battPath`"" -NoNewWindow -Wait
         if (Test-Path $battPath) {
-            Write-Host "  Reporte: $battPath" -ForegroundColor Green
-            $script:BatteryInfo = "${charge}% ($status) - Reporte en Desktop"
+            Write-Host "  Report: $battPath" -ForegroundColor Green
+            $script:BatteryInfo = "${charge}% ($status) - Report en Desktop"
         } else { $script:BatteryInfo = "${charge}% ($status)" }
         Write-Log "Battery: ${charge}% $status" "OK"
     }},
@@ -826,7 +826,7 @@ $script:TaskDefinitions = @(
     @{ Num=14; Title="LIMPIEZA PROFUNDA (WINSXS)"; Est=240; Code={
         $DiskBefore = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'"
         $FreeBefore = $DiskBefore.FreeSpace
-        Write-Host "  Limpiando WinSxS (puede tardar)..." -ForegroundColor Cyan
+        Write-Host "  Cleaning WinSxS (may take a while)..." -ForegroundColor Cyan
         $DISM = Start-Process "dism.exe" -ArgumentList "/Online /Cleanup-Image /StartComponentCleanup" -NoNewWindow -Wait -PassThru
         if ($DISM.ExitCode -ne 0) { Write-Log "DISM WinSxS finalizo con codigo $($DISM.ExitCode)" "WARN" }
         $DiskAfter = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'"
@@ -843,13 +843,13 @@ $script:TaskDefinitions = @(
         foreach ($Disk in $Drives) {
             $DriveLtr = $Disk.DeviceID.Replace(":", "")
             $DriveLabel = $Disk.DeviceID
-            Write-Host "  -> Procesando ${DriveLabel}..." -NoNewline
+            Write-Host "  -> Processing ${DriveLabel}..." -NoNewline
             try {
                 Optimize-Volume -DriveLetter $DriveLtr -Verbose -ErrorAction Stop | Out-Null
                 Write-Host " [OK]" -ForegroundColor Green
-                Write-Log "Optimize-Volume ${DriveLabel} completado." "OK"
+                Write-Log "Optimize-Volume ${DriveLabel} completed." "OK"
             } catch {
-                Write-Host " [INFO] Gestionado por Windows." -ForegroundColor Gray
+                Write-Host " [INFO] Managed by Windows." -ForegroundColor Gray
                 Write-Log "Optimize-Volume ${DriveLabel} - $($_.Exception.Message)" "WARN"
             }
         }
@@ -865,7 +865,7 @@ function Run-AutoMode {
     $EstMin = [math]::Round($TotalEstSec / 60, 0)
     
     Write-Log "=== INICIO MANTENIMIENTO AUTOMATICO ===" "INFO"
-    Write-Log "Cliente: $($script:ClientName) | Equipo: $env:COMPUTERNAME | Usuario: $env:USERNAME" "INFO"
+    Write-Log "Cliente: $($script:ClientName) | Computer: $env:COMPUTERNAME | User: $env:USERNAME" "INFO"
     Write-Log "Tiempo estimado: ~$EstMin minutos" "INFO"
     
     # Orden optimizado: Defender (12) antes de Red reset (11) para evitar conflicto
@@ -887,7 +887,7 @@ function Run-AutoMode {
         if ($TaskResult) {
             Set-Variable -Name "s$Num" -Value "[OK]" -Scope Script
             Set-Variable -Name "c$Num" -Value "Green" -Scope Script
-            Write-Log "Paso $StepNum completado en ${Duration}s" "OK"
+            Write-Log "Paso $StepNum completed en ${Duration}s" "OK"
         } else {
             Set-Variable -Name "s$Num" -Value "[FAIL]" -Scope Script
             Set-Variable -Name "c$Num" -Value "Red" -Scope Script
@@ -917,7 +917,7 @@ function Run-AutoMode {
     
     Write-Host "  Resultados:" -ForegroundColor White
     Write-Host "    $([char]0x2714) Exitosos:  $OkC" -ForegroundColor Green
-    Write-Host "    $([char]0x26A0) Avisos:    $WrnC" -ForegroundColor Yellow
+    Write-Host "    $([char]0x26A0) Warnings:    $WrnC" -ForegroundColor Yellow
     Write-Host "    $([char]0x2718) Errores:   $ErrC" -ForegroundColor Red
     Write-Host "    $([char]0x23F1) Duracion:  $TotalDuration minutos" -ForegroundColor Cyan
     Write-Host ""
@@ -944,9 +944,9 @@ function Run-AutoMode {
     $script:AutoLog | Out-File $LogPath -Encoding UTF8
     Write-Host "  [LOG] $LogPath" -ForegroundColor Gray
     
-    Generar-Reporte -IncluirLog $true
+    Generar-Report -IncluirLog $true
     
-    Write-Host "`n  Presione Enter para salir..." -ForegroundColor Yellow
+    Write-Host "`n  Press Enter to exit..." -ForegroundColor Yellow
     Read-Host
     Exit
 }
@@ -956,7 +956,7 @@ do {
     Show-Header
     Show-Menu-Frame
     
-    Write-Host " Seleccione opcion (0=Reporte, 16=Auto) > " -NoNewline -ForegroundColor Yellow
+    Write-Host " Seleccione option (0=Report, 16=Auto) > " -NoNewline -ForegroundColor Yellow
     $Sel = Read-Host
 
     switch ($Sel) {
@@ -971,13 +971,13 @@ do {
         }
         "16" { Run-AutoMode }
         "0" {
-            Write-Host "`n  Generando reporte..." -ForegroundColor Yellow
-            Generar-Reporte -IncluirLog ($script:AutoLog.Count -gt 0)
+            Write-Host "`n  Generating report..." -ForegroundColor Yellow
+            Generar-Report -IncluirLog ($script:AutoLog.Count -gt 0)
             Start-Sleep 2; Exit
         }
         "Q" { Exit }
         "q" { Exit }
-        default { Write-Host "`n  Opcion no valida." -ForegroundColor Red; Start-Sleep 1 }
+        default { Write-Host "`n  Option no valida." -ForegroundColor Red; Start-Sleep 1 }
     }
 } while ($true)
 

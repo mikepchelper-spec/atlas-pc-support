@@ -15,7 +15,7 @@ function Invoke-GestorBitLocker {
 # =======================================================
 # Gestor de BitLocker v3 - Atlas PC Support
 # TPM + Progreso + Backup USB + QR + Health Check + Log
-# AD/Azure backup + CLI mode + Alerta discos sin proteger
+# AD/Azure backup + CLI mode + Alerta disks sin proteger
 # =======================================================
 
 # (auto-elevación gestionada por Atlas Launcher)
@@ -23,7 +23,7 @@ function Invoke-GestorBitLocker {
 
 [console]::BackgroundColor = "Black"
 [console]::ForegroundColor = "Gray"
-$Host.UI.RawUI.WindowTitle = "ATLAS PC SUPPORT - Gestor BitLocker v3"
+$Host.UI.RawUI.WindowTitle = "ATLAS PC SUPPORT - BitLocker Manager v3"
 try { $Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(105, 48) } catch {}
 
 # Log file
@@ -56,21 +56,21 @@ function Show-DiskTable {
     
     $volumes = Get-BitLockerVolume -ErrorAction SilentlyContinue
     if (-not $volumes) {
-        if (-not $Silent) { Write-Host "    No se pudo acceder a BitLocker." -ForegroundColor Red }
+        if (-not $Silent) { Write-Host "    Could not access BitLocker." -ForegroundColor Red }
         return $null
     }
     
     if ($OnlyEncrypted) {
         $volumes = $volumes | Where-Object { $_.VolumeStatus -ne 'FullyDecrypted' }
         if (-not $volumes) {
-            if (-not $Silent) { Write-Host "    No hay discos con BitLocker activo." -ForegroundColor Yellow }
+            if (-not $Silent) { Write-Host "    No disks with BitLocker active." -ForegroundColor Yellow }
             return $null
         }
     }
     
     if (-not $Silent) {
         Write-Host ""
-        Write-Host "    DISCO   ESTADO                  ENCRIPTADO   TAMANO    METODO" -ForegroundColor DarkGray
+        Write-Host "    DISK    STATUS                  ENCRYPTED    SIZE      METHOD" -ForegroundColor DarkGray
         Write-Host "    -----   ------                  ----------   ------    ------" -ForegroundColor DarkGray
         
         foreach ($v in $volumes) {
@@ -88,10 +88,10 @@ function Show-DiskTable {
                 default { "White" }
             }
             $statusLabel = switch ($status) {
-                "FullyEncrypted" { "ENCRIPTADO" }
-                "FullyDecrypted" { "LIBRE" }
-                "EncryptionInProgress" { "ENCRIPTANDO..." }
-                "DecryptionInProgress" { "DESENCRIPTANDO..." }
+                "FullyEncrypted" { "ENCRYPTED" }
+                "FullyDecrypted" { "FREE" }
+                "EncryptionInProgress" { "ENCRYPTING..." }
+                "DecryptionInProgress" { "DECRYPTING..." }
                 default { $status }
             }
             $icon = switch ($status) {
@@ -118,16 +118,16 @@ function Validate-DriveLetter {
     if ([string]::IsNullOrWhiteSpace($Input)) { return $null }
     $clean = $Input.Trim().ToUpper().Replace(":", "")
     if ($clean.Length -ne 1 -or $clean -notmatch "^[A-Z]$") {
-        Write-Host "    Letra invalida. Usa una sola letra (ej: C, D, E)." -ForegroundColor Red
+        Write-Host "    Invalid letter. Use a single letter (e.g.: C, D, E)." -ForegroundColor Red
         return $null
     }
-    $disco = "${clean}:"
-    $found = $ValidVolumes | Where-Object { $_.MountPoint -eq $disco }
+    $disk = "${clean}:"
+    $found = $ValidVolumes | Where-Object { $_.MountPoint -eq $disk }
     if (-not $found) {
-        Write-Host "    El disco ${disco} no existe." -ForegroundColor Red
+        Write-Host "    El disk ${disk} no existe." -ForegroundColor Red
         return $null
     }
-    return @{ Letter = $disco; Volume = $found }
+    return @{ Letter = $disk; Volume = $found }
 }
 
 function Get-TPMStatus {
@@ -141,18 +141,18 @@ function Get-TPMStatus {
             if ($tpmWMI.SpecVersion) { $result.Version = ($tpmWMI.SpecVersion -split ',')[0].Trim() }
         } catch { }
         if ($result.HasTPM -and $result.IsReady) { $result.Summary = "TPM $($result.Version) presente y listo" }
-        elseif ($result.HasTPM) { $result.Summary = "TPM presente pero NO listo" }
-        else { $result.Summary = "Sin TPM detectado" }
-    } catch { $result.Summary = "No se pudo consultar TPM" }
+        elseif ($result.HasTPM) { $result.Summary = "TPM present but NOT ready" }
+        else { $result.Summary = "No TPM detected" }
+    } catch { $result.Summary = "Could not query TPM" }
     return $result
 }
 
 function Show-EncryptionProgress {
     param([string]$MountPoint, [string]$Mode = "Encrypting")
-    $label = if ($Mode -eq "Encrypting") { "ENCRIPTANDO" } else { "DESENCRIPTANDO" }
+    $label = if ($Mode -eq "Encrypting") { "ENCRYPTING" } else { "DECRYPTING" }
     $color = if ($Mode -eq "Encrypting") { "Cyan" } else { "Magenta" }
     Write-Host ""
-    Escribir-Centrado "Monitoreando (CTRL+C para dejar en segundo plano)..." "DarkGray"
+    Escribir-Centrado "Monitoring (CTRL+C to leave running in background)..." "DarkGray"
     Write-Host ""
     $lastPct = -1
     try {
@@ -168,14 +168,14 @@ function Show-EncryptionProgress {
             }
             if ($status -eq "FullyEncrypted" -or $status -eq "FullyDecrypted") {
                 Write-Host ""; Write-Host ""
-                $doneMsg = if ($Mode -eq "Encrypting") { "Encriptacion completada." } else { "Desencriptacion completada." }
+                $doneMsg = if ($Mode -eq "Encrypting") { "Encryption complete." } else { "Decryption complete." }
                 Escribir-Centrado $doneMsg "Green"
-                Write-Log "${doneMsg} Disco: ${MountPoint}"
+                Write-Log "${doneMsg} Disk: ${MountPoint}"
                 break
             }
             Start-Sleep -Seconds 3
         }
-    } catch { Write-Host ""; Write-Host ""; Escribir-Centrado "Monitoreo detenido. Continua en segundo plano." "Yellow" }
+    } catch { Write-Host ""; Write-Host ""; Escribir-Centrado "Monitoring stopped. Continues in background." "Yellow" }
 }
 
 # ==================== HEALTH CHECK PRE-ENCRIPTACION ====================
@@ -187,11 +187,11 @@ function Test-PreEncryptionHealth {
     $driveLetter = $MountPoint.TrimEnd(':')
     
     Write-Host ""
-    Escribir-Centrado "HEALTH CHECK PRE-ENCRIPTACION" "Yellow"
+    Escribir-Centrado "PRE-ENCRYPTION HEALTH CHECK" "Yellow"
     Write-Host ""
     
     # 1. BATERIA (critico en laptops)
-    Write-Host "    [1/5] Bateria..." -NoNewline -ForegroundColor DarkGray
+    Write-Host "    [1/5] Battery..." -NoNewline -ForegroundColor DarkGray
     $battery = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
     if ($battery) {
         $charge = $battery.EstimatedChargeRemaining
@@ -201,31 +201,31 @@ function Test-PreEncryptionHealth {
             $canProceed = $false
             Write-Host " FALLO (${charge}%)" -ForegroundColor Red
         } elseif ($charge -lt 50 -and -not $plugged) {
-            $warnings += "Bateria al ${charge}%. Se recomienda conectar el cargador."
-            Write-Host " AVISO (${charge}%)" -ForegroundColor Yellow
+            $warnings += "Battery al ${charge}%. Se recomienda conectar el cargador."
+            Write-Host " WARNING (${charge}%)" -ForegroundColor Yellow
         } elseif ($plugged) {
             Write-Host " OK (${charge}%, cargador conectado)" -ForegroundColor Green
         } else {
             Write-Host " OK (${charge}%)" -ForegroundColor Green
         }
     } else {
-        Write-Host " N/A (escritorio)" -ForegroundColor Gray
+        Write-Host " N/A (desktop)" -ForegroundColor Gray
     }
     
     # 2. ESPACIO EN DISCO
-    Write-Host "    [2/5] Espacio en disco..." -NoNewline -ForegroundColor DarkGray
+    Write-Host "    [2/5] Disk space..." -NoNewline -ForegroundColor DarkGray
     $logDisk = Get-CimInstance Win32_LogicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DeviceID -eq $MountPoint }
     if ($logDisk) {
         $freeGB = [math]::Round($logDisk.FreeSpace / 1GB, 1)
         $totalGB = [math]::Round($logDisk.Size / 1GB, 1)
         $usedPct = [math]::Round((($logDisk.Size - $logDisk.FreeSpace) / $logDisk.Size) * 100, 0)
         if ($freeGB -lt 1) {
-            $issues += "DISCO CASI LLENO: Solo ${freeGB}GB libre. BitLocker necesita espacio para metadatos."
+            $issues += "DISCO CASI LLENO: Only ${freeGB}GB libre. BitLocker necesita espacio para metadatos."
             $canProceed = $false
             Write-Host " FALLO (${freeGB}GB libre)" -ForegroundColor Red
         } elseif ($usedPct -gt 95) {
-            $warnings += "Disco al ${usedPct}% de capacidad. Recomendado liberar espacio."
-            Write-Host " AVISO (${usedPct}%)" -ForegroundColor Yellow
+            $warnings += "Disk al ${usedPct}% de capacidad. Recomendado liberar espacio."
+            Write-Host " WARNING (${usedPct}%)" -ForegroundColor Yellow
         } else {
             Write-Host " OK (${freeGB}GB libre de ${totalGB}GB)" -ForegroundColor Green
         }
@@ -234,7 +234,7 @@ function Test-PreEncryptionHealth {
     }
     
     # 3. ESTADO SMART DEL DISCO
-    Write-Host "    [3/5] Salud del disco (SMART)..." -NoNewline -ForegroundColor DarkGray
+    Write-Host "    [3/5] Disk health (SMART)..." -NoNewline -ForegroundColor DarkGray
     try {
         $partition = Get-Partition -DriveLetter $driveLetter -ErrorAction Stop
         $physDisk = Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DeviceId -eq $partition.DiskNumber.ToString() }
@@ -244,7 +244,7 @@ function Test-PreEncryptionHealth {
         if ($physDisk) {
             $health = $physDisk.HealthStatus.ToString()
             if ($health -ne "Healthy") {
-                $issues += "DISCO CON PROBLEMAS: Estado SMART = ${health}. Encriptar un disco danado puede causar perdida total."
+                $issues += "DISCO CON PROBLEMAS: Estado SMART = ${health}. Encriptar un disk danado puede causar perdida total."
                 $canProceed = $false
                 Write-Host " FALLO (${health})" -ForegroundColor Red
             } else {
@@ -259,7 +259,7 @@ function Test-PreEncryptionHealth {
     }
     
     # 4. SISTEMA DE ARCHIVOS
-    Write-Host "    [4/5] Sistema de archivos..." -NoNewline -ForegroundColor DarkGray
+    Write-Host "    [4/5] File system..." -NoNewline -ForegroundColor DarkGray
     try {
         $vol = Get-Volume -DriveLetter $driveLetter -ErrorAction Stop
         $fs = if ($vol.FileSystem) { $vol.FileSystem } else { "Desconocido" }
@@ -275,13 +275,13 @@ function Test-PreEncryptionHealth {
     }
     
     # 5. PROCESOS CRITICOS
-    Write-Host "    [5/5] Procesos criticos..." -NoNewline -ForegroundColor DarkGray
+    Write-Host "    [5/5] Critical processes..." -NoNewline -ForegroundColor DarkGray
     $chkdsk = Get-Process -Name "chkdsk" -ErrorAction SilentlyContinue
     $defrag = Get-Process -Name "defrag" -ErrorAction SilentlyContinue
     if ($chkdsk -or $defrag) {
         $procName = if ($chkdsk) { "chkdsk" } else { "defrag" }
-        $warnings += "${procName} en ejecucion. Espera a que termine antes de encriptar."
-        Write-Host " AVISO (${procName} activo)" -ForegroundColor Yellow
+        $warnings += "${procName} en execution. Espera a que termine antes de encriptar."
+        Write-Host " WARNING (${procName} activo)" -ForegroundColor Yellow
     } else {
         Write-Host " OK" -ForegroundColor Green
     }
@@ -289,16 +289,16 @@ function Test-PreEncryptionHealth {
     # RESUMEN
     Write-Host ""
     if ($issues.Count -gt 0) {
-        Escribir-Centrado "PROBLEMAS CRITICOS (no se recomienda continuar):" "Red"
+        Escribir-Centrado "CRITICAL ISSUES (not recommended to continue):" "Red"
         foreach ($issue in $issues) { Write-Host "    [X] ${issue}" -ForegroundColor Red }
     }
     if ($warnings.Count -gt 0) {
         Write-Host ""
-        Escribir-Centrado "AVISOS:" "Yellow"
+        Escribir-Centrado "WARNINGS:" "Yellow"
         foreach ($warn in $warnings) { Write-Host "    [!] ${warn}" -ForegroundColor Yellow }
     }
     if ($issues.Count -eq 0 -and $warnings.Count -eq 0) {
-        Escribir-Centrado "TODOS LOS CHEQUEOS PASARON" "Green"
+        Escribir-Centrado "ALL CHECKS PASSED" "Green"
     }
     
     Write-Log "HealthCheck ${MountPoint}: Issues=${issues.Count}, Warnings=${warnings.Count}, CanProceed=${canProceed}"
@@ -314,7 +314,7 @@ function Show-UnprotectedAlert {
     
     $unprotected = @()
     foreach ($v in $allVols) {
-        # Solo alertar discos del sistema y datos (no removibles)
+        # Only alertar disks del sistema y datos (no removibles)
         $driveLetter = $v.MountPoint.TrimEnd(':')
         try {
             $volInfo = Get-Volume -DriveLetter $driveLetter -ErrorAction SilentlyContinue
@@ -327,7 +327,7 @@ function Show-UnprotectedAlert {
     
     if ($unprotected.Count -gt 0) {
         Write-Host ""
-        $alertLine = "ALERTA: $($unprotected.Count) disco(s) fijo(s) SIN PROTECCION: $($unprotected -join ', ')"
+        $alertLine = "ALERTA: $($unprotected.Count) disk(s) fijo(s) UNPROTECTED: $($unprotected -join ', ')"
         Escribir-Centrado $alertLine "Red"
     }
 }
@@ -366,7 +366,7 @@ function Generate-QRCode {
             $lines += "  $Data"
         }
         $lines += ""
-        $lines += "Fecha: $(Get-Date -Format 'dd/MM/yyyy')"
+        $lines += "Date: $(Get-Date -Format 'dd/MM/yyyy')"
         $lines += "PC: $env:COMPUTERNAME"
         
         # Crear imagen
@@ -417,7 +417,7 @@ function Generate-QRCode {
         $content += "|  ${Data}".PadRight(49) + "|"
         $content += "|  PC: $env:COMPUTERNAME | $(Get-Date -Format 'dd/MM/yyyy')".PadRight(49) + "|"
         $content += $border
-        $content += "  Recortar y pegar en la carcasa del equipo."
+        $content += "  Cut out and stick on the computer case."
         
         $content -join "`r`n" | Out-File -FilePath $txtPath -Encoding UTF8
         return $txtPath
@@ -434,7 +434,7 @@ function Backup-KeyToAD {
     
     $recoveryKeys = $vol.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
     if (-not $recoveryKeys) {
-        Write-Host "    No hay claves de recuperacion para respaldar." -ForegroundColor Yellow
+        Write-Host "    No recovery keys to back up." -ForegroundColor Yellow
         return $false
     }
     
@@ -444,37 +444,37 @@ function Backup-KeyToAD {
         $keyId = $key.KeyProtectorId
         
         # Intentar AD On-Premise
-        Write-Host "    Intentando backup a Active Directory..." -ForegroundColor DarkGray
+        Write-Host "    Trying backup to Active Directory..." -ForegroundColor DarkGray
         try {
             Backup-BitLockerKeyProtector -MountPoint $MountPoint -KeyProtectorId $keyId -ErrorAction Stop
-            Write-Host "    [OK] Clave respaldada en Active Directory." -ForegroundColor Green
+            Write-Host "    [OK] Key backed up to Active Directory." -ForegroundColor Green
             Write-Log "AD Backup OK: ${MountPoint} KeyID: ${keyId}"
             $success = $true
         } catch {
             $adError = $_.Exception.Message
             if ($adError -match "not joined|domain|directory") {
-                Write-Host "    [--] Equipo no esta en dominio AD." -ForegroundColor DarkGray
+                Write-Host "    [--] Computer is not joined to AD domain." -ForegroundColor DarkGray
             } else {
-                Write-Host "    [--] AD no disponible: $adError" -ForegroundColor DarkGray
+                Write-Host "    [--] AD not available: $adError" -ForegroundColor DarkGray
             }
         }
         
         # Intentar Azure AD
-        Write-Host "    Intentando backup a Azure AD / Entra ID..." -ForegroundColor DarkGray
+        Write-Host "    Trying backup to Azure AD / Entra ID..." -ForegroundColor DarkGray
         try {
             $dsregStatus = dsregcmd /status 2>&1
             $isAzureJoined = ($dsregStatus | Select-String "AzureAdJoined\s*:\s*YES" -Quiet)
             
             if ($isAzureJoined) {
                 BackupToAAD-BitLockerKeyProtector -MountPoint $MountPoint -KeyProtectorId $keyId -ErrorAction Stop
-                Write-Host "    [OK] Clave respaldada en Azure AD / Entra ID." -ForegroundColor Green
+                Write-Host "    [OK] Key backed up to Azure AD / Entra ID." -ForegroundColor Green
                 Write-Log "Azure AD Backup OK: ${MountPoint} KeyID: ${keyId}"
                 $success = $true
             } else {
-                Write-Host "    [--] Equipo no esta unido a Azure AD." -ForegroundColor DarkGray
+                Write-Host "    [--] Computer is not joined to Azure AD." -ForegroundColor DarkGray
             }
         } catch {
-            Write-Host "    [--] Azure AD no disponible." -ForegroundColor DarkGray
+            Write-Host "    [--] Azure AD not available." -ForegroundColor DarkGray
         }
     }
     
@@ -487,11 +487,11 @@ if ($Action -ne "") {
     switch ($Action) {
         "Extract" {
             $VolumenesBL = Get-BitLockerVolume -ErrorAction SilentlyContinue | Where-Object { $_.VolumeStatus -ne 'FullyDecrypted' }
-            if (-not $VolumenesBL) { Write-Host "Sin discos protegidos."; exit 1 }
+            if (-not $VolumenesBL) { Write-Host "No protected disks."; exit 1 }
             
             $outputPath = if ($Output) { $Output } else { Join-Path ([Environment]::GetFolderPath("Desktop")) "BL_$env:COMPUTERNAME_$(Get-Date -Format 'yyyyMMdd_HHmm').txt" }
             
-            $content = "ATLAS PC SUPPORT - BITLOCKER KEYS`r`nPC: $env:COMPUTERNAME`r`nFecha: $(Get-Date)`r`n---`r`n"
+            $content = "ATLAS PC SUPPORT - BITLOCKER KEYS`r`nPC: $env:COMPUTERNAME`r`nDate: $(Get-Date)`r`n---`r`n"
             foreach ($Vol in $VolumenesBL) {
                 $keys = $Vol.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
                 foreach ($k in $keys) {
@@ -500,7 +500,7 @@ if ($Action -ne "") {
                 }
             }
             $content | Out-File -FilePath $outputPath -Encoding UTF8
-            Write-Host "Guardado en: ${outputPath}"
+            Write-Host "Saved to: ${outputPath}"
             Write-Log "CLI Extract: ${outputPath}"
             return
         }
@@ -536,10 +536,10 @@ while ($true) {
     $tpmColor = if ($tpmInfo.HasTPM -and $tpmInfo.IsReady) { "Green" } elseif ($tpmInfo.HasTPM) { "Yellow" } else { "Red" }
     Escribir-Centrado "TPM: $($tpmInfo.Summary)" $tpmColor
     
-    # Discos protegidos
+    # Disks protegidos
     $blVolumes = Get-BitLockerVolume -ErrorAction SilentlyContinue | Where-Object { $_.VolumeStatus -ne 'FullyDecrypted' }
     $blCount = if ($blVolumes) { @($blVolumes).Count } else { 0 }
-    Escribir-Centrado "Discos protegidos: ${blCount}" $(if ($blCount -gt 0) { "Cyan" } else { "DarkGray" })
+    Escribir-Centrado "Disks protegidos: ${blCount}" $(if ($blCount -gt 0) { "Cyan" } else { "DarkGray" })
     
     # ALERTA DISCOS SIN PROTEGER
     Show-UnprotectedAlert
@@ -555,9 +555,9 @@ while ($true) {
     Escribir-Centrado "===================================================" "DarkGray"
     Write-Host ""
     
-    $Opcion = Read-Host "  Opcion"
+    $Option = Read-Host "  Option"
 
-    switch ($Opcion.ToUpper()) {
+    switch ($Option.ToUpper()) {
         # =============================================
         # 1. EXTRAER CLAVES (+ USB + QR + AD + Clipboard)
         # =============================================
@@ -567,23 +567,23 @@ while ($true) {
             Escribir-Centrado "=== EXTRACCION DE CLAVES BITLOCKER ===" "DarkYellow"
             Write-Host ""
             
-            $NombreEquipo = $env:COMPUTERNAME
-            $UsuarioActual = $env:USERNAME
+            $NombreComputer = $env:COMPUTERNAME
+            $UserActual = $env:USERNAME
             $FechaHora = Get-Date -Format 'dd-MM-yyyy_HHmm'
-            $NombreArchivo = "BL_${NombreEquipo}_${FechaHora}.txt"
+            $NombreArchivo = "BL_${NombreComputer}_${FechaHora}.txt"
             
-            Write-Host "    Escaneando discos protegidos..." -ForegroundColor DarkGray
+            Write-Host "    Scanning disks protegidos..." -ForegroundColor DarkGray
             $VolumenesBL = Get-BitLockerVolume -ErrorAction SilentlyContinue | Where-Object { $_.VolumeStatus -ne 'FullyDecrypted' }
             
             if (-not $VolumenesBL) {
-                Escribir-Centrado "No se encontraron discos con BitLocker activo." "Red"
+                Escribir-Centrado "No disks with BitLocker active found." "Red"
             } else {
                 $Contenido = "===================================================`r`n"
                 $Contenido += "      ATLAS PC SUPPORT - RESPALDO DE BITLOCKER`r`n"
                 $Contenido += "===================================================`r`n"
                 $Contenido += "Fecha               : $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')`r`n"
-                $Contenido += "Nombre del Equipo   : ${NombreEquipo}`r`n"
-                $Contenido += "Usuario Activo      : ${UsuarioActual}`r`n"
+                $Contenido += "Nombre del Computer   : ${NombreComputer}`r`n"
+                $Contenido += "User Activo      : ${UserActual}`r`n"
                 $Contenido += "---------------------------------------------------`r`n`r`n"
                 
                 $ClavesEncontradas = 0
@@ -612,31 +612,31 @@ while ($true) {
                 }
                 
                 if ($ClavesEncontradas -eq 0) {
-                    Escribir-Centrado "No se encontraron claves de recuperacion." "Red"
+                    Escribir-Centrado "No se encontraron recovery keys." "Red"
                 } else {
                     $Contenido += "===================================================`r`n"
                     $Contenido += "TOTAL: ${ClavesEncontradas} clave(s)`r`n"
                     
                     Write-Host ""
-                    Escribir-Centrado "${ClavesEncontradas} clave(s) encontrada(s)" "Green"
-                    Write-Log "Extraccion: ${ClavesEncontradas} claves de ${NombreEquipo}"
+                    Escribir-Centrado "${ClavesEncontradas} clave(s) found(s)" "Green"
+                    Write-Log "Extraccion: ${ClavesEncontradas} claves de ${NombreComputer}"
                     
                     $rutasGuardadas = @()
                     
-                    # Guardar en escritorio
-                    $RutaEscritorio = [Environment]::GetFolderPath("Desktop")
-                    $RutaCompleta = Join-Path $RutaEscritorio $NombreArchivo
+                    # Guardar en desktop
+                    $RutaDesktop = [Environment]::GetFolderPath("Desktop")
+                    $RutaCompleta = Join-Path $RutaDesktop $NombreArchivo
                     try {
                         $Contenido | Out-File -FilePath $RutaCompleta -Encoding UTF8
-                        Write-Host "    [OK] Escritorio: ${NombreArchivo}" -ForegroundColor Cyan
+                        Write-Host "    [OK] Desktop: ${NombreArchivo}" -ForegroundColor Cyan
                         $rutasGuardadas += $RutaCompleta
-                    } catch { Write-Host "    [ERROR] No se guardo en escritorio." -ForegroundColor Red }
+                    } catch { Write-Host "    [ERROR] Could not save to desktop." -ForegroundColor Red }
                     
                     # USB
                     $usbs = Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 'Removable' -and $_.DriveLetter -and $_.Size -gt 0 }
                     if ($usbs) {
                         Write-Host ""
-                        Write-Host "    USB detectado(s). Guardar copia? [S/N]" -ForegroundColor Yellow
+                        Write-Host "    USB detectado(s). Guardar copia? [Y/N]" -ForegroundColor Yellow
                         $usbSel = Read-Host "    >"
                         if ($usbSel -eq "S" -or $usbSel -eq "s") {
                             foreach ($u in $usbs) {
@@ -652,13 +652,13 @@ while ($true) {
                     
                     # QR / Imagen imprimible
                     Write-Host ""
-                    Write-Host "    Generar imagen imprimible de las claves? [S/N]" -ForegroundColor Yellow
+                    Write-Host "    Generate printable image of keys? [Y/N]" -ForegroundColor Yellow
                     $qrSel = Read-Host "    >"
                     if ($qrSel -eq "S" -or $qrSel -eq "s") {
                         foreach ($kInfo in $clavesParaQR) {
-                            $qrFileName = "BL_KEY_${NombreEquipo}_$($kInfo.Mount.TrimEnd(':'))_${FechaHora}.png"
-                            $qrPath = Join-Path $RutaEscritorio $qrFileName
-                            $label = "Disco: $($kInfo.Mount) | PC: ${NombreEquipo}"
+                            $qrFileName = "BL_KEY_${NombreComputer}_$($kInfo.Mount.TrimEnd(':'))_${FechaHora}.png"
+                            $qrPath = Join-Path $RutaDesktop $qrFileName
+                            $label = "Disk: $($kInfo.Mount) | PC: ${NombreComputer}"
                             $qrResult = Generate-QRCode -Data $kInfo.Key -OutputPath $qrPath -Label $label
                             if ($qrResult -eq $true) {
                                 Write-Host "    [OK] Imagen: ${qrFileName}" -ForegroundColor Green
@@ -671,12 +671,12 @@ while ($true) {
                             }
                         }
                         Write-Host ""
-                        Escribir-Centrado "Imprime la imagen y pegala en la carcasa del equipo." "Cyan"
+                        Escribir-Centrado "Print the image and stick it on the computer case." "Cyan"
                     }
                     
                     # AD / Azure AD backup
                     Write-Host ""
-                    Write-Host "    Intentar backup a Active Directory / Azure AD? [S/N]" -ForegroundColor Yellow
+                    Write-Host "    Intentar backup a Active Directory / Azure AD? [Y/N]" -ForegroundColor Yellow
                     $adSel = Read-Host "    >"
                     if ($adSel -eq "S" -or $adSel -eq "s") {
                         foreach ($Vol in $VolumenesBL) {
@@ -686,22 +686,22 @@ while ($true) {
                     
                     # Clipboard
                     Write-Host ""
-                    Write-Host "    Copiar claves al portapapeles? [S/N]" -ForegroundColor DarkGray
+                    Write-Host "    Copy keys to clipboard? [Y/N]" -ForegroundColor DarkGray
                     $clipSel = Read-Host "    >"
                     if ($clipSel -eq "S" -or $clipSel -eq "s") {
                         try {
                             ($clavesParaClipboard -join "`r`n") | Set-Clipboard
-                            Write-Host "    [OK] Copiado al portapapeles." -ForegroundColor Green
+                            Write-Host "    [OK] Copied to clipboard." -ForegroundColor Green
                         } catch { Write-Host "    [ERROR] Clipboard no disponible." -ForegroundColor Red }
                     }
                     
-                    # Resumen
+                    # Summary
                     Write-Host ""
                     Escribir-Centrado "RESUMEN DE BACKUPS:" "White"
                     foreach ($ruta in $rutasGuardadas) { Write-Host "    -> ${ruta}" -ForegroundColor Gray }
                 }
             }
-            Write-Host "`n"; Read-Host "    ENTER para volver..."
+            Write-Host "`n"; Read-Host "    ENTER to go back..."
         }
 
         # =============================================
@@ -719,103 +719,103 @@ while ($true) {
             Write-Host "    TPM: $($tpm.Summary)" -ForegroundColor $tpmColor
             
             if (-not $tpm.HasTPM) {
-                Write-Host "    Sin TPM = contrasena requerida en cada arranque." -ForegroundColor Yellow
+                Write-Host "    No TPM = password required at every boot." -ForegroundColor Yellow
                 Write-Host ""
-                Write-Host "    [C] Continuar con contrasena  [B] Volver" -ForegroundColor White
+                Write-Host "    [C] Continue with password  [B] Back" -ForegroundColor White
                 $tpmChoice = Read-Host "    >"
                 if ($tpmChoice -ne "C" -and $tpmChoice -ne "c") { continue }
             } elseif (-not $tpm.IsReady) {
-                Write-Host "    Puede requerir activacion en BIOS." -ForegroundColor Yellow
+                Write-Host "    May require activation in BIOS." -ForegroundColor Yellow
             }
             
             Write-Host ""
             $allVolumes = Show-DiskTable
-            if (-not $allVolumes) { Read-Host "    ENTER para volver..."; continue }
+            if (-not $allVolumes) { Read-Host "    ENTER to go back..."; continue }
             
-            Write-Host "    Disco a encriptar (o [B] para volver):" -ForegroundColor White
+            Write-Host "    Disk to encrypt (or [B] to go back):" -ForegroundColor White
             $input = Read-Host "    >"
             if ($input -eq "B" -or $input -eq "b") { continue }
             
             $validated = Validate-DriveLetter -Input $input -ValidVolumes $allVolumes
-            if (-not $validated) { Read-Host "    ENTER para volver..."; continue }
+            if (-not $validated) { Read-Host "    ENTER to go back..."; continue }
             
-            $disco = $validated.Letter; $vol = $validated.Volume
+            $disk = $validated.Letter; $vol = $validated.Volume
             
             if ($vol.VolumeStatus -eq 'FullyEncrypted') {
-                Write-Host "    ${disco} YA esta encriptado." -ForegroundColor Yellow
-                Read-Host "    ENTER para volver..."; continue
+                Write-Host "    ${disk} YA esta encriptado." -ForegroundColor Yellow
+                Read-Host "    ENTER to go back..."; continue
             }
             if ($vol.VolumeStatus -eq 'EncryptionInProgress') {
-                Write-Host "    ${disco} ya se esta encriptando." -ForegroundColor Yellow
-                Show-EncryptionProgress -MountPoint $disco -Mode "Encrypting"
-                Read-Host "    ENTER para volver..."; continue
+                Write-Host "    ${disk} ya se esta encriptando." -ForegroundColor Yellow
+                Show-EncryptionProgress -MountPoint $disk -Mode "Encrypting"
+                Read-Host "    ENTER to go back..."; continue
             }
             
             # HEALTH CHECK
-            $health = Test-PreEncryptionHealth -MountPoint $disco
+            $health = Test-PreEncryptionHealth -MountPoint $disk
             
             if (-not $health.CanProceed) {
                 Write-Host ""
                 Escribir-Centrado "NO SE RECOMIENDA ENCRIPTAR EN ESTE ESTADO." "Red"
                 Write-Host ""
-                Write-Host "    [F] Forzar de todos modos  [B] Volver (recomendado)" -ForegroundColor Yellow
+                Write-Host "    [F] Force anyway  [B] Back (recommended)" -ForegroundColor Yellow
                 $forceChoice = Read-Host "    >"
                 if ($forceChoice -ne "F" -and $forceChoice -ne "f") {
-                    Write-Log "Encriptacion cancelada por HealthCheck: ${disco}"
+                    Write-Log "Encryption cancelled por HealthCheck: ${disk}"
                     continue
                 }
-                Write-Log "HealthCheck FORZADO por usuario: ${disco}"
+                Write-Log "HealthCheck FORZADO por user: ${disk}"
             }
             
             # Confirmación
             $capGB = if ($vol.CapacityGB) { "{0:N1}" -f $vol.CapacityGB } else { "?" }
             Write-Host ""
-            Escribir-Centrado "CONFIRMAR: Activar BitLocker en ${disco} (${capGB} GB)?" "Yellow"
+            Escribir-Centrado "CONFIRMAR: Activar BitLocker en ${disk} (${capGB} GB)?" "Yellow"
             Write-Host "    [S] Encriptar  [N] Cancelar" -ForegroundColor White
             $confirm = Read-Host "    >"
             if ($confirm -ne "S" -and $confirm -ne "s") { continue }
             
             Write-Host ""
-            Write-Host "    Activando BitLocker en ${disco}..." -ForegroundColor Yellow
+            Write-Host "    Activating BitLocker on ${disk}..." -ForegroundColor Yellow
             
             try {
                 if ($tpm.HasTPM -and $tpm.IsReady) {
-                    Enable-BitLocker -MountPoint $disco -EncryptionMethod XtsAes256 -RecoveryPasswordProtector -ErrorAction Stop
+                    Enable-BitLocker -MountPoint $disk -EncryptionMethod XtsAes256 -RecoveryPasswordProtector -ErrorAction Stop
                 } else {
-                    Write-Host "    Ingresa contrasena para arranque:" -ForegroundColor Cyan
-                    $secPwd = Read-Host "    Contrasena" -AsSecureString
-                    Enable-BitLocker -MountPoint $disco -EncryptionMethod XtsAes256 -PasswordProtector -Password $secPwd -ErrorAction Stop
-                    Add-BitLockerKeyProtector -MountPoint $disco -RecoveryPasswordProtector -ErrorAction Stop
+                    Write-Host "    Enter boot password:" -ForegroundColor Cyan
+                    $secPwd = Read-Host "    Password" -AsSecureString
+                    Enable-BitLocker -MountPoint $disk -EncryptionMethod XtsAes256 -PasswordProtector -Password $secPwd -ErrorAction Stop
+                    Add-BitLockerKeyProtector -MountPoint $disk -RecoveryPasswordProtector -ErrorAction Stop
                 }
                 
                 Write-Host ""
-                Escribir-Centrado "BitLocker ACTIVADO en ${disco}" "Green"
+                Escribir-Centrado "BitLocker ACTIVADO en ${disk}" "Green"
                 Escribir-Centrado "USA OPCION [1] PARA GUARDAR LA CLAVE!" "Cyan"
-                Write-Log "BitLocker ACTIVADO: ${disco} (XtsAes256)"
+                Write-Log "BitLocker ACTIVADO: ${disk} (XtsAes256)"
                 
                 # AD backup automatico
                 Write-Host ""
-                Backup-KeyToAD -MountPoint $disco
+                Backup-KeyToAD -MountPoint $disk
                 
                 Write-Host ""
                 Write-Host "    [M] Monitorear progreso  [ENTER] Volver" -ForegroundColor DarkGray
                 $monSel = Read-Host "    >"
                 if ($monSel -eq "M" -or $monSel -eq "m") {
-                    Show-EncryptionProgress -MountPoint $disco -Mode "Encrypting"
+                    Show-EncryptionProgress -MountPoint $disk -Mode "Encrypting"
                 }
             } catch {
                 Write-Host "    [ERROR] $($_.Exception.Message)" -ForegroundColor Red
-                Write-Log "ERROR activando BitLocker ${disco}: $($_.Exception.Message)" "ERROR"
+                Write-Log "ERROR activando BitLocker ${disk}: $($_.Exception.Message)" "ERROR"
                 
                 $msg = $_.Exception.Message
                 if ($msg -match "TPM") {
-                    Write-Host "    SUGERENCIA: Activa TPM en BIOS." -ForegroundColor Yellow
+                    Write-Host "    SUGGESTION: Enable TPM in BIOS." -ForegroundColor Yellow
                 }
                 if ($msg -match "policy|Group Policy") {
                     Write-Host "    SUGERENCIA: gpedit.msc > Computer Config > Admin Templates > BitLocker" -ForegroundColor Yellow
                 }
             }
-            Write-Host ""; Read-Host "    ENTER para volver..."
+            Write-Host ""; Read-Host "    ENTER to go back..."
         }
 
         # =============================================
@@ -828,46 +828,46 @@ while ($true) {
             Write-Host ""
             
             $encVolumes = Show-DiskTable -OnlyEncrypted
-            if (-not $encVolumes) { Read-Host "    ENTER para volver..."; continue }
+            if (-not $encVolumes) { Read-Host "    ENTER to go back..."; continue }
             
-            Write-Host "    Disco a desencriptar (o [B]):" -ForegroundColor White
+            Write-Host "    Disk a desencriptar (o [B]):" -ForegroundColor White
             $input = Read-Host "    >"
             if ($input -eq "B" -or $input -eq "b") { continue }
             
             $validated = Validate-DriveLetter -Input $input -ValidVolumes $encVolumes
-            if (-not $validated) { Read-Host "    ENTER para volver..."; continue }
+            if (-not $validated) { Read-Host "    ENTER to go back..."; continue }
             
-            $disco = $validated.Letter; $vol = $validated.Volume
+            $disk = $validated.Letter; $vol = $validated.Volume
             
             if ($vol.VolumeStatus -eq 'DecryptionInProgress') {
-                Write-Host "    Ya se esta desencriptando." -ForegroundColor Yellow
-                Show-EncryptionProgress -MountPoint $disco -Mode "Decrypting"
-                Read-Host "    ENTER para volver..."; continue
+                Write-Host "    Already being decrypted." -ForegroundColor Yellow
+                Show-EncryptionProgress -MountPoint $disk -Mode "Decrypting"
+                Read-Host "    ENTER to go back..."; continue
             }
             
             $capGB = if ($vol.CapacityGB) { "{0:N1}" -f $vol.CapacityGB } else { "?" }
             Write-Host ""
-            Escribir-Centrado "CONFIRMAR: Desactivar BitLocker en ${disco} (${capGB} GB)?" "Red"
-            Write-Host "    ADVERTENCIA: Los datos quedaran sin proteccion." -ForegroundColor Yellow
+            Escribir-Centrado "CONFIRMAR: Desactivar BitLocker en ${disk} (${capGB} GB)?" "Red"
+            Write-Host "    WARNING: Data will be left unprotected." -ForegroundColor Yellow
             Write-Host "    [S] Desencriptar  [N] Cancelar" -ForegroundColor White
             $confirm = Read-Host "    >"
             if ($confirm -ne "S" -and $confirm -ne "s") { continue }
             
             try {
-                Disable-BitLocker -MountPoint $disco -ErrorAction Stop
-                Escribir-Centrado "Desencriptacion iniciada en ${disco}." "Green"
-                Write-Log "BitLocker DESACTIVADO: ${disco}"
+                Disable-BitLocker -MountPoint $disk -ErrorAction Stop
+                Escribir-Centrado "Decryption iniciada en ${disk}." "Green"
+                Write-Log "BitLocker DESACTIVADO: ${disk}"
                 
                 Write-Host "    [M] Monitorear  [ENTER] Volver" -ForegroundColor DarkGray
                 $monSel = Read-Host "    >"
                 if ($monSel -eq "M" -or $monSel -eq "m") {
-                    Show-EncryptionProgress -MountPoint $disco -Mode "Decrypting"
+                    Show-EncryptionProgress -MountPoint $disk -Mode "Decrypting"
                 }
             } catch {
                 Write-Host "    [ERROR] $($_.Exception.Message)" -ForegroundColor Red
-                Write-Log "ERROR desactivando ${disco}: $($_.Exception.Message)" "ERROR"
+                Write-Log "ERROR desactivando ${disk}: $($_.Exception.Message)" "ERROR"
             }
-            Write-Host ""; Read-Host "    ENTER para volver..."
+            Write-Host ""; Read-Host "    ENTER to go back..."
         }
 
         # =============================================
@@ -900,10 +900,10 @@ while ($true) {
                         $kpType = $kp.KeyProtectorType.ToString()
                         $kpId = if ($kp.KeyProtectorId) { $kp.KeyProtectorId.Substring(0, [math]::Min(20, $kp.KeyProtectorId.Length)) + "..." } else { "" }
                         $typeLabel = switch ($kpType) {
-                            "RecoveryPassword" { "Clave Recuperacion" }
+                            "RecoveryPassword" { "Clave Recovery" }
                             "Tpm" { "TPM" }
                             "TpmPin" { "TPM + PIN" }
-                            "Password" { "Contrasena" }
+                            "Password" { "Password" }
                             "ExternalKey" { "Llave Externa" }
                             default { $kpType }
                         }
@@ -912,9 +912,9 @@ while ($true) {
                     }
                 }
             }
-            if (-not $hasProtectors) { Write-Host "    (ninguno)" -ForegroundColor DarkGray }
+            if (-not $hasProtectors) { Write-Host "    (none)" -ForegroundColor DarkGray }
             
-            Write-Host "`n"; Read-Host "    ENTER para volver..."
+            Write-Host "`n"; Read-Host "    ENTER to go back..."
         }
 
         # =============================================
@@ -929,7 +929,7 @@ while ($true) {
             if (Test-Path $logFile) {
                 $logContent = Get-Content $logFile -Tail 50 -ErrorAction SilentlyContinue
                 if ($logContent) {
-                    Write-Host "    Ultimas operaciones (max 50):" -ForegroundColor DarkGray
+                    Write-Host "    Last operations (max 50):" -ForegroundColor DarkGray
                     Write-Host "    " + ("-" * 80) -ForegroundColor DarkGray
                     Write-Host ""
                     foreach ($line in $logContent) {
@@ -946,16 +946,16 @@ while ($true) {
                 }
             } else {
                 Write-Host "    No hay historial aun." -ForegroundColor DarkGray
-                Write-Host "    Se creara automaticamente con cada operacion." -ForegroundColor DarkGray
+                Write-Host "    Created automatically with each operation." -ForegroundColor DarkGray
             }
             
             Write-Host ""
-            Write-Host "    Archivo: ${logFile}" -ForegroundColor DarkGray
+            Write-Host "    File: ${logFile}" -ForegroundColor DarkGray
             Write-Host ""
             Write-Host "    [L] Limpiar historial  [ENTER] Volver" -ForegroundColor DarkGray
             $logAction = Read-Host "    >"
             if ($logAction -eq "L" -or $logAction -eq "l") {
-                Write-Host "    Seguro? [S/N]" -ForegroundColor Yellow
+                Write-Host "    Seguro? [Y/N]" -ForegroundColor Yellow
                 $logConfirm = Read-Host "    >"
                 if ($logConfirm -eq "S" -or $logConfirm -eq "s") {
                     Remove-Item $logFile -Force -ErrorAction SilentlyContinue
@@ -976,7 +976,7 @@ while ($true) {
         }
 
         default {
-            Escribir-Centrado "Opcion no valida." "Red"
+            Escribir-Centrado "Option no valida." "Red"
             Start-Sleep -Seconds 1
         }
     }

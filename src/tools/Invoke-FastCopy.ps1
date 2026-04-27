@@ -10,7 +10,7 @@ function Invoke-FastCopy {
 # ========================================================
 # ATLAS PC SUPPORT - FASTCOPY EDITION v3 (PowerShell)
 # Multi-origen + Perfiles + Comparar + Notificacion
-# MD5 + Speed adapt + Resumen exportable + Exclusiones
+# MD5 + Speed adapt + Summary exportable + Exclusiones
 # ========================================================
 
 $Host.UI.RawUI.BackgroundColor = "Black"
@@ -77,28 +77,28 @@ function Install-FastCopyAuto {
     if (-not $ok) { throw "No se pudo descargar el installer de FastCopy." }
 
     # El installer oficial de FastCopy NO es InnoSetup; es custom.
-    # Switches (segun el propio instalador):
+    # Switches (segun el propio installedr):
     #   /SILENT ... silent install
     #   /DIR=<dir> ... target dir
-    #   /EXTRACT64 ... extraer solo archivos (sin instalar)
+    #   /EXTRACT64 ... extraer only archivos (sin instalar)
     #   /NOSUBDIR ... no crear subcarpeta
     #   /AGREE_LICENSE ... aceptar licencia
-    # Usamos /EXTRACT64 para solo dejar los archivos en $targetDir
+    # Usamos /EXTRACT64 para only dejar los archivos en $targetDir
     # sin modificar menu inicio / Program Files / registro.
-    Write-Host "    Extrayendo FastCopy a $targetDir ..." -ForegroundColor Gray
+    Write-Host "    Extracting FastCopy a $targetDir ..." -ForegroundColor Gray
     $procArgs = @('/EXTRACT64', '/NOSUBDIR', '/AGREE_LICENSE', ("/DIR=`"$targetDir`""))
     try {
         $p = Start-Process -FilePath $installerPath -ArgumentList $procArgs -Wait -PassThru -ErrorAction Stop
         if ($p.ExitCode -ne 0) {
-            Write-Host "    /EXTRACT64 termino con codigo $($p.ExitCode). Probando /SILENT install..." -ForegroundColor Yellow
+            Write-Host "    /EXTRACT64 finished with code $($p.ExitCode). Trying /SILENT install..." -ForegroundColor Yellow
             $p2 = Start-Process -FilePath $installerPath -ArgumentList @('/SILENT', '/AGREE_LICENSE', ("/DIR=`"$targetDir`"")) -Wait -PassThru -ErrorAction Stop
             if ($p2.ExitCode -ne 0) {
-                Write-Host "    /SILENT tambien fallo. Ejecutando en modo interactivo..." -ForegroundColor Yellow
+                Write-Host "    /SILENT also failed. Running in interactive mode..." -ForegroundColor Yellow
                 Start-Process -FilePath $installerPath -Wait
             }
         }
     } catch {
-        throw "Fallo ejecutando el instalador: $($_.Exception.Message)"
+        throw "Fallo ejecutando el installedr: $($_.Exception.Message)"
     } finally {
         Remove-Item $installerPath -ErrorAction SilentlyContinue
     }
@@ -106,7 +106,7 @@ function Install-FastCopyAuto {
     # Buscar el .exe en target (el installer puede poner FastCopy.exe directo o en subcarpeta).
     $exe = Get-ChildItem -Path $targetDir -Filter 'FastCopy.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $exe) {
-        # Si el usuario eligio el default (Program Files), buscar ahi.
+        # Si el user eligio el default (Program Files), buscar ahi.
         $fallbacks = @(
             "$env:ProgramFiles\FastCopy\FastCopy.exe",
             "${env:ProgramFiles(x86)}\FastCopy\FastCopy.exe"
@@ -115,7 +115,7 @@ function Install-FastCopyAuto {
             if (Test-Path $fb) { $exe = Get-Item $fb; break }
         }
     }
-    if (-not $exe) { throw "FastCopy.exe no encontrado tras la instalacion." }
+    if (-not $exe) { throw "FastCopy.exe not found after installation." }
     return $exe.FullName
 }
 
@@ -182,7 +182,7 @@ function Detect-DriveType {
 # ==================== EXPLORADOR DE ARCHIVOS ====================
 
 function Select-FolderDialog {
-    param([string]$Description = "Selecciona una carpeta")
+    param([string]$Description = "Select a folder")
     Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
     $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
     $dialog.Description = $Description
@@ -196,7 +196,7 @@ function Select-FileDialog {
     Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
     $dialog = New-Object System.Windows.Forms.OpenFileDialog
     $dialog.Title = $Title
-    $dialog.Filter = "Todos los archivos (*.*)|*.*"
+    $dialog.Filter = "All files (*.*)|*.*"
     if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { return $dialog.FileName }
     return $null
 }
@@ -204,7 +204,7 @@ function Select-FileDialog {
 function Get-PathFromUser {
     param([string]$Prompt = "RUTA", [string]$Mode = "any")
     Write-Host ""
-    Write-Host "  ARRASTRA, escribe ruta, o usa el explorador:" -ForegroundColor White
+    Write-Host "  DRAG, type a path, or use the explorer:" -ForegroundColor White
     Write-Host "      [E] Abrir explorador" -ForegroundColor Cyan
     Write-Host "      [B] Volver  [S] Salir" -ForegroundColor DarkGray
     Write-Host ""
@@ -232,7 +232,7 @@ function Get-UserProfile {
     
     $profiles = @{
         "1" = @{
-            Name = "RESPALDO COMPLETO DE USUARIO"
+            Name = "RESPALDO COMPLETO DE USER"
             Desc = "Desktop + Documentos + Fotos + Videos + Descargas + Favoritos"
             Paths = @(
                 (Join-Path $userRoot "Desktop"),
@@ -296,7 +296,7 @@ function Show-ProfileMenu {
         $existCount = ($p.Paths | Where-Object { Test-Path $_ }).Count
         $totalCount = $p.Paths.Count
         $existColor = if ($existCount -eq $totalCount) { "Green" } elseif ($existCount -gt 0) { "Yellow" } else { "Red" }
-        Write-Host "          Carpetas: ${existCount}/${totalCount} encontradas" -ForegroundColor $existColor
+        Write-Host "          Carpetas: ${existCount}/${totalCount} found" -ForegroundColor $existColor
         Write-Host ""
     }
     
@@ -309,12 +309,12 @@ function Show-ProfileMenu {
         $selected = $profiles[$sel]
         $validPaths = @($selected.Paths | Where-Object { Test-Path $_ })
         if ($validPaths.Count -eq 0) {
-            Write-Host "      [ERROR] Ninguna carpeta del perfil existe." -ForegroundColor Red
+            Write-Host "      [ERROR] No folder from profile exists." -ForegroundColor Red
             return $null
         }
         return @{ Name = $selected.Name; Paths = $validPaths }
     }
-    Write-Host "      Opcion no valida." -ForegroundColor Red
+    Write-Host "      Option no valida." -ForegroundColor Red
     return $null
 }
 
@@ -325,8 +325,8 @@ function Get-MultipleOrigins {
     Write-Host ""
     Write-Centered "=== MULTI-ORIGEN ===" "DarkYellow"
     Write-Host ""
-    Write-Host "      Agrega carpetas/archivos uno por uno." -ForegroundColor DarkGray
-    Write-Host "      Escribe [OK] cuando termines." -ForegroundColor DarkGray
+    Write-Host "      Add folders/files one by one." -ForegroundColor DarkGray
+    Write-Host "      Type [OK] when done." -ForegroundColor DarkGray
     
     while ($true) {
         Write-Host ""
@@ -338,7 +338,7 @@ function Get-MultipleOrigins {
             }
         }
         
-        $pathResult = Get-PathFromUser -Prompt "AGREGAR (o [OK] para continuar)" -Mode "any"
+        $pathResult = Get-PathFromUser -Prompt "ADD (or [OK] to continue)" -Mode "any"
         
         if ($pathResult -eq "EXIT") { return "EXIT" }
         if ($pathResult -eq "BACK") {
@@ -347,7 +347,7 @@ function Get-MultipleOrigins {
         }
         if ($pathResult -eq "OK" -or $pathResult -eq "ok") {
             if ($origins.Count -eq 0) {
-                Write-Host "      [ERROR] Agrega al menos un origen." -ForegroundColor Red
+                Write-Host "      [ERROR] Add at least one source." -ForegroundColor Red
                 continue
             }
             return $origins
@@ -359,7 +359,7 @@ function Get-MultipleOrigins {
         }
         
         if ($origins -contains $pathResult) {
-            Write-Host "      [!] Ya esta en la lista." -ForegroundColor Yellow
+            Write-Host "      [!] Already in list." -ForegroundColor Yellow
             continue
         }
         
@@ -418,7 +418,7 @@ function Compare-BeforeCopy {
     
     Write-Host "    NUEVOS:      ${totalNew} archivos ($(Format-Size $totalSizeNew))" -ForegroundColor Green
     Write-Host "    MODIFICADOS: ${totalModified} archivos ($(Format-Size $totalSizeMod))" -ForegroundColor Yellow
-    Write-Host "    IGUALES:     ${totalEqual} archivos (sin cambios)" -ForegroundColor DarkGray
+    Write-Host "    EQUAL:       ${totalEqual} files (unchanged)" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "    TRANSFERIR:  $($totalNew + $totalModified) archivos ($(Format-Size $totalTransfer))" -ForegroundColor Cyan
     
@@ -433,7 +433,7 @@ function Compare-BeforeCopy {
 function Get-Exclusions {
     Write-Host ""
     Write-Host "  [?] EXCLUSIONES:" -ForegroundColor Cyan
-    Write-Host "      [1] Ninguna (copiar todo)" -ForegroundColor White
+    Write-Host "      [1] None (copiar todo)" -ForegroundColor White
     Write-Host "      [2] Temporales (.tmp, .log, .bak, cache)" -ForegroundColor White
     Write-Host "      [3] ISOs y VMs (.iso, .vhd, .wim)" -ForegroundColor White
     Write-Host "      [4] Personalizado (escribir extensiones)" -ForegroundColor White
@@ -459,7 +459,7 @@ function Get-Exclusions {
             }
         }
         "4" {
-            Write-Host "      Extensiones separadas por coma (ej: .mp4,.avi,.mkv):" -ForegroundColor White
+            Write-Host "      Extensions separated by comma (e.g.: .mp4,.avi,.mkv):" -ForegroundColor White
             $custom = Read-Host "      >"
             if (-not [string]::IsNullOrWhiteSpace($custom)) {
                 $exts = ($custom -split ',') | ForEach-Object {
@@ -470,10 +470,10 @@ function Get-Exclusions {
                 Write-Host "      [OK] Excluyendo: $($exts -join ', ')" -ForegroundColor Green
                 return @{ Files = $exts; Dirs = @(); Label = "Personalizado" }
             }
-            return @{ Files = @(); Dirs = @(); Label = "Ninguna" }
+            return @{ Files = @(); Dirs = @(); Label = "None" }
         }
         "B" { return "BACK" }
-        default { return @{ Files = @(); Dirs = @(); Label = "Ninguna" } }
+        default { return @{ Files = @(); Dirs = @(); Label = "None" } }
     }
 }
 
@@ -514,60 +514,60 @@ function Export-CopyReport {
         [string]$ExclusionLabel, [string]$Cliente
     )
     
-    $reportFile = Join-Path ([Environment]::GetFolderPath("Desktop")) "Resumen_Atlas_${Cliente}_$(Get-Date -Format 'yyyy-MM-dd_HHmm').txt"
+    $reportFile = Join-Path ([Environment]::GetFolderPath("Desktop")) "Summary_Atlas_${Cliente}_$(Get-Date -Format 'yyyy-MM-dd_HHmm').txt"
     
     $r = @()
     $r += "================================================================"
-    $r += "  ATLAS PC SUPPORT - RESUMEN DE COPIA"
+    $r += "  ATLAS PC SUPPORT - COPY SUMMARY"
     $r += "================================================================"
     $r += ""
-    $r += "FECHA:       $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')"
-    $r += "EQUIPO:      $env:COMPUTERNAME"
-    $r += "USUARIO:     $env:USERNAME"
-    $r += "PROYECTO:    ${Cliente}"
+    $r += "DATE:        $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')"
+    $r += "COMPUTER:    $env:COMPUTERNAME"
+    $r += "USER:        $env:USERNAME"
+    $r += "PROJECT:     ${Cliente}"
     $r += ""
-    $r += "--- CONFIGURACION ---"
-    $r += "MOTOR:       FastCopy"
-    $r += "MODO:        ${Mode}"
-    $r += "DISCO:       ${DiskType}"
-    $r += "EXCLUSIONES: ${ExclusionLabel}"
+    $r += "--- CONFIGURATION ---"
+    $r += "ENGINE:      FastCopy"
+    $r += "MODE:        ${Mode}"
+    $r += "DISK:        ${DiskType}"
+    $r += "EXCLUSIONS:  ${ExclusionLabel}"
     $r += ""
-    $r += "--- ORIGENES ---"
+    $r += "--- SOURCES ---"
     foreach ($o in $Origins) { $r += "  -> ${o}" }
     $r += ""
-    $r += "--- DESTINO ---"
+    $r += "--- TARGET ---"
     $r += "  -> ${Destino}"
     $r += ""
-    $r += "--- RESULTADO ---"
-    $r += "ESTADO:      $(if ($Result.OK) { 'EXITOSO' } else { 'CON ERRORES' })"
-    $r += "TIEMPO:      $(Format-Duration $Result.Elapsed)"
-    $r += "COPIADO:     $(Format-Size $Result.BytesCopied)"
-    $r += "VELOCIDAD:   $($Result.SpeedMBps) MB/s"
+    $r += "--- RESULT ---"
+    $r += "STATUS:      $(if ($Result.OK) { 'SUCCESS' } else { 'WITH ERRORS' })"
+    $r += "TIME:        $(Format-Duration $Result.Elapsed)"
+    $r += "COPIED:      $(Format-Size $Result.BytesCopied)"
+    $r += "SPEED:       $($Result.SpeedMBps) MB/s"
     
     if ($Comparison) {
         $r += ""
-        $r += "--- ANALISIS PRE-COPIA ---"
-        $r += "NUEVOS:      $($Comparison.New) archivos"
-        $r += "MODIFICADOS: $($Comparison.Modified) archivos"
-        $r += "IGUALES:     $($Comparison.Equal) archivos"
+        $r += "--- PRE-COPY ANALYSIS ---"
+        $r += "NEW:         $($Comparison.New) files"
+        $r += "MODIFIED:    $($Comparison.Modified) files"
+        $r += "EQUAL:       $($Comparison.Equal) files"
     }
     
     if ($Integrity) {
         $r += ""
-        $r += "--- VERIFICACION MD5 ---"
-        $r += "VERIFICADOS: $($Integrity.Checked) archivos"
+        $r += "--- MD5 VERIFICATION ---"
+        $r += "VERIFIED:    $($Integrity.Checked) files"
         $r += "OK:          $($Integrity.Passed)"
-        $r += "FALLOS:      $($Integrity.Failed)"
-        $r += "FALTANTES:   $($Integrity.Missing)"
-        $r += "RESULTADO:   $(if ($Integrity.OK) { 'INTEGRIDAD VERIFICADA' } else { 'PROBLEMAS DETECTADOS' })"
+        $r += "FAILED:      $($Integrity.Failed)"
+        $r += "MISSING:     $($Integrity.Missing)"
+        $r += "RESULT:      $(if ($Integrity.OK) { 'INTEGRITY VERIFIED' } else { 'ISSUES DETECTED' })"
     }
     
     $r += ""
     $r += "--- LOG ---"
-    $r += "ARCHIVO:     $(if ($Result.LogFile) { $Result.LogFile } else { 'N/A' })"
+    $r += "FILE:        $(if ($Result.LogFile) { $Result.LogFile } else { 'N/A' })"
     $r += ""
     $r += "================================================================"
-    $r += "  Generado por ATLAS PC SUPPORT - FastCopy v3"
+    $r += "  Generated by ATLAS PC SUPPORT - FastCopy v3"
     $r += "================================================================"
     
     ($r -join "`r`n") | Out-File -FilePath $reportFile -Encoding UTF8
@@ -579,16 +579,16 @@ function Export-CopyReport {
 function Test-CopyIntegrity {
     param([string]$Origen, [string]$Destino, [int]$SampleSize = 15)
     Write-Host ""
-    Write-Centered "VERIFICANDO INTEGRIDAD MD5..." "Yellow"
+    Write-Centered "VERIFYING MD5 INTEGRITY..." "Yellow"
     Write-Host ""
 
     $srcStats = Get-FolderStats $Origen
     $dstStats = Get-FolderStats $Destino
-    Write-Host "    Archivos - Origen: $($srcStats.Files) | Destino: $($dstStats.Files)" -ForegroundColor Gray
-    Write-Host "    Tamano   - Origen: $(Format-Size $srcStats.Size) | Destino: $(Format-Size $dstStats.Size)" -ForegroundColor Gray
+    Write-Host "    Files    - Source: $($srcStats.Files) | Target: $($dstStats.Files)" -ForegroundColor Gray
+    Write-Host "    Size     - Source: $(Format-Size $srcStats.Size) | Target: $(Format-Size $dstStats.Size)" -ForegroundColor Gray
 
     $countMatch = ($srcStats.Files -eq $dstStats.Files)
-    Write-Host "    Conteo:  $(if ($countMatch) { 'COINCIDE' } else { 'DIFERENTE (puede ser normal)' })" -ForegroundColor $(if ($countMatch) { "Green" } else { "Yellow" })
+    Write-Host "    Count:   $(if ($countMatch) { 'MATCH' } else { 'DIFFERENT (may be normal)' })" -ForegroundColor $(if ($countMatch) { "Green" } else { "Yellow" })
 
     $srcFiles = Get-ChildItem -Path $Origen -Recurse -File -ErrorAction SilentlyContinue
     if (-not $srcFiles -or $srcFiles.Count -eq 0) {
@@ -743,37 +743,37 @@ if (-not $fastCopyExe) {
     Write-Centered "FASTCOPY NO ENCONTRADO" "Red"
     Write-Centered "============================================" "Red"
     Write-Host ""
-    Write-Host "    Buscado en:" -ForegroundColor DarkGray
-    Write-Host "    - Carpeta del script ($PSScriptRoot)" -ForegroundColor DarkGray
+    Write-Host "    Searched in:" -ForegroundColor DarkGray
+    Write-Host "    - Script folder ($PSScriptRoot)" -ForegroundColor DarkGray
     Write-Host "    - Program Files" -ForegroundColor DarkGray
-    Write-Host "    - PATH del sistema" -ForegroundColor DarkGray
+    Write-Host "    - System PATH" -ForegroundColor DarkGray
     Write-Host "    - $env:LOCALAPPDATA\AtlasPC\apps\FastCopy" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "    Opciones:" -ForegroundColor Yellow
-    Write-Host "      [D] Descargar automaticamente de fastcopy.jp (recomendado)" -ForegroundColor White
+    Write-Host "    Options:" -ForegroundColor Yellow
+    Write-Host "      [D] Download automatically from fastcopy.jp (recommended)" -ForegroundColor White
     Write-Host "      [S] Salir e instalarlo manualmente" -ForegroundColor White
     Write-Host ""
     $choice = Read-Host "    Seleccion [D/S]"
 
     if ($choice -match '^[Dd]$') {
         Write-Host ""
-        Write-Host "    Descargando FastCopy..." -ForegroundColor Cyan
+        Write-Host "    Downloading FastCopy..." -ForegroundColor Cyan
         try {
             $fastCopyExe = Install-FastCopyAuto
             Write-Host ""
-            Write-Host "    FastCopy instalado: $fastCopyExe" -ForegroundColor Green
+            Write-Host "    FastCopy installed: $fastCopyExe" -ForegroundColor Green
             Start-Sleep -Seconds 1
         } catch {
             Write-Host ""
-            Write-Host "    ERROR en la descarga: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "    Download ERROR: $($_.Exception.Message)" -ForegroundColor Red
             Write-Host "    Descarga manual: https://fastcopy.jp" -ForegroundColor Yellow
-            Read-Host "    ENTER para salir"
+            Read-Host "    ENTER to exit"
             return
         }
     } else {
-        Write-Host "    Abre https://fastcopy.jp y coloca FastCopy.exe en:" -ForegroundColor Gray
+        Write-Host "    Open https://fastcopy.jp and place FastCopy.exe at:" -ForegroundColor Gray
         Write-Host "      $env:LOCALAPPDATA\AtlasPC\apps\FastCopy\" -ForegroundColor Gray
-        Read-Host "    ENTER para salir"
+        Read-Host "    ENTER to exit"
         return
     }
 }
@@ -791,7 +791,7 @@ do {
     Write-Host ""
     Write-Centered "[ 1 ] Copia normal (un origen)" "White"
     Write-Centered "[ 2 ] Multi-origen (varias carpetas)" "White"
-    Write-Centered "[ 3 ] Perfil rapido (respaldo de usuario)" "Cyan"
+    Write-Centered "[ 3 ] Perfil rapido (respaldo de user)" "Cyan"
     Write-Centered "[ S ] Salir" "DarkGray"
     Write-Host ""
     
@@ -808,7 +808,7 @@ do {
 
     switch ($menuSel) {
         "1" {
-            # Un solo origen
+            # Un only origen
             :askSingle while ($true) {
                 Write-Host ""
                 Write-Host "  [1] ORIGEN:" -ForegroundColor White
@@ -842,7 +842,7 @@ do {
 
     if ($origenes.Count -eq 0) { continue }
 
-    # Mostrar origenes seleccionados
+    # Mostrar origenes selecteds
     Write-Host ""
     $totalSize = 0; $totalFiles = 0
     foreach ($o in $origenes) {
@@ -882,7 +882,7 @@ do {
         foreach ($o in $origenes) {
             try {
                 $fO = (Resolve-Path $o).Path; $fD = (Resolve-Path $pathResult).Path
-                if ($fO -eq $fD) { Write-Host "      [ERROR] Origen = Destino: $o" -ForegroundColor Red; $conflict = $true; break }
+                if ($fO -eq $fD) { Write-Host "      [ERROR] Origen = Target: $o" -ForegroundColor Red; $conflict = $true; break }
             } catch {}
         }
         if ($conflict) { continue }
@@ -890,7 +890,7 @@ do {
         $destDriveLetter = $pathResult.Substring(0, 1)
         $driveInfo = Detect-DriveType $destDriveLetter
         $labelDisplay = if ($driveInfo.Label) { " ($($driveInfo.Label))" } else { "" }
-        Write-Host "      [OK] Disco: $($driveInfo.Desc)${labelDisplay}" -ForegroundColor $driveInfo.Color
+        Write-Host "      [OK] Disk: $($driveInfo.Desc)${labelDisplay}" -ForegroundColor $driveInfo.Color
         Write-Host "      Libre: $(Format-Size $driveInfo.FreeBytes)" -ForegroundColor Gray
 
         if ($driveInfo.FreeBytes -gt 0 -and $totalSize -gt $driveInfo.FreeBytes) {
@@ -908,7 +908,7 @@ do {
     # NOMBRE
     # =============================================
     Write-Host ""
-    Write-Host "  [3] Nombre del proyecto (ENTER = Respaldo):" -ForegroundColor White
+    Write-Host "  [3] Project name (ENTER = Backup):" -ForegroundColor White
     $cliente = Read-Host "      NOMBRE"
     if ([string]::IsNullOrWhiteSpace($cliente)) {
         if ($isProfile) { $cliente = $profileName -replace '\s+', '_' }
@@ -924,7 +924,7 @@ do {
     Write-Host ""
     Write-Host "  [4] MODO DE COPIA:" -ForegroundColor Cyan
     Write-Host "      [1] COMPLETA     - Copia todo" -ForegroundColor White
-    Write-Host "      [2] INCREMENTAL  - Solo nuevos/modificados" -ForegroundColor White
+    Write-Host "      [2] INCREMENTAL  - Only nuevos/modificados" -ForegroundColor White
     Write-Host "      [3] SINCRONIZAR  - Espejo exacto" -ForegroundColor White
     Write-Host "      [4] MOVER        - Mueve (borra origen)" -ForegroundColor Red
     Write-Host "      [B] Volver" -ForegroundColor DarkGray
@@ -935,7 +935,7 @@ do {
         "2" { "INCREMENTAL" }
         "3" { "SINCRONIZAR" }
         "4" {
-            Write-Host "      [!!!] Eliminara archivos del ORIGEN. Seguro? [S/N]" -ForegroundColor Red
+            Write-Host "      [!!!] Will delete files from SOURCE. Sure? [Y/N]" -ForegroundColor Red
             $mc = Read-Host "      >"
             if ($mc -eq "S" -or $mc -eq "s") { "MOVER" } else { "SKIP" }
         }
@@ -946,7 +946,7 @@ do {
     # =============================================
     # EXCLUSIONES
     # =============================================
-    $exclusions = @{ Files = @(); Dirs = @(); Label = "Ninguna" }
+    $exclusions = @{ Files = @(); Dirs = @(); Label = "None" }
     if ($origenes.Count -ge 1) {
         $exclResult = Get-Exclusions
         if ($exclResult -eq "BACK") { continue }
@@ -954,12 +954,12 @@ do {
     }
 
     # =============================================
-    # COMPARAR (solo incremental o si hay destino previo)
+    # COMPARAR (only incremental o si hay destino previo)
     # =============================================
     $comparison = $null
     if (Test-Path $rutaFinal) {
         Write-Host ""
-        Write-Host "      Destino ya existe. Analizar diferencias? [S/N]" -ForegroundColor Yellow
+        Write-Host "      Destino ya existe. Analizar diferencias? [Y/N]" -ForegroundColor Yellow
         $compSel = Read-Host "      >"
         if ($compSel -eq "S" -or $compSel -eq "s") {
             $comparison = Compare-BeforeCopy -Origins $origenes -Destino $rutaFinal
@@ -1029,7 +1029,7 @@ do {
     if ($result.OK) {
         Send-Notification -Title "Atlas - Copia Completada" -Message $notifMsg -Success $true
     } else {
-        Send-Notification -Title "Atlas - Copia con Errores" -Message "Revisa el log" -Success $false
+        Send-Notification -Title "Atlas - Copy with Errors" -Message "Revisa el log" -Success $false
     }
 
     # =============================================
@@ -1038,7 +1038,7 @@ do {
     $integrity = $null
     if ($result.OK -and $modo -ne "MOVER") {
         Write-Host ""
-        Write-Host "    Verificar integridad MD5? [S/N]" -ForegroundColor DarkGray
+        Write-Host "    Verificar integridad MD5? [Y/N]" -ForegroundColor DarkGray
         $verSel = Read-Host "    >"
         if ($verSel -eq "S" -or $verSel -eq "s") {
             # Verificar el primer origen (el más importante)
@@ -1053,8 +1053,8 @@ do {
         Write-Host ""
         Write-Host "    --------------------------------------------------------" -ForegroundColor DarkGray
         Write-Host "    [A] Abrir carpeta destino" -ForegroundColor Cyan
-        Write-Host "    [R] REPETIR con otro destino" -ForegroundColor Green
-        Write-Host "    [X] Exportar resumen para ticket" -ForegroundColor Yellow
+        Write-Host "    [R] REPEAT with another target" -ForegroundColor Green
+        Write-Host "    [X] Export summary for ticket" -ForegroundColor Yellow
         Write-Host "    [N] Nueva copia" -ForegroundColor White
         Write-Host "    [L] Ver log" -ForegroundColor DarkGray
         Write-Host "    [S] Salir" -ForegroundColor DarkGray
@@ -1065,7 +1065,7 @@ do {
         switch ($postOp.ToUpper()) {
             "A" {
                 if (Test-Path $rutaFinal) { Invoke-Item $rutaFinal }
-                else { Write-Host "    No encontrada." -ForegroundColor Red }
+                else { Write-Host "    No found." -ForegroundColor Red }
             }
             "R" {
                 Write-Host ""
@@ -1076,8 +1076,8 @@ do {
                 $newDriveInfo = Detect-DriveType ($newPath.Substring(0, 1))
                 $newRutaFinal = Join-Path $newPath "${cliente}_${fechaHoy}"
                 $newLabel = if ($newDriveInfo.Label) { " ($($newDriveInfo.Label))" } else { "" }
-                Write-Host "    Disco: $($newDriveInfo.Desc)${newLabel}" -ForegroundColor $newDriveInfo.Color
-                Write-Host "    Destino: ${newRutaFinal}" -ForegroundColor White
+                Write-Host "    Disk: $($newDriveInfo.Desc)${newLabel}" -ForegroundColor $newDriveInfo.Color
+                Write-Host "    Target: ${newRutaFinal}" -ForegroundColor White
                 Write-Host "    [S] Copiar  [N] Cancelar" -ForegroundColor White
                 $rc = Read-Host "    >"
 
@@ -1091,7 +1091,7 @@ do {
                     Send-Notification -Title "Atlas - Copia $(if ($r2.OK) {'OK'} else {'Error'})" -Message $n2Msg -Success $r2.OK
 
                     if ($r2.OK -and $modo -ne "MOVER") {
-                        Write-Host "    Verificar MD5? [S/N]" -ForegroundColor DarkGray
+                        Write-Host "    Verificar MD5? [Y/N]" -ForegroundColor DarkGray
                         $v2 = Read-Host "    >"
                         if ($v2 -eq "S" -or $v2 -eq "s") { Test-CopyIntegrity -Origen $origenes[0] -Destino $newRutaFinal | Out-Null }
                     }
@@ -1101,17 +1101,17 @@ do {
                 $reportFile = Export-CopyReport -Origins $origenes -Destino $rutaFinal -Mode $modo `
                     -DiskType $driveInfo.Type -Result $result -Integrity $integrity `
                     -Comparison $comparison -ExclusionLabel $exclusions.Label -Cliente $cliente
-                Write-Host "    [OK] Resumen: $(Split-Path $reportFile -Leaf)" -ForegroundColor Green
-                Write-Host "    Listo para adjuntar al ticket." -ForegroundColor Cyan
+                Write-Host "    [OK] Summary: $(Split-Path $reportFile -Leaf)" -ForegroundColor Green
+                Write-Host "    Ready to attach to ticket." -ForegroundColor Cyan
                 
-                Write-Host "    Abrir? [S/N]" -ForegroundColor DarkGray
+                Write-Host "    Abrir? [Y/N]" -ForegroundColor DarkGray
                 $openReport = Read-Host "    >"
                 if ($openReport -eq "S" -or $openReport -eq "s") { Start-Process notepad $reportFile }
             }
             "N" { break }
             "L" {
                 if ($result.LogFile -and (Test-Path $result.LogFile)) { Start-Process notepad $result.LogFile }
-                else { Write-Host "    Log no encontrado." -ForegroundColor Red }
+                else { Write-Host "    Log no found." -ForegroundColor Red }
             }
             "S" { exit }
         }
