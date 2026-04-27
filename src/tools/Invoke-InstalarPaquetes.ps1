@@ -641,13 +641,16 @@ function Invoke-InstalarPaquetes {
         # collapse progress-bar junk. winget emits those to stderr and when
         # captured with 2>&1 each frame becomes a bogus line that confuses
         # the column-aware parser.
+        $esc = [char]0x1B
         $cleanLines = {
             param([object[]]$Raw)
             $out = @()
             foreach ($ln in $Raw) {
                 $s = [string]$ln
-                # Strip ANSI escape sequences (ESC[...m, ESC[...K, ESC[?...)
-                $s = [regex]::Replace($s, "`e\[[\d;\?]*[A-Za-z]", '')
+                # Strip ANSI escape sequences (ESC[...m, ESC[...K, ESC[?...).
+                # Use [char]0x1B instead of `e — `e is PowerShell 6+ only and
+                # this panel supports Windows PowerShell 5.1.
+                $s = [regex]::Replace($s, $esc + '\[[\d;\?]*[A-Za-z]', '')
                 # Drop CR-only redraws; keep last segment after any CR
                 if ($s.Contains("`r")) { $s = ($s -split "`r")[-1] }
                 $stripped = $s.Trim()
