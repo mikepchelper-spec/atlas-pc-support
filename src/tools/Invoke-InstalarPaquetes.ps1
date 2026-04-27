@@ -551,46 +551,26 @@ function Invoke-InstalarPaquetes {
         }
     }
 
-    function Search-Winget {
-        Write-Host ''
-        Write-Host ('  ' + $L.SearchPrompt) -ForegroundColor DarkGray
-        $term = Read-Host ('  ' + $L.SearchTerm)
-        $term = $term.Trim()
-        if (-not $term) { return @() }
+    function _Parse-WingetSearchOutput {
+        param([string[]]$Lines, [string]$SourceTag)
 
-        Write-Host ''
-        Write-Host ('  ' + ($L.Searching -f $term)) -ForegroundColor Cyan
-        try {
-            $output = & winget.exe search $term --source winget --accept-source-agreements 2>&1
-        } catch {
-            Write-Host ('  ' + ($L.InstallException -f $_.Exception.Message)) -ForegroundColor Red
-            return @()
-        }
-
-        $lines = @($output | ForEach-Object { [string]$_ })
-        # Find separator line (sequence of dashes)
         $sepIdx = -1
-        for ($i = 0; $i -lt $lines.Count; $i++) {
-            if ($lines[$i] -match '^[\s\-─━]+$' -and $lines[$i] -match '[\-─━]{3,}') {
+        for ($i = 0; $i -lt $Lines.Count; $i++) {
+            if ($Lines[$i] -match '^[\s\-─━]+$' -and $Lines[$i] -match '[\-─━]{3,}') {
                 $sepIdx = $i; break
             }
         }
-        if ($sepIdx -lt 1) {
-            Write-Host ('  ' + $L.NoResults) -ForegroundColor Yellow
-            return @()
-        }
-        $headerLine = $lines[$sepIdx - 1]
-        $sepLine    = $lines[$sepIdx]
+        if ($sepIdx -lt 1) { return @() }
 
-        # Extract column boundaries from separator
+        $headerLine = $Lines[$sepIdx - 1]
+        $sepLine    = $Lines[$sepIdx]
+
         $cols = @()
-        $matches = [regex]::Matches($sepLine, '[\-─━]+')
-        foreach ($m in $matches) { $cols += @{ Start = $m.Index; Length = $m.Length } }
-        if ($cols.Count -lt 2) {
-            Write-Host ('  ' + $L.NoResults) -ForegroundColor Yellow
-            return @()
+        foreach ($m in [regex]::Matches($sepLine, '[\-─━]+')) {
+            $cols += @{ Start = $m.Index; Length = $m.Length }
         }
-        # Column names from header
+        if ($cols.Count -lt 2) { return @() }
+
         $colNames = @()
         for ($c = 0; $c -lt $cols.Count; $c++) {
             $start = $cols[$c].Start
@@ -601,8 +581,8 @@ function Invoke-InstalarPaquetes {
         }
 
         $results = @()
-        for ($i = $sepIdx + 1; $i -lt $lines.Count; $i++) {
-            $line = $lines[$i]
+        for ($i = $sepIdx + 1; $i -lt $Lines.Count; $i++) {
+            $line = $Lines[$i]
             if ([string]::IsNullOrWhiteSpace($line)) { continue }
             $row = @{}
             for ($c = 0; $c -lt $cols.Count; $c++) {
@@ -613,29 +593,84 @@ function Invoke-InstalarPaquetes {
                 $val = $line.Substring($start, $end - $start).Trim()
                 $row[$colNames[$c]] = $val
             }
-            # Find Id and Name column tolerantly (winget localizes header)
-            $idVal   = $null; $nameVal = $null; $verVal = $null
+            # Tolerant header match: winget localizes column names per UI culture.
+            # Known variants: en (Name/Id/Version), es (Nombre/Id/Versión), pt
+            # (Nome/Versão), fr (Nom/Version), de (Name/Version), it (Nome/Versione).
+            $idVal = $null; $nameVal = $null; $verVal = $null
             foreach ($k in $row.Keys) {
                 $kl = $k.ToLower()
-                if (-not $idVal   -and ($kl -eq 'id'))                          { $idVal   = $row[$k] }
-                if (-not $nameVal -and ($kl -eq 'name' -or $kl -eq 'nombre'))   { $nameVal = $row[$k] }
-                if (-not $verVal  -and ($kl -eq 'version' -or $kl -eq 'versión' -or $kl -eq 'versi\u00f3n')) { $verVal = $row[$k] }
+                if (-not $idVal   -and  $kl -eq 'id') { $idVal = $row[$k] }
+                if (-not $nameVal -and ($kl -eq 'name' -or $kl -eq 'nombre' -or $kl -eq 'nome' -or $kl -eq 'nom')) { $nameVal = $row[$k] }
+                if (-not $verVal  -and  $kl -like 'vers*') { $verVal = $row[$k] }
             }
             if ($idVal) {
-                $results += @{ Id = $idVal; Name = ($nameVal -as [string]); Version = ($verVal -as [string]) }
+                $results += @{
+                    Id      = $idVal
+                    Name    = ($nameVal -as [string])
+                    Version = ($verVal -as [string])
+                    Source  = $SourceTag
+                }
+            }
+        }
+        return $results
+    }
+
+    function Search-Winget {
+        Write-Host ''
+        Write-Host ('  ' + $L.SearchPrompt) -ForegroundColor DarkGray
+        $term = Read-Host ('  ' + $L.SearchTerm)
+        $term = $term.Trim()
+        if (-not $term) { return @() }
+
+        Write-Host ''
+        Write-Host ('  ' + ($L.Searching -f $term)) -ForegroundColor Cyan
+
+        # Query each source separately so we can tag results with their
+        # Source field — needed at install time (msstore vs winget).
+        $allResults = @()
+        foreach ($src in @('winget', 'msstore')) {
+            try {
+                $output = & winget.exe search $term --source $src --accept-source-agreements 2>&1
+            } catch {
+                continue
+            }
+            $lines = @($output | ForEach-Object { [string]$_ })
+            $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag $src
+            if ($parsed.Count -gt 0) {
+                $allResults += $parsed
             }
         }
 
-        if ($results.Count -eq 0) {
+        # Dedupe by Id, prefer the winget-source entry (more stable IDs).
+        $seen = @{}
+        $merged = @()
+        foreach ($r in $allResults) {
+            if (-not $r.Id) { continue }
+            if ($seen.ContainsKey($r.Id)) {
+                if ($seen[$r.Id].Source -eq 'msstore' -and $r.Source -eq 'winget') {
+                    # replace msstore entry with winget
+                    for ($i = 0; $i -lt $merged.Count; $i++) {
+                        if ($merged[$i].Id -eq $r.Id) { $merged[$i] = $r; break }
+                    }
+                    $seen[$r.Id] = $r
+                }
+                continue
+            }
+            $seen[$r.Id] = $r
+            $merged += $r
+        }
+
+        if ($merged.Count -eq 0) {
             Write-Host ('  ' + $L.NoResults) -ForegroundColor Yellow
             return @()
         }
 
-        $top = @($results | Select-Object -First 20)
+        $top = @($merged | Select-Object -First 20)
         Write-Host ''
         for ($i = 0; $i -lt $top.Count; $i++) {
             $r = $top[$i]
-            Write-Host ('  [{0,3}] {1,-40} {2,-38} {3}' -f ($i+1), $r.Name, $r.Id, $r.Version) -ForegroundColor Gray
+            $srcLabel = if ($r.Source) { '[{0}]' -f $r.Source } else { '' }
+            Write-Host ('  [{0,3}] {1,-36} {2,-32} {3,-12} {4}' -f ($i+1), $r.Name, $r.Id, $r.Version, $srcLabel) -ForegroundColor Gray
         }
         Write-Host ''
         $pick = Read-Host ('  ' + $L.SearchPickPrompt)
@@ -645,20 +680,20 @@ function Invoke-InstalarPaquetes {
         $picked = @()
         $tokens = $pick -split '[,\s]+' | Where-Object { $_ -ne '' }
         foreach ($t in $tokens) {
+            $indices = @()
             if ($t -match '^\d+-\d+$') {
                 $parts = $t.Split('-')
                 $from = [int]$parts[0]; $to = [int]$parts[1]
-                for ($i = $from; $i -le $to; $i++) {
-                    if ($i -ge 1 -and $i -le $top.Count) {
-                        $r = $top[$i-1]
-                        $picked += @{ Id=$r.Id; Name=$r.Name; Category='Search' }
-                    }
-                }
+                for ($i = $from; $i -le $to; $i++) { $indices += $i }
             } elseif ($t -match '^\d+$') {
-                $n = [int]$t
+                $indices += [int]$t
+            }
+            foreach ($n in $indices) {
                 if ($n -ge 1 -and $n -le $top.Count) {
                     $r = $top[$n-1]
-                    $picked += @{ Id=$r.Id; Name=$r.Name; Category='Search' }
+                    $entry = @{ Id=$r.Id; Name=$r.Name; Category='Search' }
+                    if ($r.Source) { $entry.Source = $r.Source }
+                    $picked += $entry
                 }
             }
         }
