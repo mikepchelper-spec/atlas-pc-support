@@ -172,9 +172,17 @@ LAYOUT
 {LETTER}\{ROOT}\
     run.bat            Double-click here.
     bootstrap.ps1      Updates launcher if needed.
+    run-launcher.ps1   Wrapper (captures errors + writes atlas-offline.log).
     launcher.ps1       Compiled panel (auto-updates).
+    atlas-offline.log  Transcript of the latest run (errors + stack trace).
     apps\FastCopy\     Portable FastCopy copy (if downloaded).
     README.txt         This file.
+
+TROUBLESHOOTING
+---------------
+If run.bat closes without showing a clear error, open
+atlas-offline.log next to run.bat. It captures everything the
+panel printed, including any fatal initialization errors.
 
 UPDATE THE PANEL FROM ANOTHER PC
 --------------------------------
@@ -214,9 +222,17 @@ ESTRUCTURA
 {LETTER}\{ROOT}\
     run.bat            Doble click aqui.
     bootstrap.ps1      Actualiza launcher si hace falta.
+    run-launcher.ps1   Wrapper (captura errores + escribe atlas-offline.log).
     launcher.ps1       Panel compilado (se auto-actualiza).
+    atlas-offline.log  Transcript de la ultima ejecucion (errores + stack).
     apps\FastCopy\     Copia portable de FastCopy (si se descargo).
     README.txt         Este archivo.
+
+SOLUCION DE PROBLEMAS
+---------------------
+Si run.bat se cierra sin mostrar un error claro, abre
+atlas-offline.log al lado de run.bat. Captura todo lo que
+imprimio el panel, incluyendo errores fatales de inicio.
 
 ACTUALIZAR EL PANEL DESDE OTRO PC
 ---------------------------------
@@ -417,6 +433,11 @@ Generado por Atlas PC Support - Preparar USB Offline
 
     function Write-RunBat {
         param([string]$Path, [string]$FailMsg)
+        # run.bat delegates the heavy lifting to run-launcher.ps1 (which
+        # handles Start-Transcript + exception trap + pause-on-error). That
+        # way when launcher.ps1 throws before reaching the WPF ShowDialog,
+        # the user still sees the exception and a log file is left on the
+        # USB next to run.bat for post-mortem.
         $lines = @(
             '@echo off',
             'setlocal',
@@ -429,19 +450,98 @@ Generado por Atlas PC Support - Preparar USB Offline
             'echo    ATLAS PC SUPPORT - Offline Launcher',
             'echo ============================================================',
             'echo.',
+            'echo Log file: %~dp0atlas-offline.log',
+            'echo.',
             '',
+            'echo [1/2] Checking / updating launcher ...',
             'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0bootstrap.ps1"',
             'if errorlevel 1 (',
             '    echo.',
-            '    ' + $FailMsg,
+            ('    ' + $FailMsg),
             '    pause',
             '    exit /b 1',
             ')',
             '',
-            'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0launcher.ps1"',
+            'echo.',
+            'echo [2/2] Launching panel ...',
+            'echo.',
+            'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0run-launcher.ps1"',
+            'set "RC=%errorlevel%"',
+            'if not "%RC%"=="0" (',
+            '    echo.',
+            '    echo ============================================================',
+            '    echo [!] launcher.ps1 exited with error code %RC%.',
+            '    echo [!] See the error above and the log: %~dp0atlas-offline.log',
+            '    echo ============================================================',
+            '    pause',
+            '    exit /b %RC%',
+            ')',
+            '',
             'endlocal'
         )
         [System.IO.File]::WriteAllLines($Path, $lines, [System.Text.ASCIIEncoding]::new())
+    }
+
+    function Write-RunLauncherWrapper {
+        param([string]$Path)
+        $utf8 = [System.Text.UTF8Encoding]::new($true)
+        $content = @'
+# ============================================================
+# Atlas PC Support - Run launcher wrapper (USB offline)
+# Captures transcript + traps exceptions so the user actually
+# sees errors when launcher.ps1 fails before ShowDialog.
+# ============================================================
+
+$here        = Split-Path -Parent $MyInvocation.MyCommand.Path
+$launcher    = Join-Path $here 'launcher.ps1'
+$transcript  = Join-Path $here 'atlas-offline.log'
+
+if (-not (Test-Path -LiteralPath $launcher)) {
+    Write-Host ''
+    Write-Host ('[X] launcher.ps1 not found at: ' + $launcher) -ForegroundColor Red
+    Write-Host 'Press ENTER to exit.' -ForegroundColor Yellow
+    [void](Read-Host)
+    exit 2
+}
+
+try { Stop-Transcript | Out-Null } catch {}
+try {
+    Start-Transcript -Path $transcript -Append -ErrorAction SilentlyContinue | Out-Null
+} catch {}
+
+$ok = $false
+try {
+    & $launcher
+    $ok = $true
+} catch {
+    Write-Host ''
+    Write-Host '============================================================' -ForegroundColor Red
+    Write-Host '  [X] Fatal error while loading the Atlas panel:' -ForegroundColor Red
+    Write-Host '============================================================' -ForegroundColor Red
+    Write-Host ''
+    Write-Host ('  ' + $_.Exception.Message) -ForegroundColor Yellow
+    if ($_.InvocationInfo -and $_.InvocationInfo.PositionMessage) {
+        Write-Host ''
+        Write-Host ('  at: ' + $_.InvocationInfo.PositionMessage) -ForegroundColor DarkGray
+    }
+    if ($_.ScriptStackTrace) {
+        Write-Host ''
+        Write-Host '  Stack trace:' -ForegroundColor DarkGray
+        Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
+    }
+    Write-Host ''
+    Write-Host ('  Full log: ' + $transcript) -ForegroundColor Gray
+    Write-Host ''
+    Write-Host '  Press ENTER to exit.' -ForegroundColor Yellow
+    [void](Read-Host)
+} finally {
+    try { Stop-Transcript | Out-Null } catch {}
+}
+
+if (-not $ok) { exit 1 }
+exit 0
+'@
+        [System.IO.File]::WriteAllText($Path, $content, $utf8)
     }
 
     function Write-Bootstrap {
@@ -581,6 +681,9 @@ exit 0
     $runBatDest = Join-Path $targetDir 'run.bat'
     Write-RunBat -Path $runBatDest -FailMsg $L.RunFail
     Write-Centered $L.RunOk 'Green'
+
+    $wrapperDest = Join-Path $targetDir 'run-launcher.ps1'
+    Write-RunLauncherWrapper -Path $wrapperDest
 
     $readmeDest = Join-Path $targetDir 'README.txt'
     Write-Readme -Path $readmeDest -DriveLetter $drive

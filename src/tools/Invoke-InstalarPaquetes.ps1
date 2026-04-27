@@ -637,16 +637,43 @@ function Invoke-InstalarPaquetes {
         # Source field — needed at install time (msstore vs winget).
         # Keep the raw outputs so we can show them in diagnostics if no
         # results are parsed (helps remote debugging across locales).
+        # Clean helper: remove ANSI escapes, strip spinner-only frames,
+        # collapse progress-bar junk. winget emits those to stderr and when
+        # captured with 2>&1 each frame becomes a bogus line that confuses
+        # the column-aware parser.
+        $cleanLines = {
+            param([object[]]$Raw)
+            $out = @()
+            foreach ($ln in $Raw) {
+                $s = [string]$ln
+                # Strip ANSI escape sequences (ESC[...m, ESC[...K, ESC[?...)
+                $s = [regex]::Replace($s, "`e\[[\d;\?]*[A-Za-z]", '')
+                # Drop CR-only redraws; keep last segment after any CR
+                if ($s.Contains("`r")) { $s = ($s -split "`r")[-1] }
+                $stripped = $s.Trim()
+                # Skip pure spinner / progress frames (single char -,\,|,/,or
+                # just the Unicode spinner glyphs winget uses).
+                if ($stripped -match '^[\-\\\|/]$') { continue }
+                if ($stripped -match '^[█▒░■▓▄▀]+$') { continue }
+                # Skip empty-after-strip lines only if they were originally
+                # control-heavy (keep genuine blank separators between header
+                # and rows).
+                $out += $s
+            }
+            return ,$out
+        }
+
         $allResults = @()
         $rawOutputs = [ordered]@{}
         foreach ($src in @('winget', 'msstore')) {
             try {
-                $output = & winget.exe search $term --source $src --accept-source-agreements 2>&1
+                $output = & winget.exe search $term --source $src `
+                    --accept-source-agreements --disable-interactivity 2>&1
             } catch {
                 $rawOutputs[$src] = @("<exception> $($_.Exception.Message)")
                 continue
             }
-            $lines = @($output | ForEach-Object { [string]$_ })
+            $lines = & $cleanLines @($output | ForEach-Object { [string]$_ })
             $rawOutputs[$src] = $lines
             $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag $src
             if ($parsed.Count -gt 0) {
@@ -661,8 +688,9 @@ function Invoke-InstalarPaquetes {
         # will then omit --source at install time, letting winget pick.
         if ($allResults.Count -eq 0) {
             try {
-                $output = & winget.exe search $term --accept-source-agreements 2>&1
-                $lines = @($output | ForEach-Object { [string]$_ })
+                $output = & winget.exe search $term `
+                    --accept-source-agreements --disable-interactivity 2>&1
+                $lines = & $cleanLines @($output | ForEach-Object { [string]$_ })
                 $rawOutputs['(no --source filter)'] = $lines
                 $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag ''
                 if ($parsed.Count -gt 0) { $allResults += $parsed }
