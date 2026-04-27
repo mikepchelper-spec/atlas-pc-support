@@ -87,6 +87,7 @@ function Invoke-InstalarPaquetes {
             Searching          = 'Searching winget for: {0}'
             NoResults          = '[!] No results.'
             RawOutputHint      = 'Raw output from winget (for diagnostics):'
+            NoOutput           = '(no output)'
             SearchPickPrompt   = 'Pick number(s) to add (e.g. "1,3" — ENTER to cancel)'
             SearchAdded        = '[OK] {0} package(s) added from search.'
             CleanTempName      = 'Clean Temporary Files'
@@ -160,6 +161,7 @@ function Invoke-InstalarPaquetes {
             Searching          = 'Buscando en winget: {0}'
             NoResults          = '[!] Sin resultados.'
             RawOutputHint      = 'Salida cruda de winget (para diagnostico):'
+            NoOutput           = '(sin salida)'
             SearchPickPrompt   = 'Numero(s) a agregar (ej. "1,3" — ENTER para cancelar)'
             SearchAdded        = '[OK] {0} paquete(s) agregado(s) desde la busqueda.'
             CleanTempName      = 'Limpiar archivos temporales'
@@ -400,8 +402,12 @@ function Invoke-InstalarPaquetes {
         $wingetArgs = @('install', '--id', $Pkg.Id, '--exact', '--silent',
                         '--accept-package-agreements', '--accept-source-agreements',
                         '--disable-interactivity')
-        $src = if ($Pkg.Source) { [string]$Pkg.Source } else { 'winget' }
-        $wingetArgs += @('--source', $src)
+        # Pkg.Source may be 'winget', 'msstore', or empty/null (unknown
+        # — e.g. results from the no-source-filter search fallback). When
+        # empty we omit --source entirely so winget resolves it itself.
+        if ($Pkg.Source -and [string]$Pkg.Source -ne '') {
+            $wingetArgs += @('--source', [string]$Pkg.Source)
+        }
         $output = & winget.exe @wingetArgs 2>&1
         return @{ Exit = $LASTEXITCODE; Output = $output }
     }
@@ -649,14 +655,16 @@ function Invoke-InstalarPaquetes {
         }
 
         # Fallback: if no per-source query found anything, try without
-        # --source so winget walks every configured source itself. We
-        # tag those results 'auto' (Source unknown until install time).
+        # --source so winget walks every configured source itself. The
+        # results have unknown source (could be winget OR msstore), so
+        # we tag them with an empty Source string — Invoke-PackageInstall
+        # will then omit --source at install time, letting winget pick.
         if ($allResults.Count -eq 0) {
             try {
                 $output = & winget.exe search $term --accept-source-agreements 2>&1
                 $lines = @($output | ForEach-Object { [string]$_ })
                 $rawOutputs['(no --source filter)'] = $lines
-                $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag 'winget'
+                $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag ''
                 if ($parsed.Count -gt 0) { $allResults += $parsed }
             } catch {
                 $rawOutputs['(no --source filter)'] = @("<exception> $($_.Exception.Message)")
@@ -693,7 +701,7 @@ function Invoke-InstalarPaquetes {
                 Write-Host ('    --- ' + $src + ' ---') -ForegroundColor DarkGray
                 $snippet = @($rawOutputs[$src] | Select-Object -First 8)
                 if ($snippet.Count -eq 0) {
-                    Write-Host '    (sin salida)' -ForegroundColor DarkGray
+                    Write-Host ('    ' + $L.NoOutput) -ForegroundColor DarkGray
                 } else {
                     foreach ($line in $snippet) {
                         Write-Host ('    ' + $line) -ForegroundColor DarkGray
