@@ -58,8 +58,8 @@
     },
     {
       "id": "instalar-paquetes",
-      "name": "Instalar Paquetes (winget)",
-      "description": "Instala software en lote con winget. Catálogo de apps comunes por categoría + perfiles JSON reutilizables entre clientes.",
+      "name": "Bulk App Installer (winget)",
+      "description": "Install software in bulk via winget. Curated catalog by category, JSON profiles per client, built-in winget search, and a Cleanup section (clear temp files).",
       "category": "software",
       "function": "Invoke-InstalarPaquetes",
       "source": "InstalarPaquetes.ps1",
@@ -198,17 +198,6 @@
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
-    },
-    {
-      "id": "software-installer",
-      "name": "Software Installer",
-      "description": "Panel maestro de instalación de software vía winget: navegadores, utilidades, suite Atlas.",
-      "category": "software",
-      "function": "Invoke-SoftwareInstaller",
-      "source": "SoftwareInstaller.ps1",
-      "requiresAdmin": true,
-      "runsInNewWindow": true,
-      "dependencies": ["winget"]
     },
     {
       "id": "entrega-pc",
