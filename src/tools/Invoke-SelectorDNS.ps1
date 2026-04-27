@@ -22,8 +22,21 @@ function Invoke-SelectorDNS {
 [console]::ForegroundColor = "White"
 Clear-Host  # FIX: Clear inmediato para que el BackgroundColor aplique de una vez
 
-$sysLang = (Get-UICulture).TwoLetterISOLanguageName
-$es      = ($sysLang -eq 'es')
+function _Atlas-DetectLang {
+    if ($env:ATLAS_LANG) { return [string]$env:ATLAS_LANG }
+    try {
+        $cfg = Join-Path $env:LOCALAPPDATA 'AtlasPC\config.json'
+        if (Test-Path -LiteralPath $cfg) {
+            $obj = Get-Content -Raw -LiteralPath $cfg -Encoding UTF8 | ConvertFrom-Json
+            if ($obj.language) { return [string]$obj.language }
+        }
+    } catch {}
+    $sys = (Get-Culture).TwoLetterISOLanguageName
+    if ($sys -eq 'es') { return 'es' }
+    return 'en'
+}
+$lang = _Atlas-DetectLang
+$es   = ($lang -eq 'es')
 
 $logFile    = Join-Path $PSScriptRoot "dns_log.txt"
 $backupFile = Join-Path $PSScriptRoot "dns_backup.json"

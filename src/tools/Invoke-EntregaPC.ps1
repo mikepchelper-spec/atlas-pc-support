@@ -57,7 +57,8 @@ function Invoke-EntregaPC {
             Gathering    = '   Gathering computer information...'
             ErrEquipo    = "Error getting computer info: {0}"
             ErrAct       = "Could not query activation."
-            ErrUsers     = 'Error: {0}'
+            ErrUsers     = 'User list error: {0}'
+            ErrDisks     = 'Disk error: {0}'
             BLNotAvail   = 'BitLocker not available: {0}'
             ErrVols      = 'Volume error: {0}'
             ErrHotfix    = 'HotFix error: {0}'
@@ -169,7 +170,8 @@ function Invoke-EntregaPC {
             Gathering    = '   Recopilando informacion del equipo...'
             ErrEquipo    = 'Error obteniendo info equipo: {0}'
             ErrAct       = 'No se pudo consultar activacion.'
-            ErrUsers     = 'Error: {0}'
+            ErrUsers     = 'Error usuarios: {0}'
+            ErrDisks     = 'Error discos: {0}'
             BLNotAvail   = 'BitLocker no disponible: {0}'
             ErrVols      = 'Error volumenes: {0}'
             ErrHotfix    = 'Error HotFix: {0}'
@@ -537,7 +539,7 @@ function Generar-ChecklistEntrega {
         }
         $discosHtml += '</tbody></table>'
     } catch {
-        $discosHtml = "<p class='err'>$($L.ErrUsers -f (_Esc-Html $_.Exception.Message))</p>"
+        $discosHtml = "<p class='err'>$($L.ErrDisks -f (_Esc-Html $_.Exception.Message))</p>"
     }
 
     $volumenesHtml = ''
