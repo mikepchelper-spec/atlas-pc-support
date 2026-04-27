@@ -608,11 +608,40 @@ if (`$needsDownload) {
     if (-not `$ok) {
         if (Test-Path `$launcher) {
             Write-Host '$msgNoNet' -ForegroundColor Yellow
-            exit 0
+            # Fall through to BOM repair below.
+        } else {
+            Write-Host '$msgNoBoth' -ForegroundColor Red
+            exit 1
         }
-        Write-Host '$msgNoBoth' -ForegroundColor Red
-        exit 1
     }
+}
+
+# --- BOM repair ---
+# Windows PowerShell 5.1 reads BOM-less .ps1 as CP1252, which mojibakes
+# accents and emojis embedded in the launcher (e.g. "Diagnóstico" ->
+# "DiagnÃ³stico") and makes the whole script fail to parse. GitHub raw
+# serves the committed bytes verbatim, and earlier build.ps1 versions
+# omitted the BOM on pwsh 7+, so USBs in the field may have a BOM-less
+# copy. Self-heal by prepending the BOM if it's missing.
+try {
+    if (Test-Path `$launcher) {
+        `$stream = [System.IO.File]::OpenRead(`$launcher)
+        `$head = New-Object byte[] 3
+        `$read = `$stream.Read(`$head, 0, 3)
+        `$stream.Close()
+        `$hasBom = (`$read -ge 3 -and `$head[0] -eq 0xEF -and `$head[1] -eq 0xBB -and `$head[2] -eq 0xBF)
+        if (-not `$hasBom) {
+            `$bytes = [System.IO.File]::ReadAllBytes(`$launcher)
+            `$bom = [byte[]](0xEF, 0xBB, 0xBF)
+            `$new = New-Object byte[] (`$bom.Length + `$bytes.Length)
+            [Array]::Copy(`$bom, 0, `$new, 0, `$bom.Length)
+            [Array]::Copy(`$bytes, 0, `$new, `$bom.Length, `$bytes.Length)
+            [System.IO.File]::WriteAllBytes(`$launcher, `$new)
+            Write-Host '  [OK] Added UTF-8 BOM to launcher.ps1 (PS 5.1 compatibility).' -ForegroundColor DarkGray
+        }
+    }
+} catch {
+    Write-Host ('  [!] BOM repair skipped: ' + `$_.Exception.Message) -ForegroundColor DarkGray
 }
 
 exit 0
