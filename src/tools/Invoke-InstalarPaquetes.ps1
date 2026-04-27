@@ -1,6 +1,11 @@
 # ============================================================
-# Invoke-InstalarPaquetes
-# Instala software en lote usando winget + perfiles JSON reutilizables.
+# Invoke-InstalarPaquetes  ->  Bulk App Installer (winget)
+#
+# Pilot tool for the EN/ES i18n migration ("Option A" — strings
+# centralized per tool). Default language is English; Spanish
+# kept as full secondary translation (read from
+# %LOCALAPPDATA%\AtlasPC\config.json -> language).
+#
 # Atlas PC Support
 # ============================================================
 
@@ -9,83 +14,273 @@ function Invoke-InstalarPaquetes {
     param()
 
     $ErrorActionPreference = 'Continue'
-    $Host.UI.RawUI.WindowTitle = 'ATLAS PC SUPPORT - Instalar Paquetes'
-    try { $Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(110, 42) } catch {}
+    $Host.UI.RawUI.WindowTitle = 'ATLAS PC SUPPORT - Bulk App Installer'
+    try { $Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(115, 44) } catch {}
 
-    # --- Configuracion ---
+    # --- Language detection (env var -> config.json -> system culture -> en) ---
+    function _Atlas-DetectLang {
+        if ($env:ATLAS_LANG) { return [string]$env:ATLAS_LANG }
+        try {
+            $cfg = Join-Path $env:LOCALAPPDATA 'AtlasPC\config.json'
+            if (Test-Path -LiteralPath $cfg) {
+                $obj = Get-Content -Raw -LiteralPath $cfg -Encoding UTF8 | ConvertFrom-Json
+                if ($obj.language) { return [string]$obj.language }
+            }
+        } catch {}
+        $sys = (Get-Culture).TwoLetterISOLanguageName
+        if ($sys -eq 'es') { return 'es' }
+        return 'en'
+    }
+
+    # --- Localized strings ---
+    $T = @{
+        en = @{
+            Title              = 'ATLAS PC SUPPORT - BULK APP INSTALLER (winget)'
+            WingetVersion      = 'winget version: {0}'
+            WingetUnavailable  = '[X] winget is not available on this system.'
+            WingetHintWin10    = '    Old Windows 10: install "App Installer" from Microsoft Store.'
+            WingetHintWin11    = '    Windows 11: should ship preinstalled; run Windows Update.'
+            EnterToExit        = '  Press ENTER to exit'
+            EnterToContinue    = '  Press ENTER to continue'
+            Menu               = 'MENU:'
+            Menu1              = '[1] Pick packages from catalog'
+            Menu2              = '[2] Load saved profile'
+            Menu3              = '[3] View current selection'
+            Menu4              = '[4] Save selection as profile'
+            Menu5              = '[5] Install current selection'
+            Menu6              = '[6] Search winget'
+            MenuQ              = '[Q] Quit'
+            CurrentSelection   = 'Current selection: {0} package(s)'
+            Option             = 'Option'
+            InvalidOption      = '[!] Invalid option.'
+            PickHint           = 'Pick packages by number. Examples:'
+            PickEx1            = '"1,3,5"   (individual)'
+            PickEx2            = '"1-10"    (range)'
+            PickEx3            = '"all"     (all)'
+            Packages           = 'Packages'
+            AddedNToSelection  = '[OK] {0} package(s) in selection.'
+            NothingPicked      = '[!] Nothing picked.'
+            NoSelectionToView  = '(no selection)'
+            CurrentlyN         = 'Current selection ({0}):'
+            NoSelectionToInst  = '[!] No packages selected.'
+            ConfirmInstall     = 'Continue? [Y/n]'
+            Cancelled          = 'Cancelled.'
+            ToInstallN         = 'Will install {0} package(s):'
+            Installing         = '[>] {0}'
+            InstalledOK        = '    [OK] Installed.'
+            AlreadyInstalled   = '    [=] Already installed.'
+            InstallFailed      = '    [X] Failed (exit={0}).'
+            InstallException   = '    [X] Exception: {0}'
+            Summary            = 'Summary: {0} OK / {1} already installed / {2} failed'
+            ProfileName        = 'Profile name (e.g. "client-alice")'
+            NothingToSave      = '[!] Nothing to save.'
+            ProfileSaved       = '[OK] Profile saved: {0}'
+            ProfileSaveError   = '[X] Save error: {0}'
+            NoProfilesFound    = '[!] No profiles saved at:'
+            ProfilesAvailable  = 'Available profiles:'
+            ProfileNumber      = 'Profile number (or ENTER to cancel)'
+            InvalidSelection   = '[X] Invalid selection.'
+            ProfileLoaded      = '[OK] Loaded "{0}" with {1} package(s).'
+            ProfileReadError   = '[X] Profile read error: {0}'
+            SearchPrompt       = 'Type a search term and the tool will query winget.'
+            SearchTerm         = 'Search term'
+            Searching          = 'Searching winget for: {0}'
+            NoResults          = '[!] No results.'
+            SearchPickPrompt   = 'Pick number(s) to add (e.g. "1,3" — ENTER to cancel)'
+            SearchAdded        = '[OK] {0} package(s) added from search.'
+            CleanTempName      = 'Clean Temporary Files'
+            CleanTempCategory  = 'Cleanup'
+            CleaningTemp       = 'Cleaning temporary files...'
+            CleanupSummary     = 'Total freed: {0:N1} MB'
+            ActionDone         = '[OK] {0} done.'
+            ActionFailed       = '[X] {0} failed: {1}'
+            NoteRequiresLic    = 'requires license'
+            CategoryBrowsers   = 'Browsers'
+            CategoryMultimedia = 'Multimedia'
+            CategoryOffice     = 'Office'
+            CategoryCommunic   = 'Communication'
+            CategoryUtilities  = 'Utilities'
+            CategoryDevelop    = 'Development'
+            CategorySecurity   = 'Security'
+            CategoryNetwork    = 'Network'
+            CategoryGaming     = 'Gaming'
+            CategoryNotes      = 'Notes & Productivity'
+        }
+        es = @{
+            Title              = 'ATLAS PC SUPPORT - INSTALADOR DE PAQUETES (winget)'
+            WingetVersion      = 'Version de winget: {0}'
+            WingetUnavailable  = '[X] winget no esta disponible en este sistema.'
+            WingetHintWin10    = '    Windows 10 antiguo: instalar "App Installer" desde Microsoft Store.'
+            WingetHintWin11    = '    Windows 11: deberia venir preinstalado; ejecuta Windows Update.'
+            EnterToExit        = '  Presiona ENTER para salir'
+            EnterToContinue    = '  ENTER para continuar'
+            Menu               = 'MENU:'
+            Menu1              = '[1] Seleccionar paquetes del catalogo'
+            Menu2              = '[2] Cargar perfil guardado'
+            Menu3              = '[3] Ver seleccion actual'
+            Menu4              = '[4] Guardar seleccion como perfil'
+            Menu5              = '[5] Instalar seleccion actual'
+            Menu6              = '[6] Buscar en winget'
+            MenuQ              = '[Q] Salir'
+            CurrentSelection   = 'Seleccion actual: {0} paquete(s)'
+            Option             = 'Opcion'
+            InvalidOption      = '[!] Opcion no valida.'
+            PickHint           = 'Selecciona paquetes por numero. Ejemplos:'
+            PickEx1            = '"1,3,5"   (individuales)'
+            PickEx2            = '"1-10"    (rango)'
+            PickEx3            = '"all"     (todos)'
+            Packages           = 'Paquetes'
+            AddedNToSelection  = '[OK] {0} paquete(s) en seleccion.'
+            NothingPicked      = '[!] Nada seleccionado.'
+            NoSelectionToView  = '(sin seleccion)'
+            CurrentlyN         = 'Seleccion actual ({0}):'
+            NoSelectionToInst  = '[!] No hay paquetes seleccionados.'
+            ConfirmInstall     = 'Continuar? [S/n]'
+            Cancelled          = 'Cancelado.'
+            ToInstallN         = 'A instalar {0} paquete(s):'
+            Installing         = '[>] {0}'
+            InstalledOK        = '    [OK] Instalado.'
+            AlreadyInstalled   = '    [=] Ya instalado.'
+            InstallFailed      = '    [X] Fallo (exit={0}).'
+            InstallException   = '    [X] Excepcion: {0}'
+            Summary            = 'Resumen: {0} OK / {1} ya instalados / {2} fallidos'
+            ProfileName        = 'Nombre del perfil (ej. "cliente-alice")'
+            NothingToSave      = '[!] No hay paquetes para guardar.'
+            ProfileSaved       = '[OK] Perfil guardado: {0}'
+            ProfileSaveError   = '[X] Error guardando: {0}'
+            NoProfilesFound    = '[!] No hay perfiles guardados en:'
+            ProfilesAvailable  = 'Perfiles disponibles:'
+            ProfileNumber      = 'Numero de perfil (o ENTER para cancelar)'
+            InvalidSelection   = '[X] Seleccion invalida.'
+            ProfileLoaded      = '[OK] Cargado "{0}" con {1} paquete(s).'
+            ProfileReadError   = '[X] Error leyendo perfil: {0}'
+            SearchPrompt       = 'Escribe un termino y la tool lo busca en winget.'
+            SearchTerm         = 'Termino de busqueda'
+            Searching          = 'Buscando en winget: {0}'
+            NoResults          = '[!] Sin resultados.'
+            SearchPickPrompt   = 'Numero(s) a agregar (ej. "1,3" — ENTER para cancelar)'
+            SearchAdded        = '[OK] {0} paquete(s) agregado(s) desde la busqueda.'
+            CleanTempName      = 'Limpiar archivos temporales'
+            CleanTempCategory  = 'Limpieza'
+            CleaningTemp       = 'Limpiando archivos temporales...'
+            CleanupSummary     = 'Total liberado: {0:N1} MB'
+            ActionDone         = '[OK] {0} completado.'
+            ActionFailed       = '[X] {0} fallo: {1}'
+            NoteRequiresLic    = 'requiere licencia'
+            CategoryBrowsers   = 'Navegadores'
+            CategoryMultimedia = 'Multimedia'
+            CategoryOffice     = 'Oficina'
+            CategoryCommunic   = 'Comunicacion'
+            CategoryUtilities  = 'Utilidades'
+            CategoryDevelop    = 'Desarrollo'
+            CategorySecurity   = 'Seguridad'
+            CategoryNetwork    = 'Redes'
+            CategoryGaming     = 'Gaming'
+            CategoryNotes      = 'Notas y Productividad'
+        }
+    }
+
+    $lang = _Atlas-DetectLang
+    if (-not $T.ContainsKey($lang)) { $lang = 'en' }
+    $L = $T[$lang]
+
+    # --- Config ---
     $PROFILE_DIR = Join-Path $env:LOCALAPPDATA 'AtlasPC\winget-profiles'
     if (-not (Test-Path $PROFILE_DIR)) {
         New-Item -ItemType Directory -Path $PROFILE_DIR -Force | Out-Null
     }
 
-    # Catalogo de paquetes comunes, agrupados por categoria.
-    # ID = PackageIdentifier de winget. Source = winget|msstore.
+    # --- Catalog ---
+    # Keys are localized category labels; entries can be:
+    #   winget package : @{ Id; Name; [NoteKey]; [Source='winget'|'msstore'] }
+    #   action item    : @{ Id='__action:<name>'; Name; Type='action'; Handler=<scriptblock-name> }
     $CATALOG = [ordered]@{
-        'Navegadores' = @(
-            @{ Id='Google.Chrome';                 Name='Google Chrome' },
-            @{ Id='Mozilla.Firefox';               Name='Mozilla Firefox' },
-            @{ Id='Brave.Brave';                   Name='Brave Browser' },
-            @{ Id='Opera.Opera';                   Name='Opera' }
+        ($L.CategoryBrowsers) = @(
+            @{ Id='Google.Chrome';                       Name='Google Chrome' },
+            @{ Id='Mozilla.Firefox';                     Name='Mozilla Firefox' },
+            @{ Id='Brave.Brave';                         Name='Brave Browser' },
+            @{ Id='Opera.Opera';                         Name='Opera' }
         )
-        'Multimedia' = @(
-            @{ Id='VideoLAN.VLC';                  Name='VLC Media Player' },
-            @{ Id='Spotify.Spotify';               Name='Spotify' },
-            @{ Id='OBSProject.OBSStudio';          Name='OBS Studio' },
-            @{ Id='Audacity.Audacity';             Name='Audacity' }
+        ($L.CategoryMultimedia) = @(
+            @{ Id='VideoLAN.VLC';                        Name='VLC Media Player' },
+            @{ Id='Spotify.Spotify';                     Name='Spotify' },
+            @{ Id='OBSProject.OBSStudio';                Name='OBS Studio' },
+            @{ Id='Audacity.Audacity';                   Name='Audacity' },
+            @{ Id='FreeDownloadManager.FreeDownloadManager'; Name='Free Download Manager' },
+            @{ Id='qBittorrent.qBittorrent';             Name='qBittorrent' }
         )
-        'Oficina' = @(
-            @{ Id='Microsoft.Office';              Name='Microsoft 365 (requiere licencia)' },
-            @{ Id='TheDocumentFoundation.LibreOffice'; Name='LibreOffice' },
-            @{ Id='Adobe.Acrobat.Reader.64-bit';   Name='Adobe Acrobat Reader' },
-            @{ Id='Notion.Notion';                 Name='Notion' },
-            @{ Id='Obsidian.Obsidian';             Name='Obsidian' }
+        ($L.CategoryOffice) = @(
+            @{ Id='Microsoft.Office';                    Name='Microsoft 365'; NoteKey='RequiresLicense' },
+            @{ Id='TheDocumentFoundation.LibreOffice';   Name='LibreOffice' },
+            @{ Id='ONLYOFFICE.DesktopEditors';           Name='ONLYOFFICE Desktop Editors' },
+            @{ Id='Adobe.Acrobat.Reader.64-bit';         Name='Adobe Acrobat Reader' }
         )
-        'Comunicacion' = @(
-            @{ Id='Zoom.Zoom';                     Name='Zoom' },
-            @{ Id='Microsoft.Teams';               Name='Microsoft Teams' },
-            @{ Id='Discord.Discord';               Name='Discord' },
-            @{ Id='OpenWhisperSystems.Signal';     Name='Signal' },
-            @{ Id='Telegram.TelegramDesktop';      Name='Telegram Desktop' },
-            @{ Id='WhatsApp.WhatsApp';             Name='WhatsApp Desktop' }
+        ($L.CategoryNotes) = @(
+            @{ Id='Notion.Notion';                       Name='Notion' },
+            @{ Id='Obsidian.Obsidian';                   Name='Obsidian' },
+            @{ Id='SimnetLtd.SimpleStickyNotes';         Name='Simple Sticky Notes' },
+            @{ Id='LanguageToolGmbH.LanguageToolForDesktop'; Name='LanguageTool for Desktop' }
         )
-        'Utilidades' = @(
-            @{ Id='7zip.7zip';                     Name='7-Zip' },
-            @{ Id='Microsoft.PowerToys';           Name='PowerToys' },
-            @{ Id='voidtools.Everything';          Name='Everything (search)' },
-            @{ Id='Greenshot.Greenshot';           Name='Greenshot (screenshots)' },
-            @{ Id='ShareX.ShareX';                 Name='ShareX' },
-            @{ Id='WinDirStat.WinDirStat';         Name='WinDirStat' },
-            @{ Id='Rufus.Rufus';                   Name='Rufus (USB boot)' },
-            @{ Id='CPUID.CPU-Z';                   Name='CPU-Z' },
-            @{ Id='TechPowerUp.GPU-Z';             Name='GPU-Z' },
-            @{ Id='CrystalDewWorld.CrystalDiskInfo'; Name='CrystalDiskInfo' }
+        ($L.CategoryCommunic) = @(
+            @{ Id='Zoom.Zoom';                           Name='Zoom' },
+            @{ Id='Microsoft.Teams';                     Name='Microsoft Teams' },
+            @{ Id='Discord.Discord';                     Name='Discord' },
+            @{ Id='OpenWhisperSystems.Signal';           Name='Signal' },
+            @{ Id='Telegram.TelegramDesktop';            Name='Telegram Desktop' },
+            @{ Id='WhatsApp.WhatsApp';                   Name='WhatsApp Desktop' },
+            @{ Id='9NFHQRDFLG40';                        Name='JW Library'; Source='msstore' }
         )
-        'Desarrollo' = @(
-            @{ Id='Microsoft.VisualStudioCode';    Name='Visual Studio Code' },
-            @{ Id='Git.Git';                       Name='Git' },
-            @{ Id='GitHub.GitHubDesktop';          Name='GitHub Desktop' },
-            @{ Id='OpenJS.NodeJS.LTS';             Name='Node.js LTS' },
-            @{ Id='Python.Python.3.12';            Name='Python 3.12' },
-            @{ Id='Microsoft.PowerShell';          Name='PowerShell 7' },
-            @{ Id='Microsoft.WindowsTerminal';     Name='Windows Terminal' }
+        ($L.CategoryUtilities) = @(
+            @{ Id='7zip.7zip';                           Name='7-Zip' },
+            @{ Id='RARLab.WinRAR';                       Name='WinRAR' },
+            @{ Id='Microsoft.PowerToys';                 Name='PowerToys' },
+            @{ Id='voidtools.Everything';                Name='Everything (search)' },
+            @{ Id='Greenshot.Greenshot';                 Name='Greenshot (screenshots)' },
+            @{ Id='ShareX.ShareX';                       Name='ShareX' },
+            @{ Id='WinDirStat.WinDirStat';               Name='WinDirStat' },
+            @{ Id='Rufus.Rufus';                         Name='Rufus (USB boot)' },
+            @{ Id='CPUID.CPU-Z';                         Name='CPU-Z' },
+            @{ Id='TechPowerUp.GPU-Z';                   Name='GPU-Z' },
+            @{ Id='CrystalDewWorld.CrystalDiskInfo';     Name='CrystalDiskInfo' },
+            @{ Id='Seafile.Seafile-Client';              Name='Seafile Client' },
+            @{ Id='w4po.ExplorerTabUtility';             Name='Explorer Tab Utility' }
         )
-        'Seguridad' = @(
-            @{ Id='Malwarebytes.Malwarebytes';     Name='Malwarebytes' },
-            @{ Id='Bitwarden.Bitwarden';           Name='Bitwarden' },
-            @{ Id='KeePassXCTeam.KeePassXC';       Name='KeePassXC' }
+        ($L.CategoryDevelop) = @(
+            @{ Id='Microsoft.VisualStudioCode';          Name='Visual Studio Code' },
+            @{ Id='Git.Git';                             Name='Git' },
+            @{ Id='GitHub.GitHubDesktop';                Name='GitHub Desktop' },
+            @{ Id='OpenJS.NodeJS.LTS';                   Name='Node.js LTS' },
+            @{ Id='Python.Python.3.12';                  Name='Python 3.12' },
+            @{ Id='Microsoft.PowerShell';                Name='PowerShell 7' },
+            @{ Id='Microsoft.WindowsTerminal';           Name='Windows Terminal' }
         )
-        'Gaming' = @(
-            @{ Id='Valve.Steam';                   Name='Steam' },
-            @{ Id='EpicGames.EpicGamesLauncher';   Name='Epic Games Launcher' },
-            @{ Id='Discord.Discord';               Name='Discord (duplicado)' }
+        ($L.CategorySecurity) = @(
+            @{ Id='Malwarebytes.Malwarebytes';           Name='Malwarebytes' },
+            @{ Id='Bitdefender.Bitdefender';             Name='Bitdefender Antivirus Free' },
+            @{ Id='Bitwarden.Bitwarden';                 Name='Bitwarden' },
+            @{ Id='KeePassXCTeam.KeePassXC';             Name='KeePassXC' }
+        )
+        ($L.CategoryNetwork) = @(
+            @{ Id='WireGuard.WireGuard';                 Name='WireGuard' }
+        )
+        ($L.CategoryGaming) = @(
+            @{ Id='Valve.Steam';                         Name='Steam' },
+            @{ Id='EpicGames.EpicGamesLauncher';         Name='Epic Games Launcher' }
+        )
+        ($L.CleanTempCategory) = @(
+            @{ Id='__action:clean-temp'; Name=$L.CleanTempName; Type='action'; Handler='Clean-TempFiles' }
         )
     }
+
+    # ============================================================
+    # Helpers
+    # ============================================================
 
     function Write-Header {
         Clear-Host
         Write-Host ''
         Write-Host '  ================================================================' -ForegroundColor Cyan
-        Write-Host '   ATLAS PC SUPPORT - INSTALAR PAQUETES (winget)' -ForegroundColor Yellow
+        Write-Host ('  ' + $L.Title) -ForegroundColor Yellow
         Write-Host '  ================================================================' -ForegroundColor Cyan
         Write-Host ''
     }
@@ -95,18 +290,35 @@ function Invoke-InstalarPaquetes {
         return ($null -ne $cmd)
     }
 
+    function Format-Pkg {
+        param($Pkg)
+        $name = $Pkg.Name
+        if ($Pkg.NoteKey) {
+            $note = switch ($Pkg.NoteKey) {
+                'RequiresLicense' { $L.NoteRequiresLic }
+                default { $Pkg.NoteKey }
+            }
+            $name = '{0} ({1})' -f $name, $note
+        }
+        return $name
+    }
+
     function Show-Catalog {
-        # Regular hashtable. IMPORTANTE: NO usar [ordered]@{} aqui — en PS 7 el
-        # indexador [int] sobre un ordered dict busca POSICION, no clave, y
-        # $map[$idx] = ... falla con "index out of range" al crecer.
+        # Regular hashtable. NOT [ordered] — see comment in original code:
+        # in PS 7 [int] index on ordered dict picks by POSITION not key.
         $map = @{}
         $idx = 1
         foreach ($cat in $CATALOG.Keys) {
             Write-Host ''
             Write-Host "  --- $cat ---" -ForegroundColor Yellow
             foreach ($pkg in $CATALOG[$cat]) {
-                Write-Host ('  [{0,3}] {1,-45} ({2})' -f $idx, $pkg.Name, $pkg.Id) -ForegroundColor Gray
-                $map[$idx] = @{ Id=$pkg.Id; Name=$pkg.Name; Category=$cat }
+                $display = Format-Pkg -Pkg $pkg
+                Write-Host ('  [{0,3}] {1,-48} ({2})' -f $idx, $display, $pkg.Id) -ForegroundColor Gray
+                $entry = @{ Id=$pkg.Id; Name=$display; Category=$cat }
+                if ($pkg.Type)    { $entry.Type    = $pkg.Type }
+                if ($pkg.Handler) { $entry.Handler = $pkg.Handler }
+                if ($pkg.Source)  { $entry.Source  = $pkg.Source }
+                $map[$idx] = $entry
                 $idx++
             }
         }
@@ -114,16 +326,12 @@ function Invoke-InstalarPaquetes {
     }
 
     function Parse-Selection {
-        param([string]$Input, $Map)
-        $Input = $Input.Trim()
-        if ($Input -match '^(?i)all$') {
-            return @($Map.Values)
-        }
-        if ($Input -match '^(?i)(none|q|quit|)$') {
-            return @()
-        }
+        param([string]$InputText, $Map)
+        $InputText = $InputText.Trim()
+        if ($InputText -match '^(?i)all$') { return @($Map.Values) }
+        if ($InputText -match '^(?i)(none|q|quit|)$') { return @() }
         $selected = @()
-        $tokens = $Input -split '[,\s]+' | Where-Object { $_ -ne '' }
+        $tokens = $InputText -split '[,\s]+' | Where-Object { $_ -ne '' }
         foreach ($t in $tokens) {
             if ($t -match '^\d+-\d+$') {
                 $parts = $t.Split('-')
@@ -137,7 +345,6 @@ function Invoke-InstalarPaquetes {
                 if ($Map.Contains($n)) { $selected += $Map[$n] }
             }
         }
-        # Dedupe por Id
         $seen = @{}
         $out = @()
         foreach ($s in $selected) {
@@ -149,69 +356,129 @@ function Invoke-InstalarPaquetes {
         return $out
     }
 
+    function Clean-TempFiles {
+        Write-Host ''
+        Write-Host ('  ' + $L.CleaningTemp) -ForegroundColor Cyan
+        $totalFreed = 0L
+        $targets = @(
+            @{ Path = $env:TEMP;                                   Label = 'User TEMP' },
+            @{ Path = (Join-Path $env:LOCALAPPDATA 'Temp');        Label = 'LocalAppData Temp' },
+            @{ Path = 'C:\Windows\Temp';                           Label = 'Windows TEMP' },
+            @{ Path = 'C:\Windows\Prefetch';                       Label = 'Prefetch' }
+        )
+        foreach ($t in $targets) {
+            if (-not $t.Path) { continue }
+            if (-not (Test-Path -LiteralPath $t.Path)) { continue }
+            try {
+                $sizeBefore = 0L
+                Get-ChildItem -LiteralPath $t.Path -Recurse -Force -ErrorAction SilentlyContinue |
+                    ForEach-Object { if ($_.PSIsContainer -eq $false) { $sizeBefore += $_.Length } }
+                Get-ChildItem -LiteralPath $t.Path -Force -ErrorAction SilentlyContinue | ForEach-Object {
+                    Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                $sizeAfter = 0L
+                Get-ChildItem -LiteralPath $t.Path -Recurse -Force -ErrorAction SilentlyContinue |
+                    ForEach-Object { if ($_.PSIsContainer -eq $false) { $sizeAfter += $_.Length } }
+                $freed = [math]::Max(0, $sizeBefore - $sizeAfter)
+                $totalFreed += $freed
+                Write-Host ('    [OK] {0,-22} {1,10:N1} MB' -f $t.Label, ($freed / 1MB)) -ForegroundColor Green
+            } catch {
+                Write-Host ('    [!]  {0,-22} {1}' -f $t.Label, $_.Exception.Message) -ForegroundColor Yellow
+            }
+        }
+        Write-Host ''
+        Write-Host ('  ' + ($L.CleanupSummary -f ($totalFreed / 1MB))) -ForegroundColor Cyan
+    }
+
+    function Invoke-PackageInstall {
+        param($Pkg)
+        $args = @('install', '--id', $Pkg.Id, '--exact', '--silent',
+                  '--accept-package-agreements', '--accept-source-agreements',
+                  '--disable-interactivity')
+        $src = if ($Pkg.Source) { [string]$Pkg.Source } else { 'winget' }
+        $args += @('--source', $src)
+        $output = & winget.exe @args 2>&1
+        return @{ Exit = $LASTEXITCODE; Output = $output }
+    }
+
     function Install-Packages {
-        param([array]$Packages, [switch]$Silent)
+        param([array]$Packages)
 
         if (-not $Packages -or $Packages.Count -eq 0) {
-            Write-Host '  [!] No hay paquetes seleccionados.' -ForegroundColor Yellow
+            Write-Host ('  ' + $L.NoSelectionToInst) -ForegroundColor Yellow
             return
         }
 
         Write-Host ''
-        Write-Host ('  A instalar {0} paquete(s):' -f $Packages.Count) -ForegroundColor Cyan
+        Write-Host ('  ' + ($L.ToInstallN -f $Packages.Count)) -ForegroundColor Cyan
         foreach ($p in $Packages) {
-            Write-Host ('    - {0,-45} ({1})' -f $p.Name, $p.Id) -ForegroundColor Gray
+            Write-Host ('    - {0,-48} ({1})' -f $p.Name, $p.Id) -ForegroundColor Gray
         }
         Write-Host ''
-        $confirm = Read-Host '  Continuar? [S/n]'
-        if ($confirm -match '^[Nn]') { Write-Host '  Cancelado.' -ForegroundColor DarkGray; return }
+        $confirm = Read-Host ('  ' + $L.ConfirmInstall)
+        if ($confirm -match '^[Nn]') { Write-Host ('  ' + $L.Cancelled) -ForegroundColor DarkGray; return }
 
         $ok = 0; $fail = 0; $already = 0
         foreach ($p in $Packages) {
             Write-Host ''
-            Write-Host ('  [>] {0}' -f $p.Name) -ForegroundColor Cyan
-            $args = @('install', '--id', $p.Id, '--exact', '--silent',
-                      '--accept-package-agreements', '--accept-source-agreements',
-                      '--disable-interactivity')
+            Write-Host ('  ' + ($L.Installing -f $p.Name)) -ForegroundColor Cyan
+
+            if ($p.Type -eq 'action') {
+                try {
+                    switch ($p.Handler) {
+                        'Clean-TempFiles' { Clean-TempFiles }
+                        default {
+                            Write-Host ('    [X] Unknown action handler: {0}' -f $p.Handler) -ForegroundColor Red
+                            $fail++; continue
+                        }
+                    }
+                    Write-Host ('    ' + ($L.ActionDone -f $p.Name)) -ForegroundColor Green
+                    $ok++
+                } catch {
+                    Write-Host ('    ' + ($L.ActionFailed -f $p.Name, $_.Exception.Message)) -ForegroundColor Red
+                    $fail++
+                }
+                continue
+            }
+
             try {
-                $output = & winget.exe @args 2>&1
-                $exit = $LASTEXITCODE
-                switch ($exit) {
-                    0 { Write-Host ('      [OK] Instalado.') -ForegroundColor Green; $ok++ }
-                    -1978335189 { Write-Host ('      [=] Ya instalado.') -ForegroundColor DarkGray; $already++ }  # APPINSTALLER_CLI_ERROR_UPDATE_NOT_APPLICABLE
-                    -1978335212 { Write-Host ('      [=] Ya instalado.') -ForegroundColor DarkGray; $already++ }  # paquete no encontrado para update / ya presente
+                $r = Invoke-PackageInstall -Pkg $p
+                switch ($r.Exit) {
+                    0 { Write-Host ('  ' + $L.InstalledOK) -ForegroundColor Green; $ok++ }
+                    -1978335189 { Write-Host ('  ' + $L.AlreadyInstalled) -ForegroundColor DarkGray; $already++ }
+                    -1978335212 { Write-Host ('  ' + $L.AlreadyInstalled) -ForegroundColor DarkGray; $already++ }
                     default {
-                        Write-Host ('      [X] Fallo (exit={0}).' -f $exit) -ForegroundColor Red
+                        Write-Host ('  ' + ($L.InstallFailed -f $r.Exit)) -ForegroundColor Red
                         $fail++
-                        if ($output) {
-                            $output | Select-Object -Last 3 | ForEach-Object {
+                        if ($r.Output) {
+                            $r.Output | Select-Object -Last 3 | ForEach-Object {
                                 Write-Host ('          ' + $_) -ForegroundColor DarkGray
                             }
                         }
                     }
                 }
             } catch {
-                Write-Host ('      [X] Excepcion: ' + $_.Exception.Message) -ForegroundColor Red
+                Write-Host ('  ' + ($L.InstallException -f $_.Exception.Message)) -ForegroundColor Red
                 $fail++
             }
         }
 
         Write-Host ''
         Write-Host '  ================================================================' -ForegroundColor Cyan
-        Write-Host ('  Resumen: {0} OK / {1} ya instalados / {2} fallidos' -f $ok, $already, $fail) -ForegroundColor White
+        Write-Host ('  ' + ($L.Summary -f $ok, $already, $fail)) -ForegroundColor White
         Write-Host '  ================================================================' -ForegroundColor Cyan
     }
 
     function Save-Profile {
         param([array]$Packages)
         if (-not $Packages -or $Packages.Count -eq 0) {
-            Write-Host '  [!] No hay paquetes para guardar.' -ForegroundColor Yellow
+            Write-Host ('  ' + $L.NothingToSave) -ForegroundColor Yellow
             return
         }
         Write-Host ''
-        $name = Read-Host '  Nombre del perfil (ej: "juan-taller")'
+        $name = Read-Host ('  ' + $L.ProfileName)
         $name = $name.Trim()
-        if (-not $name) { Write-Host '  Cancelado.' -ForegroundColor DarkGray; return }
+        if (-not $name) { Write-Host ('  ' + $L.Cancelled) -ForegroundColor DarkGray; return }
         $safe = ($name -replace '[^\w\-\.]', '_')
         $file = Join-Path $PROFILE_DIR ("$safe.json")
 
@@ -220,14 +487,18 @@ function Invoke-InstalarPaquetes {
             name     = $name
             created  = (Get-Date -Format 'yyyy-MM-ddTHH:mm:ss')
             packages = @($Packages | ForEach-Object {
-                [ordered]@{ id=$_.Id; name=$_.Name; category=$_.Category }
+                $p = [ordered]@{ id=$_.Id; name=$_.Name; category=$_.Category }
+                if ($_.Type)    { $p.type    = $_.Type }
+                if ($_.Handler) { $p.handler = $_.Handler }
+                if ($_.Source)  { $p.source  = $_.Source }
+                $p
             })
         }
         try {
             ConvertTo-Json -InputObject $obj -Depth 5 | Set-Content -Path $file -Encoding UTF8
-            Write-Host ('  [OK] Perfil guardado: {0}' -f $file) -ForegroundColor Green
+            Write-Host ('  ' + ($L.ProfileSaved -f $file)) -ForegroundColor Green
         } catch {
-            Write-Host ('  [X] Error guardando: {0}' -f $_.Exception.Message) -ForegroundColor Red
+            Write-Host ('  ' + ($L.ProfileSaveError -f $_.Exception.Message)) -ForegroundColor Red
         }
     }
 
@@ -235,21 +506,21 @@ function Invoke-InstalarPaquetes {
         $files = @(Get-ChildItem -Path $PROFILE_DIR -Filter '*.json' -ErrorAction SilentlyContinue | Sort-Object Name)
         if (-not $files -or $files.Count -eq 0) {
             Write-Host ''
-            Write-Host '  [!] No hay perfiles guardados en:' -ForegroundColor Yellow
+            Write-Host ('  ' + $L.NoProfilesFound) -ForegroundColor Yellow
             Write-Host ('       ' + $PROFILE_DIR) -ForegroundColor DarkGray
             return @()
         }
         Write-Host ''
-        Write-Host '  Perfiles disponibles:' -ForegroundColor Yellow
+        Write-Host ('  ' + $L.ProfilesAvailable) -ForegroundColor Yellow
         for ($i = 0; $i -lt $files.Count; $i++) {
             Write-Host ('    [{0}] {1}' -f ($i+1), $files[$i].Name) -ForegroundColor Cyan
         }
         Write-Host ''
-        $sel = Read-Host '  Numero de perfil (o ENTER para cancelar)'
+        $sel = Read-Host ('  ' + $L.ProfileNumber)
         if (-not $sel) { return @() }
         $n = 0
         if (-not [int]::TryParse($sel, [ref]$n) -or $n -lt 1 -or $n -gt $files.Count) {
-            Write-Host '  [X] Seleccion invalida.' -ForegroundColor Red
+            Write-Host ('  ' + $L.InvalidSelection) -ForegroundColor Red
             return @()
         }
         $file = $files[$n-1]
@@ -257,115 +528,235 @@ function Invoke-InstalarPaquetes {
             $raw = Get-Content -Raw -Path $file.FullName
             $obj = $raw | ConvertFrom-Json
             $packages = @($obj.packages | ForEach-Object {
-                @{ Id=$_.id; Name=$_.name; Category=$_.category }
+                $entry = @{ Id=$_.id; Name=$_.name; Category=$_.category }
+                if ($_.type)    { $entry.Type    = [string]$_.type }
+                if ($_.handler) { $entry.Handler = [string]$_.handler }
+                if ($_.source)  { $entry.Source  = [string]$_.source }
+                $entry
             })
-            Write-Host ('  [OK] Cargado "{0}" con {1} paquete(s).' -f $obj.name, $packages.Count) -ForegroundColor Green
+            Write-Host ('  ' + ($L.ProfileLoaded -f $obj.name, $packages.Count)) -ForegroundColor Green
             return $packages
         } catch {
-            Write-Host ('  [X] Error leyendo perfil: {0}' -f $_.Exception.Message) -ForegroundColor Red
+            Write-Host ('  ' + ($L.ProfileReadError -f $_.Exception.Message)) -ForegroundColor Red
             return @()
         }
     }
 
-    # --- Verificacion inicial ---
+    function Search-Winget {
+        Write-Host ''
+        Write-Host ('  ' + $L.SearchPrompt) -ForegroundColor DarkGray
+        $term = Read-Host ('  ' + $L.SearchTerm)
+        $term = $term.Trim()
+        if (-not $term) { return @() }
+
+        Write-Host ''
+        Write-Host ('  ' + ($L.Searching -f $term)) -ForegroundColor Cyan
+        try {
+            $output = & winget.exe search $term --source winget --accept-source-agreements 2>&1
+        } catch {
+            Write-Host ('  ' + ($L.InstallException -f $_.Exception.Message)) -ForegroundColor Red
+            return @()
+        }
+
+        $lines = @($output | ForEach-Object { [string]$_ })
+        # Find separator line (sequence of dashes)
+        $sepIdx = -1
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^[\s\-─━]+$' -and $lines[$i] -match '[\-─━]{3,}') {
+                $sepIdx = $i; break
+            }
+        }
+        if ($sepIdx -lt 1) {
+            Write-Host ('  ' + $L.NoResults) -ForegroundColor Yellow
+            return @()
+        }
+        $headerLine = $lines[$sepIdx - 1]
+        $sepLine    = $lines[$sepIdx]
+
+        # Extract column boundaries from separator
+        $cols = @()
+        $matches = [regex]::Matches($sepLine, '[\-─━]+')
+        foreach ($m in $matches) { $cols += @{ Start = $m.Index; Length = $m.Length } }
+        if ($cols.Count -lt 2) {
+            Write-Host ('  ' + $L.NoResults) -ForegroundColor Yellow
+            return @()
+        }
+        # Column names from header
+        $colNames = @()
+        for ($c = 0; $c -lt $cols.Count; $c++) {
+            $start = $cols[$c].Start
+            $end   = if ($c -lt $cols.Count - 1) { $cols[$c+1].Start } else { $headerLine.Length }
+            $end   = [Math]::Min($end, $headerLine.Length)
+            $name  = if ($start -lt $headerLine.Length) { $headerLine.Substring($start, $end - $start).Trim() } else { '' }
+            $colNames += $name
+        }
+
+        $results = @()
+        for ($i = $sepIdx + 1; $i -lt $lines.Count; $i++) {
+            $line = $lines[$i]
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            $row = @{}
+            for ($c = 0; $c -lt $cols.Count; $c++) {
+                $start = $cols[$c].Start
+                if ($start -ge $line.Length) { continue }
+                $end = if ($c -lt $cols.Count - 1) { $cols[$c+1].Start } else { $line.Length }
+                $end = [Math]::Min($end, $line.Length)
+                $val = $line.Substring($start, $end - $start).Trim()
+                $row[$colNames[$c]] = $val
+            }
+            # Find Id and Name column tolerantly (winget localizes header)
+            $idVal   = $null; $nameVal = $null; $verVal = $null
+            foreach ($k in $row.Keys) {
+                $kl = $k.ToLower()
+                if (-not $idVal   -and ($kl -eq 'id'))                          { $idVal   = $row[$k] }
+                if (-not $nameVal -and ($kl -eq 'name' -or $kl -eq 'nombre'))   { $nameVal = $row[$k] }
+                if (-not $verVal  -and ($kl -eq 'version' -or $kl -eq 'versión' -or $kl -eq 'versi\u00f3n')) { $verVal = $row[$k] }
+            }
+            if ($idVal) {
+                $results += @{ Id = $idVal; Name = ($nameVal -as [string]); Version = ($verVal -as [string]) }
+            }
+        }
+
+        if ($results.Count -eq 0) {
+            Write-Host ('  ' + $L.NoResults) -ForegroundColor Yellow
+            return @()
+        }
+
+        $top = @($results | Select-Object -First 20)
+        Write-Host ''
+        for ($i = 0; $i -lt $top.Count; $i++) {
+            $r = $top[$i]
+            Write-Host ('  [{0,3}] {1,-40} {2,-38} {3}' -f ($i+1), $r.Name, $r.Id, $r.Version) -ForegroundColor Gray
+        }
+        Write-Host ''
+        $pick = Read-Host ('  ' + $L.SearchPickPrompt)
+        $pick = $pick.Trim()
+        if (-not $pick) { return @() }
+
+        $picked = @()
+        $tokens = $pick -split '[,\s]+' | Where-Object { $_ -ne '' }
+        foreach ($t in $tokens) {
+            if ($t -match '^\d+-\d+$') {
+                $parts = $t.Split('-')
+                $from = [int]$parts[0]; $to = [int]$parts[1]
+                for ($i = $from; $i -le $to; $i++) {
+                    if ($i -ge 1 -and $i -le $top.Count) {
+                        $r = $top[$i-1]
+                        $picked += @{ Id=$r.Id; Name=$r.Name; Category='Search' }
+                    }
+                }
+            } elseif ($t -match '^\d+$') {
+                $n = [int]$t
+                if ($n -ge 1 -and $n -le $top.Count) {
+                    $r = $top[$n-1]
+                    $picked += @{ Id=$r.Id; Name=$r.Name; Category='Search' }
+                }
+            }
+        }
+        if ($picked.Count -gt 0) {
+            Write-Host ('  ' + ($L.SearchAdded -f $picked.Count)) -ForegroundColor Green
+        }
+        return $picked
+    }
+
+    # ============================================================
+    # Initial check
+    # ============================================================
     Write-Header
     if (-not (Test-WingetAvailable)) {
-        Write-Host '  [X] winget no esta disponible en este sistema.' -ForegroundColor Red
-        Write-Host '      Windows 10 antiguo: instalar "App Installer" desde Microsoft Store.' -ForegroundColor DarkGray
-        Write-Host '      Windows 11: deberia venir preinstalado; ejecuta Windows Update.' -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.WingetUnavailable) -ForegroundColor Red
+        Write-Host ('  ' + $L.WingetHintWin10) -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.WingetHintWin11) -ForegroundColor DarkGray
         Write-Host ''
-        Read-Host '  ENTER para salir'
+        Read-Host $L.EnterToExit
         return
     }
 
-    $wingetVer = try { (& winget.exe --version 2>$null).Trim() } catch { 'desconocida' }
-    Write-Host "  winget version: $wingetVer" -ForegroundColor DarkGray
+    $wingetVer = try { (& winget.exe --version 2>$null).Trim() } catch { 'unknown' }
+    Write-Host ('  ' + ($L.WingetVersion -f $wingetVer)) -ForegroundColor DarkGray
     Write-Host ''
 
-    # --- Menu principal ---
+    # ============================================================
+    # Main loop
+    # ============================================================
     $currentSelection = @()
     while ($true) {
         Write-Header
-        Write-Host '  MENU:' -ForegroundColor Yellow
-        Write-Host '    [1] Seleccionar paquetes del catalogo' -ForegroundColor White
-        Write-Host '    [2] Cargar perfil guardado' -ForegroundColor White
-        Write-Host '    [3] Ver seleccion actual' -ForegroundColor White
-        Write-Host '    [4] Guardar seleccion como perfil' -ForegroundColor White
-        Write-Host '    [5] Instalar seleccion actual' -ForegroundColor White
-        Write-Host '    [6] Anadir ID personalizado (winget)' -ForegroundColor White
-        Write-Host '    [Q] Salir' -ForegroundColor White
+        Write-Host ('  ' + $L.Menu)              -ForegroundColor Yellow
+        Write-Host ('    ' + $L.Menu1)           -ForegroundColor White
+        Write-Host ('    ' + $L.Menu2)           -ForegroundColor White
+        Write-Host ('    ' + $L.Menu3)           -ForegroundColor White
+        Write-Host ('    ' + $L.Menu4)           -ForegroundColor White
+        Write-Host ('    ' + $L.Menu5)           -ForegroundColor White
+        Write-Host ('    ' + $L.Menu6)           -ForegroundColor White
+        Write-Host ('    ' + $L.MenuQ)           -ForegroundColor White
         Write-Host ''
-        Write-Host ('  Seleccion actual: {0} paquete(s)' -f $currentSelection.Count) -ForegroundColor DarkGray
+        Write-Host ('  ' + ($L.CurrentSelection -f $currentSelection.Count)) -ForegroundColor DarkGray
         Write-Host ''
-        $opt = Read-Host '  Opcion'
+        $opt = Read-Host ('  ' + $L.Option)
 
         switch -Regex ($opt.Trim()) {
             '^1$' {
                 Write-Header
-                Write-Host '  Selecciona paquetes por numero. Ejemplos:' -ForegroundColor DarkGray
-                Write-Host '    "1,3,5"   (individuales)' -ForegroundColor DarkGray
-                Write-Host '    "1-10"    (rango)' -ForegroundColor DarkGray
-                Write-Host '    "all"     (todos)' -ForegroundColor DarkGray
+                Write-Host ('  ' + $L.PickHint) -ForegroundColor DarkGray
+                Write-Host ('    ' + $L.PickEx1) -ForegroundColor DarkGray
+                Write-Host ('    ' + $L.PickEx2) -ForegroundColor DarkGray
+                Write-Host ('    ' + $L.PickEx3) -ForegroundColor DarkGray
                 Write-Host ''
                 $map = Show-Catalog
                 Write-Host ''
-                $inp = Read-Host '  Paquetes'
-                $sel = Parse-Selection -Input $inp -Map $map
+                $inp = Read-Host ('  ' + $L.Packages)
+                $sel = Parse-Selection -InputText $inp -Map $map
                 if ($sel.Count -gt 0) {
-                    # Merge con seleccion actual (evitando duplicados por Id)
                     $seen = @{}
                     foreach ($c in $currentSelection) { $seen[$c.Id] = $c }
                     foreach ($s in $sel) { $seen[$s.Id] = $s }
                     $currentSelection = @($seen.Values)
-                    Write-Host ('  [OK] {0} paquete(s) en seleccion.' -f $currentSelection.Count) -ForegroundColor Green
+                    Write-Host ('  ' + ($L.AddedNToSelection -f $currentSelection.Count)) -ForegroundColor Green
                 } else {
-                    Write-Host '  [!] Nada seleccionado.' -ForegroundColor Yellow
+                    Write-Host ('  ' + $L.NothingPicked) -ForegroundColor Yellow
                 }
-                Read-Host '  ENTER para continuar'
+                Read-Host $L.EnterToContinue
             }
             '^2$' {
                 $loaded = Load-Profile
-                if ($loaded.Count -gt 0) {
-                    $currentSelection = $loaded
-                }
-                Read-Host '  ENTER para continuar'
+                if ($loaded.Count -gt 0) { $currentSelection = $loaded }
+                Read-Host $L.EnterToContinue
             }
             '^3$' {
                 Write-Header
                 if ($currentSelection.Count -eq 0) {
-                    Write-Host '  (sin seleccion)' -ForegroundColor DarkGray
+                    Write-Host ('  ' + $L.NoSelectionToView) -ForegroundColor DarkGray
                 } else {
-                    Write-Host ('  Seleccion actual ({0}):' -f $currentSelection.Count) -ForegroundColor Yellow
+                    Write-Host ('  ' + ($L.CurrentlyN -f $currentSelection.Count)) -ForegroundColor Yellow
                     foreach ($p in ($currentSelection | Sort-Object { $_.Category }, { $_.Name })) {
-                        Write-Host ('    [{0,-14}] {1,-45} ({2})' -f $p.Category, $p.Name, $p.Id) -ForegroundColor Gray
+                        Write-Host ('    [{0,-18}] {1,-48} ({2})' -f $p.Category, $p.Name, $p.Id) -ForegroundColor Gray
                     }
                 }
                 Write-Host ''
-                Read-Host '  ENTER para continuar'
+                Read-Host $L.EnterToContinue
             }
             '^4$' {
                 Save-Profile -Packages $currentSelection
-                Read-Host '  ENTER para continuar'
+                Read-Host $L.EnterToContinue
             }
             '^5$' {
                 Install-Packages -Packages $currentSelection
-                Read-Host '  ENTER para continuar'
+                Read-Host $L.EnterToContinue
             }
             '^6$' {
-                Write-Host ''
-                Write-Host '  Introduce el ID winget exacto (ej: "Notepad++.Notepad++").' -ForegroundColor DarkGray
-                Write-Host '  Para buscar: "winget search <nombre>" en una consola aparte.' -ForegroundColor DarkGray
-                $id = Read-Host '  ID'
-                $id = $id.Trim()
-                if ($id) {
-                    $currentSelection += @{ Id=$id; Name=$id; Category='Custom' }
-                    Write-Host ('  [OK] Anadido: {0}' -f $id) -ForegroundColor Green
+                $picked = Search-Winget
+                if ($picked.Count -gt 0) {
+                    $seen = @{}
+                    foreach ($c in $currentSelection) { $seen[$c.Id] = $c }
+                    foreach ($s in $picked)          { $seen[$s.Id] = $s }
+                    $currentSelection = @($seen.Values)
                 }
-                Read-Host '  ENTER para continuar'
+                Read-Host $L.EnterToContinue
             }
             '^[Qq]$' { return }
             default {
-                Write-Host '  [!] Opcion no valida.' -ForegroundColor Red
+                Write-Host ('  ' + $L.InvalidOption) -ForegroundColor Red
                 Start-Sleep -Seconds 1
             }
         }
