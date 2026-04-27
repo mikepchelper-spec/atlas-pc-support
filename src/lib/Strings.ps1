@@ -1,7 +1,7 @@
 # ============================================================
-# Atlas PC Support — Strings / i18n
-# Idiomas soportados: es (por defecto), en, ro
-# Añadir otros: copia el bloque 'es' y traduce los valores.
+# Atlas PC Support - Strings / i18n
+# Supported languages: en (default), es, pt, fr, de, it, ro
+# To add another: copy the 'en' block and translate the values.
 # ============================================================
 
 $script:AtlasStringsDict = @{
@@ -252,7 +252,7 @@ $script:AtlasStringsDict = @{
     }
 }
 
-$script:AtlasCurrentLang = 'es'
+$script:AtlasCurrentLang = 'en'
 
 # Nombres nativos de los idiomas para mostrar en el selector.
 $script:AtlasLanguageNames = [ordered]@{
@@ -273,7 +273,7 @@ function Get-AtlasSystemLanguage {
             return $two
         }
     } catch {}
-    return 'es'
+    return 'en'
 }
 
 function Set-AtlasLanguage {
@@ -286,8 +286,8 @@ function Set-AtlasLanguage {
     }
     $Language = $Language.ToLower()
     if (-not $script:AtlasStringsDict.ContainsKey($Language)) {
-        Write-Warning "Idioma '$Language' no soportado. Usando 'es'."
-        $Language = 'es'
+        Write-Warning "Language '$Language' not supported. Using 'en'."
+        $Language = 'en'
     }
     $script:AtlasCurrentLang = $Language
     return $Language
@@ -301,8 +301,8 @@ function Get-AtlasString {
     )
     $dict = $script:AtlasStringsDict[$script:AtlasCurrentLang]
     if (-not $dict.ContainsKey($Key)) {
-        # fallback a español
-        $dict = $script:AtlasStringsDict['es']
+        # fallback to English
+        $dict = $script:AtlasStringsDict['en']
     }
     $value = $dict[$Key]
     if (-not $value) { return $Key }

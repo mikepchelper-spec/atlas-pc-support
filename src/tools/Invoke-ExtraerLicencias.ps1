@@ -25,7 +25,7 @@ $ErrorActionPreference = "Stop"
 .SYNOPSIS
     Funciones de interfaz de usuario para alineación y formato estandarizado.
 #>
-$Host.UI.RawUI.WindowTitle = "ATLAS PC SUPPORT - Herramienta de Licencias"
+$Host.UI.RawUI.WindowTitle = "ATLAS PC SUPPORT - Extract Product Keys"
 
 function Write-Centered {
     param(
@@ -57,7 +57,7 @@ function Show-Header {
 #>
 function Get-BiosKey {
     Show-Header
-    Write-Centered -Text "--- EXTRACCIÓN DE CLAVE DE BIOS (DE FÁBRICA) ---" -Color Cyan
+    Write-Centered -Text "--- BIOS/UEFI FACTORY KEY EXTRACTION ---" -Color Cyan
     Write-Host "`n"
     
     try {
@@ -66,34 +66,34 @@ function Get-BiosKey {
         $biosDesc = $wmiQuery.OA3xOriginalProductKeyDescription
 
         if ([string]::IsNullOrWhiteSpace($biosKey)) {
-            Write-Centered -Text "[!] No se encontró clave OEM en la BIOS/UEFI." -Color Red
-            Write-Centered -Text "Este equipo no vino con Windows preinstalado de fábrica." -Color Gray
+            Write-Centered -Text "[!] No OEM key found in BIOS/UEFI." -Color Red
+            Write-Centered -Text "This computer did not come with Windows pre-installed from factory." -Color Gray
         } else {
-            Write-Centered -Text "[+] CLAVE BIOS ENCONTRADA:" -Color Green
+            Write-Centered -Text "[+] BIOS KEY FOUND:" -Color Green
             if (-not [string]::IsNullOrWhiteSpace($biosDesc)) {
-                Write-Centered -Text "Edición de Fábrica: $biosDesc" -Color Cyan
+                Write-Centered -Text "Factory Edition: $biosDesc" -Color Cyan
             }
             Write-Centered -Text $biosKey -Color Yellow
             $biosKey | clip
             Write-Host "`n"
-            Write-Centered -Text "(Copiada al portapapeles de manera segura)" -Color Gray
+            Write-Centered -Text "(Copied to clipboard securely)" -Color Gray
         }
     } catch {
-        Write-Centered -Text "[X] Error al consultar la tabla ACPI: $($_.Exception.Message)" -Color Red
+        Write-Centered -Text "[X] Error querying ACPI table: $($_.Exception.Message)" -Color Red
     }
     
     Write-Host "`n"
-    Write-Centered -Text "Presione ENTER para volver al menú..." -Color White
+    Write-Centered -Text "Press ENTER to return to menu..." -Color White
     $null = Read-Host
 }
 
 <#
 .SYNOPSIS
-    OPCIÓN 2: Extracción de la clave instalada actualmente (Registro Avanzado Base24)
+    OPTION 2: Extract currently installed key (Advanced Registry Base24)
 #>
 function Get-CurrentKey {
     Show-Header
-    Write-Centered -Text "--- EXTRACCIÓN DE CLAVE ACTUAL (OS INSTALADO) ---" -Color Cyan
+    Write-Centered -Text "--- CURRENT KEY EXTRACTION (INSTALLED OS) ---" -Color Cyan
     Write-Host "`n"
     
     try {
@@ -103,9 +103,9 @@ function Get-CurrentKey {
         $biosRefDesc = $sls.OA3xOriginalProductKeyDescription
         
         if (-not [string]::IsNullOrWhiteSpace($biosRefKey)) {
-            Write-Centered -Text "[+] CLAVE DE FÁBRICA (BIOS) DE REFERENCIA:" -Color DarkCyan
+            Write-Centered -Text "[+] FACTORY KEY (BIOS) FOR REFERENCE:" -Color DarkCyan
             if (-not [string]::IsNullOrWhiteSpace($biosRefDesc)) {
-                Write-Centered -Text "Edición de Fábrica: $biosRefDesc" -Color Cyan
+                Write-Centered -Text "Factory Edition: $biosRefDesc" -Color Cyan
             }
             Write-Centered -Text $biosRefKey -Color Gray
             Write-Host "`n----------------------------------------`n" -ForegroundColor DarkGray
@@ -154,124 +154,124 @@ function Get-CurrentKey {
         $activeWmi = Get-WmiObject -Query "SELECT PartialProductKey, Description FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL" -ErrorAction SilentlyContinue
 
         if ($activeWmi) {
-            Write-Centered -Text "[+] EVIDENCIA EN MOTOR DE ACTIVACIÓN (ÚNICOS DATOS REALES):" -Color Cyan
+            Write-Centered -Text "[+] ACTIVATION ENGINE EVIDENCE (ONLY REAL DATA):" -Color Cyan
             foreach ($lic in $activeWmi) {
-                Write-Centered -Text "Parcial: ******-******-******-******-$($lic.PartialProductKey)" -Color White
+                Write-Centered -Text "Partial: ******-******-******-******-$($lic.PartialProductKey)" -Color White
             }
             Write-Host ""
         }
 
         if (-not [string]::IsNullOrWhiteSpace($currentEdition)) {
-            Write-Centered -Text "Edición Instalada: $currentEdition" -Color Cyan
+            Write-Centered -Text "Installed Edition: $currentEdition" -Color Cyan
             Write-Host ""
         }
 
         if ($isKMSOrDigital) {
-            Write-Centered -Text "[!] ALERTA TÉCNICA: CLAVE OCULTA POR DISEÑO" -Color Yellow
-            Write-Centered -Text "Windows ha borrado la clave del registro por seguridad corporativa." -Color Gray
-            Write-Centered -Text "La licencia es MAK o Digital y no reside físicamente en el disco." -Color Gray
+            Write-Centered -Text "[!] TECHNICAL ALERT: KEY HIDDEN BY DESIGN" -Color Yellow
+            Write-Centered -Text "Windows has removed the key from registry for corporate security." -Color Gray
+            Write-Centered -Text "The license is MAK or Digital and does not reside physically on disk." -Color Gray
         } elseif (-not [string]::IsNullOrWhiteSpace($decodedKey)) {
-            Write-Centered -Text "[+] CLAVE DECODIFICADA DEL REGISTRO:" -Color Green
+            Write-Centered -Text "[+] DECODED KEY FROM REGISTRY:" -Color Green
             Write-Centered -Text $decodedKey -Color Yellow
             $decodedKey | clip
         }
 
         if (-not [string]::IsNullOrWhiteSpace($backupKey)) {
             Write-Host ""
-            Write-Centered -Text "[+] CLAVE DE RESPALDO ENCONTRADA:" -Color DarkCyan
+            Write-Centered -Text "[+] BACKUP KEY FOUND:" -Color DarkCyan
             Write-Centered -Text $backupKey -Color Gray
         }
 
     } catch {
-        Write-Centered -Text "[X] Error crítico de decodificación." -Color Red
+        Write-Centered -Text "[X] Critical decoding error." -Color Red
     }
     
     Write-Host "`n"
-    Write-Centered -Text "Presione ENTER para volver al menú..." -Color White
+    Write-Centered -Text "Press ENTER to return to menu..." -Color White
     $null = Read-Host
 }
 
 <#
 .SYNOPSIS
-    OPCIÓN 3: Auditoría nativa mediante SLMGR
+    OPTION 3: Native audit via SLMGR
 #>
 function Invoke-NativeAudit {
     Show-Header
-    Write-Centered -Text "--- AUDITORÍA NATIVA DEL SISTEMA (SLMGR) ---" -Color Cyan
+    Write-Centered -Text "--- NATIVE SYSTEM AUDIT (SLMGR) ---" -Color Cyan
     Write-Host "`n"
-    Write-Centered -Text "Iniciando herramienta oficial de Microsoft..." -Color Gray
+    Write-Centered -Text "Starting official Microsoft tool..." -Color Gray
     
     # Ejecuta el comando nativo de Windows para mostrar información de la licencia
     cscript //nologo C:\Windows\System32\slmgr.vbs /dli
     
     Write-Host "`n"
-    Write-Centered -Text "--- ANÁLISIS DE ORIGINALIDAD ---" -Color Cyan
+    Write-Centered -Text "--- AUTHENTICITY ANALYSIS ---" -Color Cyan
     try {
         $wmi = Get-WmiObject -Query "SELECT Description, LicenseStatus FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL"
         foreach ($item in $wmi) {
             if ($item.Description -match "VOLUME_KMSCLIENT") {
-                Write-Centered -Text "[!] DETECTADO: CANAL KMS (Posible activación por emulador)" -Color Yellow
+                Write-Centered -Text "[!] DETECTED: KMS CHANNEL (Possible emulator activation)" -Color Yellow
             } elseif ($item.Description -match "VOLUME_MAK|RETAIL|OEM") {
-                Write-Centered -Text "[+] DETECTADO: CANAL ORIGINAL ($($item.Description -replace '.*, ', ''))" -Color Green
+                Write-Centered -Text "[+] DETECTED: ORIGINAL CHANNEL ($($item.Description -replace '.*, ', ''))" -Color Green
             }
         }
     } catch {}
 
     Write-Host "`n"
-    Write-Centered -Text "Presione ENTER para volver al menú..." -Color White
+    Write-Centered -Text "Press ENTER to return to menu..." -Color White
     $null = Read-Host
 }
 
 <#
 .SYNOPSIS
-    OPCIÓN 4: Información de Sistema (Incluye Clave BIOS, Clave Actual y Auditoría Visual)
+    OPTION 4: System Information (Includes BIOS Key, Current Key and Visual Audit)
 #>
 function Get-OsInfo {
     Show-Header
-    Write-Centered -Text "--- INFORMACIÓN DEL SISTEMA OPERATIVO ---" -Color Cyan
+    Write-Centered -Text "--- OPERATING SYSTEM INFORMATION ---" -Color Cyan
     Write-Host "`n"
     
     # Variables para almacenar el reporte exportable
-    $reportTxt = "========================================`r`nATLAS PC SUPPORT - REPORTE DE SISTEMA`r`n========================================`r`n`r`n"
-    $reportHtml = "<html><head><meta charset='UTF-8'><title>Reporte ATLAS</title><style>body{font-family:'Segoe UI',Tahoma,sans-serif;background:#121212;color:#e0e0e0;text-align:center} .container{max-width:700px;margin:auto;background:#1e1e1e;padding:20px;border-radius:10px;box-shadow:0 4px 8px rgba(0,0,0,0.5)} h2{color:#f1c40f} .ok{color:#2ecc71} .warn{color:#f39c12} .info{color:#3498db;font-style:italic;font-size:0.9em;margin-top:5px;}</style></head><body><div class='container'><h2>ATLAS PC SUPPORT<br><small>Reporte de Licencias</small></h2><hr>"
+    $reportTxt = "========================================`r`nATLAS PC SUPPORT - SYSTEM REPORT`r`n========================================`r`n`r`n"
+    $reportHtml = "<html><head><meta charset='UTF-8'><title>ATLAS Report</title><style>body{font-family:'Segoe UI',Tahoma,sans-serif;background:#121212;color:#e0e0e0;text-align:center} .container{max-width:700px;margin:auto;background:#1e1e1e;padding:20px;border-radius:10px;box-shadow:0 4px 8px rgba(0,0,0,0.5)} h2{color:#f1c40f} .ok{color:#2ecc71} .warn{color:#f39c12} .info{color:#3498db;font-style:italic;font-size:0.9em;margin-top:5px;}</style></head><body><div class='container'><h2>ATLAS PC SUPPORT<br><small>License Report</small></h2><hr>"
 
     try {
         # Obtener datos del OS
         $os = Get-WmiObject -Class Win32_OperatingSystem
-        Write-Centered -Text "Sistema: $($os.Caption)" -Color White
-        Write-Centered -Text "Versión: $($os.Version)" -Color White
-        Write-Centered -Text "Arquitectura: $($os.OSArchitecture)" -Color White
-        Write-Centered -Text "Serie del OS: $($os.SerialNumber)" -Color White
+        Write-Centered -Text "System: $($os.Caption)" -Color White
+        Write-Centered -Text "Version: $($os.Version)" -Color White
+        Write-Centered -Text "Architecture: $($os.OSArchitecture)" -Color White
+        Write-Centered -Text "OS Serial: $($os.SerialNumber)" -Color White
         
-        $reportTxt += "--- SISTEMA OPERATIVO ---`r`nSistema: $($os.Caption)`r`nVersión: $($os.Version)`r`nArquitectura: $($os.OSArchitecture)`r`nSerie: $($os.SerialNumber)`r`n`r`n"
-        $reportHtml += "<h3>SISTEMA OPERATIVO</h3><p>Sistema: $($os.Caption)<br>Versión: $($os.Version)<br>Arquitectura: $($os.OSArchitecture)<br>Serie: $($os.SerialNumber)</p><hr>"
+        $reportTxt += "--- OPERATING SYSTEM ---`r`nSystem: $($os.Caption)`r`nVersion: $($os.Version)`r`nArchitecture: $($os.OSArchitecture)`r`nSerial: $($os.SerialNumber)`r`n`r`n"
+        $reportHtml += "<h3>OPERATING SYSTEM</h3><p>System: $($os.Caption)<br>Version: $($os.Version)<br>Architecture: $($os.OSArchitecture)<br>Serial: $($os.SerialNumber)</p><hr>"
         
         Write-Host "`n----------------------------------------`n" -ForegroundColor DarkGray
         
         # ---------------------------------------------------------
         # Obtener datos de la BIOS (Punto 1 integrado)
         # ---------------------------------------------------------
-        Write-Centered -Text "--- CLAVE DE FÁBRICA (BIOS/UEFI) ---" -Color Cyan
+        Write-Centered -Text "--- FACTORY KEY (BIOS/UEFI) ---" -Color Cyan
         $sls = Get-WmiObject -Query 'select * from SoftwareLicensingService'
         $biosKey = $sls.OA3xOriginalProductKey
         $biosDesc = $sls.OA3xOriginalProductKeyDescription
         
-        $reportTxt += "--- CLAVE DE FÁBRICA (BIOS/UEFI) ---`r`n"
-        $reportHtml += "<h3>CLAVE DE FÁBRICA (BIOS/UEFI)</h3>"
+        $reportTxt += "--- FACTORY KEY (BIOS/UEFI) ---`r`n"
+        $reportHtml += "<h3>FACTORY KEY (BIOS/UEFI)</h3>"
 
         if ([string]::IsNullOrWhiteSpace($biosKey)) {
-            Write-Centered -Text "Clave BIOS: No encontrada (Equipo sin Windows de fábrica)" -Color Gray
-            $reportTxt += "Estado: No encontrada.`r`n`r`n"
-            $reportHtml += "<p>Estado: No encontrada.</p><hr>"
+            Write-Centered -Text "BIOS Key: Not found (computer without factory Windows)" -Color Gray
+            $reportTxt += "Status: Not found.`r`n`r`n"
+            $reportHtml += "<p>Status: Not found.</p><hr>"
         } else {
-            $descText = if ([string]::IsNullOrWhiteSpace($biosDesc)) { "Versión Desconocida" } else { $biosDesc }
-            Write-Centered -Text "Versión de Fábrica: $descText" -Color Cyan
-            Write-Centered -Text "Clave BIOS: $biosKey" -Color Green
-            Write-Centered -Text "[i] LEYENDA: Las claves inyectadas en BIOS (OEM) provienen del" -Color DarkCyan
-            Write-Centered -Text "fabricante del equipo y son licencias genuinas por naturaleza." -Color DarkCyan
+            $descText = if ([string]::IsNullOrWhiteSpace($biosDesc)) { "Unknown Version" } else { $biosDesc }
+            Write-Centered -Text "Factory Version: $descText" -Color Cyan
+            Write-Centered -Text "BIOS Key: $biosKey" -Color Green
+            Write-Centered -Text "[i] NOTE: Keys injected into BIOS (OEM) come from the" -Color DarkCyan
+            Write-Centered -Text "computer manufacturer and are genuine licenses by nature." -Color DarkCyan
 
-            $reportTxt += "Versión de Fábrica: $descText`r`nClave BIOS: $biosKey`r`n[i] LEYENDA: Las claves inyectadas en BIOS (OEM) provienen del fabricante del equipo y son licencias genuinas por naturaleza.`r`n`r`n"
-            $reportHtml += "<p>Versión de Fábrica: <strong style='color:#3498db'>$descText</strong></p><p>Clave BIOS: <strong class='ok'>$biosKey</strong></p><p class='info'>[i] LEYENDA: Las claves inyectadas en BIOS (OEM) provienen del fabricante del equipo y son licencias genuinas por naturaleza.</p><hr>"
+            $reportTxt += "Factory Version: $descText`r`nBIOS Key: $biosKey`r`n[i] NOTE: Keys injected into BIOS (OEM) come from the computer manufacturer and are genuine licenses by nature.`r`n`r`n"
+            $reportHtml += "<p>Factory Version: <strong style='color:#3498db'>$descText</strong></p><p>BIOS Key: <strong class='ok'>$biosKey</strong></p><p class='info'>[i] NOTE: Keys injected into BIOS (OEM) come from the computer manufacturer and are genuine licenses by nature.</p><hr>"
         }
         
         Write-Host "`n----------------------------------------`n" -ForegroundColor DarkGray
@@ -279,7 +279,7 @@ function Get-OsInfo {
         # ---------------------------------------------------------
         # Obtener datos de la Clave Actual (Punto 2 integrado)
         # ---------------------------------------------------------
-        Write-Centered -Text "--- CLAVE ACTUAL (OS INSTALADO) ---" -Color Cyan
+        Write-Centered -Text "--- CURRENT KEY (INSTALLED OS) ---" -Color Cyan
         
         $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform"
         $backupKey = (Get-ItemProperty -Path $regPath -Name BackupProductKeyDefault -ErrorAction SilentlyContinue).BackupProductKeyDefault
@@ -320,32 +320,32 @@ function Get-OsInfo {
             }
         }
 
-        $reportTxt += "--- CLAVE ACTUAL (OS INSTALADO) ---`r`n"
-        $reportHtml += "<h3>CLAVE ACTUAL (OS INSTALADO)</h3>"
+        $reportTxt += "--- CURRENT KEY (INSTALLED OS) ---`r`n"
+        $reportHtml += "<h3>CURRENT KEY (INSTALLED OS)</h3>"
 
-        $edText = if ([string]::IsNullOrWhiteSpace($currentEdition)) { "Edición Desconocida" } else { $currentEdition }
-        Write-Centered -Text "Edición Instalada: $edText" -Color Cyan
-        $reportTxt += "Edición Instalada: $edText`r`n"
-        $reportHtml += "<p>Edición Instalada: <strong style='color:#3498db'>$edText</strong></p>"
+        $edText = if ([string]::IsNullOrWhiteSpace($currentEdition)) { "Unknown Edition" } else { $currentEdition }
+        Write-Centered -Text "Installed Edition: $edText" -Color Cyan
+        $reportTxt += "Installed Edition: $edText`r`n"
+        $reportHtml += "<p>Installed Edition: <strong style='color:#3498db'>$edText</strong></p>"
 
         if ($isKMSOrDigital) {
-            Write-Centered -Text "Clave Decodificada: [Oculta por seguridad corporativa]" -Color Yellow
-            $reportTxt += "Estado: Clave física oculta (MAK/KMS o Digital).`r`n"
-            $reportHtml += "<p class='warn'>Estado: Clave física oculta (MAK/KMS o Digital).</p>"
+            Write-Centered -Text "Decoded Key: [Hidden by corporate security]" -Color Yellow
+            $reportTxt += "Status: Physical key hidden (MAK/KMS or Digital).`r`n"
+            $reportHtml += "<p class='warn'>Status: Physical key hidden (MAK/KMS or Digital).</p>"
         } elseif (-not [string]::IsNullOrWhiteSpace($decodedKey)) {
-            Write-Centered -Text "Clave Decodificada: $decodedKey" -Color Green
-            $reportTxt += "Clave Decodificada: $decodedKey`r`n"
-            $reportHtml += "<p>Clave Decodificada: <strong class='ok'>$decodedKey</strong></p>"
+            Write-Centered -Text "Decoded Key: $decodedKey" -Color Green
+            $reportTxt += "Decoded Key: $decodedKey`r`n"
+            $reportHtml += "<p>Decoded Key: <strong class='ok'>$decodedKey</strong></p>"
         } else {
-            Write-Centered -Text "Clave Decodificada: No encontrada" -Color Gray
-            $reportTxt += "Clave Decodificada: No encontrada`r`n"
-            $reportHtml += "<p>Clave Decodificada: No encontrada</p>"
+            Write-Centered -Text "Decoded Key: Not found" -Color Gray
+            $reportTxt += "Decoded Key: Not found`r`n"
+            $reportHtml += "<p>Decoded Key: Not found</p>"
         }
 
         if (-not [string]::IsNullOrWhiteSpace($backupKey)) {
-            Write-Centered -Text "Clave de Respaldo: $backupKey" -Color DarkCyan
-            $reportTxt += "Clave de Respaldo: $backupKey`r`n"
-            $reportHtml += "<p>Clave de Respaldo: <strong>$backupKey</strong></p>"
+            Write-Centered -Text "Backup Key: $backupKey" -Color DarkCyan
+            $reportTxt += "Backup Key: $backupKey`r`n"
+            $reportHtml += "<p>Backup Key: <strong>$backupKey</strong></p>"
         }
 
         $reportTxt += "`r`n"
@@ -355,58 +355,58 @@ function Get-OsInfo {
         # ---------------------------------------------------------
         # Obtener datos de Originalidad Visual (Punto 3 integrado)
         # ---------------------------------------------------------
-        Write-Centered -Text "--- ANÁLISIS DE ORIGINALIDAD ---" -Color Cyan
+        Write-Centered -Text "--- AUTHENTICITY ANALYSIS ---" -Color Cyan
         $wmiLic = Get-WmiObject -Query "SELECT Description, LicenseStatus FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL"
         
-        $reportTxt += "--- ANÁLISIS DE ORIGINALIDAD ---`r`n"
-        $reportHtml += "<h3>ANÁLISIS DE ORIGINALIDAD</h3>"
+        $reportTxt += "--- AUTHENTICITY ANALYSIS ---`r`n"
+        $reportHtml += "<h3>AUTHENTICITY ANALYSIS</h3>"
 
         if (-not $wmiLic) {
-            Write-Centered -Text "[!] No se detectó ninguna licencia activa en el sistema." -Color Red
-            $reportTxt += "Estado: Sin licencia activa.`r`n"
-            $reportHtml += "<p class='warn'>Estado: Sin licencia activa.</p>"
+            Write-Centered -Text "[!] No active license detected on system." -Color Red
+            $reportTxt += "Status: No active license.`r`n"
+            $reportHtml += "<p class='warn'>Status: No active license.</p>"
         } else {
             foreach ($item in $wmiLic) {
                 $cleanDesc = $item.Description -replace '.*, ', ''
                 if ($item.Description -match "VOLUME_KMSCLIENT") {
-                    Write-Centered -Text "[!] DETECTADO: CANAL KMS ($cleanDesc)" -Color Yellow
-                    Write-Centered -Text "[i] LEYENDA: Activación por volumen. Si este equipo no pertenece" -Color DarkCyan
-                    Write-Centered -Text "a una empresa, es muy probable que se haya usado un emulador (Pirata)." -Color DarkCyan
+                    Write-Centered -Text "[!] DETECTED: KMS CHANNEL ($cleanDesc)" -Color Yellow
+                    Write-Centered -Text "[i] NOTE: Volume activation. If this computer does not belong" -Color DarkCyan
+                    Write-Centered -Text "to a company, it was very likely activated using an emulator (Pirated)." -Color DarkCyan
 
-                    $reportTxt += "[!] DETECTADO: CANAL KMS ($cleanDesc)`r`n[i] LEYENDA: Activación por volumen. Si este equipo no pertenece a una empresa, es muy probable que se haya usado un emulador (Pirata).`r`n"
-                    $reportHtml += "<p class='warn'>[!] DETECTADO: CANAL KMS ($cleanDesc)</p><p class='info'>[i] LEYENDA: Activación por volumen. Si este equipo no pertenece a una empresa, es muy probable que se haya usado un emulador (Pirata).</p>"
+                    $reportTxt += "[!] DETECTED: KMS CHANNEL ($cleanDesc)`r`n[i] NOTE: Volume activation. If this computer does not belong to a company, it was very likely activated using an emulator (Pirated).`r`n"
+                    $reportHtml += "<p class='warn'>[!] DETECTED: KMS CHANNEL ($cleanDesc)</p><p class='info'>[i] NOTE: Volume activation. If this computer does not belong to a company, it was very likely activated using an emulator (Pirated).</p>"
                 } elseif ($item.Description -match "VOLUME_MAK|RETAIL|OEM") {
-                    Write-Centered -Text "[+] DETECTADO: CANAL ORIGINAL ($cleanDesc)" -Color Green
-                    Write-Centered -Text "[i] LEYENDA: Se ha comprobado con el motor de licencias de Windows" -Color DarkCyan
-                    Write-Centered -Text "que el canal actual es oficial y se encuentra ACTIVADO legalmente." -Color DarkCyan
+                    Write-Centered -Text "[+] DETECTED: ORIGINAL CHANNEL ($cleanDesc)" -Color Green
+                    Write-Centered -Text "[i] NOTE: Verified with the Windows licensing engine" -Color DarkCyan
+                    Write-Centered -Text "that the current channel is official and legally ACTIVATED." -Color DarkCyan
 
-                    $reportTxt += "[+] DETECTADO: CANAL ORIGINAL ($cleanDesc)`r`n[i] LEYENDA: Se ha comprobado con el motor de licencias de Windows que el canal actual es oficial y se encuentra ACTIVADO legalmente.`r`n"
-                    $reportHtml += "<p class='ok'>[+] DETECTADO: CANAL ORIGINAL ($cleanDesc)</p><p class='info'>[i] LEYENDA: Se ha comprobado con el motor de licencias de Windows que el canal actual es oficial y se encuentra ACTIVADO legalmente.</p>"
+                    $reportTxt += "[+] DETECTED: ORIGINAL CHANNEL ($cleanDesc)`r`n[i] NOTE: Verified with the Windows licensing engine that the current channel is official and legally ACTIVATED.`r`n"
+                    $reportHtml += "<p class='ok'>[+] DETECTED: ORIGINAL CHANNEL ($cleanDesc)</p><p class='info'>[i] NOTE: Verified with the Windows licensing engine that the current channel is official and legally ACTIVATED.</p>"
                 } else {
-                    Write-Centered -Text "[?] DETECTADO: CANAL DESCONOCIDO ($cleanDesc)" -Color Gray
+                    Write-Centered -Text "[?] DETECTED: UNKNOWN CHANNEL ($cleanDesc)" -Color Gray
                     
-                    $reportTxt += "[?] DETECTADO: CANAL DESCONOCIDO ($cleanDesc)`r`n"
-                    $reportHtml += "<p>[?] DETECTADO: CANAL DESCONOCIDO ($cleanDesc)</p>"
+                    $reportTxt += "[?] DETECTED: UNKNOWN CHANNEL ($cleanDesc)`r`n"
+                    $reportHtml += "<p>[?] DETECTED: UNKNOWN CHANNEL ($cleanDesc)</p>"
                 }
             }
         }
         $reportHtml += "</div></body></html>"
         
     } catch {
-        Write-Centered -Text "[X] Error al obtener información del sistema." -Color Red
+        Write-Centered -Text "[X] Error retrieving system information." -Color Red
     }
     
-    # Menú de Exportación
+    # Export menu
     Write-Host "`n----------------------------------------`n" -ForegroundColor DarkGray
-    Write-Centered -Text "--- EXPORTAR ESTE REPORTE ---" -Color Yellow
-    Write-Centered -Text "[ 1 ] Guardar como Documento de Texto (.txt)" -Color White
-    Write-Centered -Text "[ 2 ] Guardar como Página Web (.html)" -Color White
-    Write-Centered -Text "[ 0 ] Volver al menú sin guardar" -Color Red
+    Write-Centered -Text "--- EXPORT THIS REPORT ---" -Color Yellow
+    Write-Centered -Text "[ 1 ] Save as Text Document (.txt)" -Color White
+    Write-Centered -Text "[ 2 ] Save as Web Page (.html)" -Color White
+    Write-Centered -Text "[ 0 ] Back to menu without saving" -Color Red
     Write-Host "`n"
 
     $exportLoop = $true
     while ($exportLoop) {
-        $expSel = Read-Host " Seleccione una opción"
+        $expSel = Read-Host " Select an option"
         $desktopPath = [Environment]::GetFolderPath("Desktop")
         
         switch ($expSel) {
@@ -414,29 +414,29 @@ function Get-OsInfo {
                 $outPath = "$desktopPath\ATLAS_Reporte_Licencias.txt"
                 [System.IO.File]::WriteAllText($outPath, $reportTxt)
                 Write-Host "`n"
-                Write-Centered -Text "[+] Guardado con éxito en su Escritorio:" -Color Green
-                Write-Centered -Text "ATLAS_Reporte_Licencias.txt" -Color Gray
+                Write-Centered -Text "[+] Successfully saved to your Desktop:" -Color Green
+                Write-Centered -Text "ATLAS_License_Report.txt" -Color Gray
                 $exportLoop = $false
             }
             '2' {
-                $outPath = "$desktopPath\ATLAS_Reporte_Licencias.html"
+                $outPath = "$desktopPath\ATLAS_License_Report.html"
                 [System.IO.File]::WriteAllText($outPath, $reportHtml, [System.Text.Encoding]::UTF8)
                 Write-Host "`n"
-                Write-Centered -Text "[+] Guardado con éxito en su Escritorio:" -Color Green
-                Write-Centered -Text "ATLAS_Reporte_Licencias.html" -Color Gray
+                Write-Centered -Text "[+] Successfully saved to your Desktop:" -Color Green
+                Write-Centered -Text "ATLAS_License_Report.html" -Color Gray
                 $exportLoop = $false
             }
             '0' {
                 $exportLoop = $false
             }
             default {
-                Write-Centered -Text "[!] Selección inválida. Intente nuevamente." -Color Red
+                Write-Centered -Text "[!] Invalid selection. Please try again." -Color Red
             }
         }
     }
 
     Write-Host "`n"
-    Write-Centered -Text "Presione ENTER para volver al menú principal..." -Color White
+    Write-Centered -Text "Press ENTER to return to main menu..." -Color White
     $null = Read-Host
 }
 
@@ -445,7 +445,7 @@ function Get-OsInfo {
 # ============================================================================
 function Get-OfficeKeys {
     Show-Header
-    Write-Centered -Text "--- CLAVES DE OFFICE (SPP/OSPP) ---" -Color Cyan
+    Write-Centered -Text "--- OFFICE PRODUCT KEYS (SPP/OSPP) ---" -Color Cyan
     Write-Host ""
 
     $encontradas = @()
@@ -465,7 +465,7 @@ function Get-OfficeKeys {
             }
         }
     } catch {
-        Write-Centered -Text "[!] No se pudo consultar OSPP: $($_.Exception.Message)" -Color Yellow
+        Write-Centered -Text "[!] Could not query OSPP: $($_.Exception.Message)" -Color Yellow
     }
 
     # 5.2 Buscar keys en registro HKLM:\SOFTWARE\Microsoft\Office\*\Registration\*\DigitalProductId
@@ -485,9 +485,9 @@ function Get-OfficeKeys {
                     if ($key) {
                         $encontradas += [pscustomobject]@{
                             Producto = if ($prodName) { $prodName } else { $r.PSChildName }
-                            Descripcion = 'DigitalProductId en Registry'
+                            Descripcion = 'DigitalProductId in Registry'
                             ParcialPK = $key
-                            Estado = 'Activo (registro)'
+                            Estado = 'Active (registry)'
                             Fuente = 'Registry Office'
                         }
                     }
@@ -497,31 +497,31 @@ function Get-OfficeKeys {
     } catch { }
 
     if ($encontradas.Count -eq 0) {
-        Write-Centered -Text "[!] No se detectaron claves Office activas." -Color Yellow
+        Write-Centered -Text "[!] No active Office keys detected." -Color Yellow
     } else {
         foreach ($e in $encontradas) {
-            Write-Centered -Text ("Producto : {0}" -f $e.Producto) -Color White
-            Write-Centered -Text ("Estado   : {0}" -f $e.Estado) -Color Cyan
-            Write-Centered -Text ("Clave    : {0}" -f $e.ParcialPK) -Color Yellow
-            Write-Centered -Text ("Fuente   : {0}" -f $e.Fuente) -Color DarkGray
+            Write-Centered -Text ("Product : {0}" -f $e.Producto) -Color White
+            Write-Centered -Text ("Status  : {0}" -f $e.Estado) -Color Cyan
+            Write-Centered -Text ("Key     : {0}" -f $e.ParcialPK) -Color Yellow
+            Write-Centered -Text ("Source  : {0}" -f $e.Fuente) -Color DarkGray
             Write-Host ""
         }
     }
 
     Write-Host ""
-    $exp = Read-Host " Exportar resultado a TXT en el Escritorio? [S/N]"
+    $exp = Read-Host " Export results to TXT on Desktop? [Y/N]"
     if ($exp -match '^[SsYy]$') {
         $out = [Environment]::GetFolderPath('Desktop') + "\ATLAS_OfficeKeys_$(Get-Date -Format 'yyyyMMdd_HHmm').txt"
-        $txt = "=== ATLAS - CLAVES DE OFFICE ===`r`nFecha: $(Get-Date)`r`n`r`n"
+        $txt = "=== ATLAS - OFFICE PRODUCT KEYS ===`r`nDate: $(Get-Date)`r`n`r`n"
         foreach ($e in $encontradas) {
-            $txt += "Producto    : $($e.Producto)`r`nEstado      : $($e.Estado)`r`nClave       : $($e.ParcialPK)`r`nFuente      : $($e.Fuente)`r`n`r`n"
+            $txt += "Product     : $($e.Producto)`r`nStatus      : $($e.Estado)`r`nKey         : $($e.ParcialPK)`r`nSource      : $($e.Fuente)`r`n`r`n"
         }
         [System.IO.File]::WriteAllText($out, $txt, [System.Text.UTF8Encoding]::new($true))
-        Write-Centered -Text "[OK] Guardado: $out" -Color Green
+        Write-Centered -Text "[OK] Saved: $out" -Color Green
     }
 
     Write-Host ""
-    Read-Host " ENTER para volver"
+    Read-Host " Press ENTER to return"
 }
 
 # ============================================================================
@@ -585,9 +585,9 @@ function Decode-DigitalProductId {
 # ============================================================================
 function Get-InstalledProductKeys {
     Show-Header
-    Write-Centered -Text "--- CLAVES DE PRODUCTOS INSTALADOS (DigitalProductId) ---" -Color Cyan
+    Write-Centered -Text "--- INSTALLED PRODUCT KEYS (DigitalProductId) ---" -Color Cyan
     Write-Host ""
-    Write-Centered -Text "Escaneando HKLM y HKCU buscando DigitalProductId..." -Color DarkGray
+    Write-Centered -Text "Scanning HKLM and HKCU for DigitalProductId..." -Color DarkGray
     Write-Host ""
 
     $roots = @(
@@ -621,30 +621,30 @@ function Get-InstalledProductKeys {
     }
 
     if ($resultados.Count -eq 0) {
-        Write-Centered -Text "[!] No se encontraron DigitalProductId decodificables." -Color Yellow
+        Write-Centered -Text "[!] No decodable DigitalProductIds found." -Color Yellow
     } else {
         foreach ($r in ($resultados | Sort-Object Producto -Unique)) {
             Write-Centered -Text ("{0}" -f $r.Producto) -Color White
-            Write-Centered -Text ("  Clave: {0}" -f $r.Clave) -Color Yellow
+            Write-Centered -Text ("  Key: {0}" -f $r.Clave) -Color Yellow
             Write-Centered -Text ("  {0}" -f $r.Ruta) -Color DarkGray
             Write-Host ""
         }
     }
 
     Write-Host ""
-    $exp = Read-Host " Exportar TXT? [S/N]"
+    $exp = Read-Host " Export to TXT? [Y/N]"
     if ($exp -match '^[SsYy]$') {
         $out = [Environment]::GetFolderPath('Desktop') + "\ATLAS_ProductKeys_$(Get-Date -Format 'yyyyMMdd_HHmm').txt"
-        $txt = "=== ATLAS - CLAVES PRODUCTOS (DigitalProductId) ===`r`nFecha: $(Get-Date)`r`n`r`n"
+        $txt = "=== ATLAS - PRODUCT KEYS (DigitalProductId) ===`r`nDate: $(Get-Date)`r`n`r`n"
         foreach ($r in ($resultados | Sort-Object Producto -Unique)) {
-            $txt += "Producto : $($r.Producto)`r`nClave    : $($r.Clave)`r`nRuta     : $($r.Ruta)`r`n`r`n"
+            $txt += "Product : $($r.Producto)`r`nKey     : $($r.Clave)`r`nPath    : $($r.Ruta)`r`n`r`n"
         }
         [System.IO.File]::WriteAllText($out, $txt, [System.Text.UTF8Encoding]::new($true))
-        Write-Centered -Text "[OK] Guardado: $out" -Color Green
+        Write-Centered -Text "[OK] Saved: $out" -Color Green
     }
 
     Write-Host ""
-    Read-Host " ENTER para volver"
+    Read-Host " Press ENTER to return"
 }
 
 # ============================================================================
@@ -652,25 +652,25 @@ function Get-InstalledProductKeys {
 # ============================================================================
 function Get-BrowserPasswords {
     Show-Header
-    Write-Centered -Text "--- CONTRASENAS DE NAVEGADORES (Edge / Chrome) ---" -Color Red
+    Write-Centered -Text "--- BROWSER PASSWORDS (Edge / Chrome) ---" -Color Red
     Write-Host ""
     Write-Centered -Text "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" -Color Yellow
-    Write-Centered -Text "                 ADVERTENCIA LEGAL" -Color Yellow
+    Write-Centered -Text "                  LEGAL WARNING" -Color Yellow
     Write-Centered -Text "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" -Color Yellow
     Write-Host ""
-    Write-Centered -Text " - Esta funcion extrae credenciales almacenadas en el navegador" -Color White
-    Write-Centered -Text "   del USUARIO ACTUAL de Windows." -Color White
-    Write-Centered -Text " - Es informacion EXTREMADAMENTE sensible." -Color White
-    Write-Centered -Text " - Solo debe usarse en equipos propios o con autorizacion" -Color White
-    Write-Centered -Text "   EXPLICITA y por ESCRITO del duenio del equipo." -Color White
-    Write-Centered -Text " - El usuario de Windows debe confirmar que acepta la extraccion." -Color White
-    Write-Centered -Text " - Atlas PC Support no almacena ni transmite estos datos." -Color White
+    Write-Centered -Text " - This function extracts credentials stored in the browser" -Color White
+    Write-Centered -Text "   of the CURRENT Windows USER." -Color White
+    Write-Centered -Text " - This is EXTREMELY sensitive information." -Color White
+    Write-Centered -Text " - Only use on your own equipment or with EXPLICIT WRITTEN" -Color White
+    Write-Centered -Text "   AUTHORIZATION from the equipment owner." -Color White
+    Write-Centered -Text " - The Windows user must confirm acceptance of extraction." -Color White
+    Write-Centered -Text " - Atlas PC Support does not store or transmit this data." -Color White
     Write-Host ""
-    $c1 = Read-Host " Escribe exactamente: AUTORIZO  para continuar"
-    if ($c1 -ne 'AUTORIZO') {
-        Write-Centered -Text "[X] Cancelado. No se extrajo ninguna contrasena." -Color Red
+    $c1 = Read-Host " Type exactly: AUTHORIZE  to continue"
+    if ($c1 -ne 'AUTHORIZE' -and $c1 -ne 'AUTORIZO') {
+        Write-Centered -Text "[X] Cancelled. No passwords were extracted." -Color Red
         Write-Host ""
-        Read-Host " ENTER para volver"
+        Read-Host " Press ENTER to return"
         return
     }
 
@@ -691,7 +691,7 @@ function Get-BrowserPasswords {
     foreach ($br in $profiles) {
         if (-not (Test-Path $br.Base)) { continue }
         Write-Host ""
-        Write-Centered -Text ("--- Analizando {0} ---" -f $br.Nombre) -Color Cyan
+        Write-Centered -Text ("--- Analyzing {0} ---" -f $br.Nombre) -Color Cyan
 
         # Obtener master key (DPAPI)
         $localState = Join-Path $br.Base 'Local State'
@@ -708,11 +708,11 @@ function Get-BrowserPasswords {
                     $masterKey = $mk
                 }
             } catch {
-                Write-Centered -Text ("[!] No se pudo obtener master key de {0}: {1}" -f $br.Nombre, $_.Exception.Message) -Color Yellow
+                Write-Centered -Text ("[!] Could not get master key from {0}: {1}" -f $br.Nombre, $_.Exception.Message) -Color Yellow
             }
         }
         if (-not $masterKey) {
-            Write-Centered -Text ("[!] Sin master key, no se pueden descifrar contrasenas de {0}." -f $br.Nombre) -Color Yellow
+            Write-Centered -Text ("[!] Without master key, passwords from {0} cannot be decrypted." -f $br.Nombre) -Color Yellow
             continue
         }
 
@@ -727,7 +727,7 @@ function Get-BrowserPasswords {
             try {
                 Copy-Item $loginDb $tmp -Force -ErrorAction Stop
             } catch {
-                Write-Centered -Text ("[!] No se puedo copiar DB de {0} ({1}). Cierra el navegador." -f $br.Nombre, $d.Name) -Color Yellow
+                Write-Centered -Text ("[!] Could not copy DB of {0} ({1}). Close the browser." -f $br.Nombre, $d.Name) -Color Yellow
                 continue
             }
             try {
@@ -735,13 +735,13 @@ function Get-BrowserPasswords {
             } catch { }
             # Sin System.Data.SQLite no podemos leer la DB directamente. Dejamos el info:
             Write-Centered -Text ("   Login DB: {0}" -f $loginDb) -Color DarkGray
-            Write-Centered -Text "   [i] Extraccion SQLite no disponible sin dependencia externa." -Color DarkGray
-            Write-Centered -Text "       Copia la DB manualmente con un visor de SQLite si necesitas ver las entradas." -Color DarkGray
+            Write-Centered -Text "   [i] SQLite extraction not available without external dependency." -Color DarkGray
+            Write-Centered -Text "       Copy the DB manually with a SQLite viewer if you need to see entries." -Color DarkGray
             $results += [pscustomobject]@{
                 Navegador = $br.Nombre
                 Perfil = $d.Name
                 Ruta = $loginDb
-                Estado = 'DB localizada; decifrado requiere herramienta SQLite externa'
+                Estado = 'DB located; decryption requires external SQLite tool'
             }
             Remove-Item $tmp -Force -ErrorAction SilentlyContinue
         }
@@ -749,41 +749,41 @@ function Get-BrowserPasswords {
 
     Write-Host ""
     if ($results.Count -eq 0) {
-        Write-Centered -Text "[!] No se detectaron navegadores con credenciales accesibles." -Color Yellow
+        Write-Centered -Text "[!] No browsers detected with accessible credentials." -Color Yellow
     } else {
-        Write-Centered -Text "[i] Navegadores con DB localizada:" -Color Cyan
+        Write-Centered -Text "[i] Browsers with located DB:" -Color Cyan
         foreach ($r in $results) {
             Write-Centered -Text ("  - {0} / {1}" -f $r.Navegador, $r.Perfil) -Color White
         }
         Write-Host ""
-        Write-Centered -Text "Para exportar contrasenas de forma legitima:" -Color Yellow
-        Write-Centered -Text "  Edge:   edge://settings/passwords -> menu ... -> Exportar contrasenas" -Color Gray
-        Write-Centered -Text "  Chrome: chrome://settings/passwords -> ... -> Exportar contrasenas" -Color Gray
-        Write-Centered -Text "  Brave:  brave://settings/passwords -> ... -> Exportar" -Color Gray
-        Write-Centered -Text "(Este metodo oficial pide la contrasena de Windows del usuario actual.)" -Color DarkGray
+        Write-Centered -Text "To export passwords legitimately:" -Color Yellow
+        Write-Centered -Text "  Edge:   edge://settings/passwords -> menu ... -> Export passwords" -Color Gray
+        Write-Centered -Text "  Chrome: chrome://settings/passwords -> ... -> Export passwords" -Color Gray
+        Write-Centered -Text "  Brave:  brave://settings/passwords -> ... -> Export" -Color Gray
+        Write-Centered -Text "(This official method asks for the current user's Windows password.)" -Color DarkGray
     }
 
     Write-Host ""
-    Read-Host " ENTER para volver"
+    Read-Host " Press ENTER to return"
 }
 
 # Bucle principal
 $menuLoop = $true
 while ($menuLoop) {
     Show-Header
-    Write-Centered -Text "M E N U   P R I N C I P A L" -Color Cyan
+    Write-Centered -Text "M A I N   M E N U" -Color Cyan
     Write-Host "`n"
-    Write-Centered -Text "[ 1 ] Extraer Clave de Fábrica (BIOS/UEFI)" -Color White
-    Write-Centered -Text "[ 2 ] Extraer y Diagnosticar Clave Actual (Registro)" -Color White
-    Write-Centered -Text "[ 3 ] Auditoría Nativa y Originalidad (SLMGR)" -Color White
-    Write-Centered -Text "[ 4 ] Reporte Completo (OS, BIOS, Actual y Originalidad)" -Color White
-    Write-Centered -Text "[ 5 ] Extraer Claves de Office (OSPP/SPP + Registro)" -Color Cyan
-    Write-Centered -Text "[ 6 ] Claves de productos instalados (DigitalProductId)" -Color Cyan
-    Write-Centered -Text "[ 7 ] Navegadores (Edge/Chrome) - REQUIERE AUTORIZACION" -Color Yellow
-    Write-Centered -Text "[ 0 ] Salir" -Color Red
+    Write-Centered -Text "[ 1 ] Extract Factory Key (BIOS/UEFI)" -Color White
+    Write-Centered -Text "[ 2 ] Extract and Diagnose Current Key (Registry)" -Color White
+    Write-Centered -Text "[ 3 ] Native Audit and Authenticity (SLMGR)" -Color White
+    Write-Centered -Text "[ 4 ] Full Report (OS, BIOS, Current and Authenticity)" -Color White
+    Write-Centered -Text "[ 5 ] Extract Office Keys (OSPP/SPP + Registry)" -Color Cyan
+    Write-Centered -Text "[ 6 ] Installed product keys (DigitalProductId)" -Color Cyan
+    Write-Centered -Text "[ 7 ] Browsers (Edge/Chrome) - REQUIRES AUTHORIZATION" -Color Yellow
+    Write-Centered -Text "[ 0 ] Exit" -Color Red
     Write-Host "`n"
     
-    $selection = Read-Host " Seleccione una opción"
+    $selection = Read-Host " Select an option"
     
     switch ($selection) {
         '1' { Get-BiosKey }
