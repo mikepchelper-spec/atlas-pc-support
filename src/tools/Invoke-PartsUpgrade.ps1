@@ -510,12 +510,28 @@ function Invoke-PartsUpgrade {
             $media = if ($pd.MediaType) { $pd.MediaType.ToString() } else { '?' }
             $sizeGB = if ($pd.Size) { [math]::Round($pd.Size / 1GB, 0) } else { 0 }
             $health = if ($pd.HealthStatus) { $pd.HealthStatus.ToString() } else { '?' }
+            # SpindleSpeed: > 0 = mechanical (RPM), 0 = SSD, $null on
+            # systems whose driver doesn't expose it (most NVMe/USB).
+            # This is more reliable than MediaType, which on RAID/SAS
+            # controllers and some older SATA drives comes back as
+            # "Unspecified" (the bug user reported: a real HDD wasn't
+            # being counted because media != 'HDD' and bus matched
+            # 'SATA' but the size-based fallback picked SSD).
+            $spindle = if ($pd.PSObject.Properties['SpindleSpeed']) { $pd.SpindleSpeed } else { $null }
 
             $kind = 'Other'
             if ($bus -match 'NVMe') { $kind = $L.KindNVMe; $nvmeCount++ }
             elseif ($bus -match 'USB') { $kind = $L.KindUSB; $usbCount++ }
             elseif ($media -match 'HDD') { $kind = $L.KindHDD; $hddCount++ }
             elseif ($media -match 'SSD' -and $bus -match 'SATA|ATA') { $kind = $L.KindSSDSATA; $sataSsdCount++ }
+            elseif ($null -ne $spindle -and $spindle -gt 0) {
+                # Spinning platters → mechanical disk regardless of bus.
+                $kind = $L.KindHDD; $hddCount++
+            }
+            elseif ($null -ne $spindle -and $spindle -eq 0 -and $bus -match 'SATA|ATA') {
+                # Explicitly 0 RPM on a SATA bus → SATA SSD.
+                $kind = $L.KindSSDSATA; $sataSsdCount++
+            }
             elseif ($bus -match 'SATA|ATA') {
                 if ($sizeGB -lt 300) { $kind = $L.KindSSDSATAi; $sataSsdCount++ }
                 else { $kind = $L.KindHDDi; $hddCount++ }
