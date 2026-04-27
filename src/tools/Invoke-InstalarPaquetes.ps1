@@ -421,12 +421,32 @@ function Invoke-InstalarPaquetes {
         if ($Pkg.Source -and [string]$Pkg.Source -ne '') {
             $wingetArgs += @('--source', [string]$Pkg.Source)
         }
-        # Run winget without output capture so its native progress UI
-        # (download bar, percentage, "Successfully installed") streams
-        # directly to the user's console. We only need the exit code —
-        # if winget fails, the failure messages are already on screen.
-        & winget.exe @wingetArgs
-        return @{ Exit = $LASTEXITCODE; Output = $null }
+        # Run winget so its native progress UI (download bar, percentage,
+        # "Successfully installed") streams directly to the user's
+        # console. We MUST use Start-Process -NoNewWindow -Wait here, NOT
+        # `& winget.exe @wingetArgs`. Two reasons:
+        #
+        #   1. `& exe` inside a function emits stdout into the function's
+        #      success stream, polluting the return value. The caller does
+        #      `$r = Invoke-PackageInstall ...`, so $r becomes an array of
+        #      every winget stdout line PLUS the hashtable. Then $r.Exit
+        #      member-enumerates to an array of $null,$null,...,0 and the
+        #      `switch ($r.Exit)` dispatch fires the default ("install
+        #      failed") branch on every non-hashtable element — every
+        #      successful install would be reported as failed.
+        #
+        #   2. Even if we routed through Out-Host, PowerShell would still
+        #      object-ify each line and break winget's CR-based progress
+        #      redraws (the bar would scroll instead of redraw in place).
+        #
+        # Start-Process -NoNewWindow -Wait launches winget as a child
+        # that inherits this console directly, so winget owns the
+        # terminal and CR redraws render natively. -PassThru lets us read
+        # the real ExitCode without going through $LASTEXITCODE (which
+        # isn't set by Start-Process).
+        $proc = Start-Process -FilePath 'winget.exe' -ArgumentList $wingetArgs `
+            -NoNewWindow -Wait -PassThru
+        return @{ Exit = $proc.ExitCode; Output = $null }
     }
 
     function Install-Packages {
