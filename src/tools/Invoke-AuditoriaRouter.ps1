@@ -24,7 +24,7 @@ Clear-Host
 # ================================================================
 $script:HistorialSesion = [System.Collections.Generic.List[string]]::new()
 $script:ArchivoEstado   = "$env:TEMP\AtlasRed_UltimoEscaneo.txt"
-$script:MostrarInfo     = $true        # El usuario puede deshabilitarlo con X en la info card
+$script:MostrarInfo     = $true        # El user puede deshabilitarlo con X en la info card
 $script:ModoAuto        = $Auto.IsPresent
 
 # ================================================================
@@ -187,368 +187,368 @@ $script:OUI = @{
 # ================================================================
 $script:Info = @{
     "A" = @{
-        Titulo = "Auditoria de Puertos LAN"
+        Titulo = "LAN Port Audit"
         Color  = "Cyan"
         Desc   = @(
-            "Prueba conexion TCP a los puertos mas relevantes del router",
-            "usando TcpClient con timeout de 1 segundo por puerto. Es mucho",
-            "mas rapido que Test-NetConnection porque no espera al ICMP.",
+            "Tests TCP connection to the most relevant ports of the router",
+            "using TcpClient with a 1-second timeout per port. Much",
+            "faster than Test-NetConnection because it does not wait for ICMP.",
             "Puertos base: 21, 22, 23, 80, 443, 8080, 8443, 8888, 9090.",
-            "Puedes agregar puertos adicionales al inicio del escaneo."
+            "You can add additional ports at the start of the scan."
         )
         Prec   = @(
-            "Algunos routers con IDS/IPS registran el escaneo en sus logs.",
-            "  Inofensivo, pero puede aparecer como 'actividad sospechosa'.",
-            "No ejecutar contra una IP que no sea tu propio gateway.",
-            "Falsos negativos posibles si el router usa DROP en vez de REJECT."
+            "Some routers with IDS/IPS log the scan in their logs.",
+            "  Harmless, but may appear as 'suspicious activity'.",
+            "Do not run against any IP other than your own gateway.",
+            "False negatives possible if the router uses DROP instead of REJECT."
         )
         Recs   = @(
-            "Ejecuta A antes de C para saber si el panel usa HTTP o HTTPS.",
-            "Combina con el modulo H para saber si esos puertos estan en WAN.",
+            "Run A before C to find out if the panel uses HTTP or HTTPS.",
+            "Combine with module H to find out if those ports are on WAN.",
             "Si el puerto 23 (Telnet) aparece abierto, cerrarlo es urgente:",
-            "  Panel del router -> Administracion -> desactivar Telnet."
+            "  Router panel -> Administration -> disable Telnet."
         )
         Ejem   = @(
-            "Panel del router inaccesible: comprueba si 80 o 443 responden.",
-            "  Si ambos estan cerrados, el panel de administracion esta OFF.",
-            "Router lento sin razon aparente: Telnet abierto puede indicar",
+            "Router panel inaccessible: check whether 80 or 443 respond.",
+            "  If both are closed, the admin panel is OFF.",
+            "Router slow with no apparent reason: open Telnet may indicate",
             "  acceso remoto activo no autorizado drenando recursos."
         )
     }
     "B" = @{
-        Titulo = "Escaneo de Dispositivos + Deteccion de IPs Duplicadas"
+        Titulo = "Device Scan + Duplicate IP Detection"
         Color  = "Cyan"
         Desc   = @(
-            "Envia pings a toda la subred (.1 a .254) y registra cada",
-            "dispositivo que responde. Muestra IP, MAC, nombre DNS y",
-            "fabricante. Detecta conflictos de IP (mismo MAC, distinta IP)",
-            "que pueden causar cortes aleatorios de conexion."
+            "Pings the entire subnet (.1 to .254) and logs every",
+            "device that responds. Shows IP, MAC, DNS name and",
+            "manufacturer. Detects IP conflicts (same MAC, different IP)",
+            "which can cause random connection drops."
         )
         Prec   = @(
-            "El escaneo de 254 hosts puede tardar entre 30 y 90 segundos.",
-            "Dispositivos con firewall activo pueden no responder al ping",
+            "Scanning 254 hosts may take between 30 and 90 seconds.",
+            "Devices with firewall active may not respond to ping",
             "  aunque esten conectados (falsos negativos esperables).",
-            "El nombre DNS puede quedar como 'Oculto' en muchos dispositivos."
+            "DNS name may appear as 'Hidden' on many devices."
         )
         Recs   = @(
-            "Ejecutar cuando el cliente reporta 'alguien se colo en mi WiFi'",
-            "  o cuando hay cortes aleatorios de red sin razon aparente.",
-            "Combina con el modulo N (comparativa) para ver cambios en el tiempo.",
-            "Usa el modulo J para ver los fabricantes de forma agrupada."
+            "Run when the client reports 'someone got into my WiFi'",
+            "  or when there are random network drops with no apparent reason.",
+            "Combine with module N (comparison) to see changes over time.",
+            "Use module J to see manufacturers grouped."
         )
         Ejem   = @(
-            "Dos dispositivos con la misma IP causan desconexiones aleatorias:",
-            "  el escaneo mostrara una alerta de conflicto de IP.",
-            "Dispositivo con MAC desconocida en la lista: podria ser un",
-            "  intruso - investigar con el modulo J."
+            "Two devices with the same IP cause random disconnections:",
+            "  the scan will show an IP conflict alert.",
+            "Device with unknown MAC in the list: could be an",
+            "  intruder - investigate with module J."
         )
     }
     "C" = @{
-        Titulo = "Abrir Panel del Router (deteccion automatica HTTP/S)"
+        Titulo = "Open Router Panel (automatic HTTP/S detection)"
         Color  = "Cyan"
         Desc   = @(
-            "Detecta si el router acepta HTTPS (puerto 443) o HTTP (puerto 80)",
-            "antes de abrir el navegador, y usa el protocolo correcto.",
-            "Evita el error tipico de teclear http:// en un router que solo",
-            "responde en https:// o viceversa."
+            "Detects whether the router accepts HTTPS (port 443) or HTTP (port 80)",
+            "before opening the browser, and use the correct protocol.",
+            "Avoids the typical error of typing http:// on a router that only",
+            "responds on https:// or vice versa."
         )
         Prec   = @(
-            "Algunos routers con proteccion CSRF bloquean accesos desde",
-            "  enlaces directos. En ese caso, abre el navegador manualmente.",
-            "La advertencia 'Conexion no segura' en HTTPS es completamente",
-            "  normal en redes locales (certificado autofirmado)."
+            "Some routers with CSRF protection block access from",
+            "  direct links. In that case, open the browser manually.",
+            "La advertencia 'Connection no segura' en HTTPS es completamente",
+            "  normal on local networks (self-signed certificate)."
         )
         Recs   = @(
-            "Ejecuta primero el modulo A para confirmar que al menos uno",
-            "  de los puertos (80 o 443) esta activo.",
-            "Credenciales por defecto comunes: admin/admin, admin/1234,",
-            "  admin/(en blanco). Consulta la etiqueta debajo del router."
+            "First run module A to confirm that at least one",
+            "  of the ports (80 or 443) is active.",
+            "Common default credentials: admin/admin, admin/1234,",
+            "  admin/(blank). Check the label under the router."
         )
         Ejem   = @(
-            "Soporte rapido: acceso al panel sin recordar si es http o https.",
-            "Router con HTTPS habilitado: el modulo C abre directamente",
-            "  la version segura para evitar la advertencia del navegador."
+            "Quick support: access the panel without remembering whether it's http or https.",
+            "Router with HTTPS enabled: module C opens directly",
+            "  the secure version to avoid the browser warning."
         )
     }
     "D" = @{
-        Titulo = "Diagnostico de Latencia y Estabilidad"
+        Titulo = "Latency and Stability Diagnostics"
         Color  = "Yellow"
         Desc   = @(
-            "Envia 10 pings a tres destinos: el router (LAN), Cloudflare",
-            "(1.1.1.1) y Google (8.8.8.8). Calcula minimo, maximo y media.",
-            "Identifica automaticamente si el problema esta en la red local",
-            "o en el proveedor de Internet (ISP)."
+            "Sends 10 pings to three targets: the router (LAN), Cloudflare",
+            "(1.1.1.1) and Google (8.8.8.8). Calculates min, max and mean.",
+            "Automatically identifies whether the problem is in the local network",
+            "or in the Internet provider (ISP)."
         )
         Prec   = @(
-            "Los pings a Internet pueden bloquearse con VPN activa,",
-            "  dando falsos negativos en los destinos WAN.",
-            "En redes corporativas algunos firewalls bloquean ICMP.",
-            "Un solo test no es representativo: ejecutar en distintos momentos."
+            "Internet pings can be blocked with VPN active,",
+            "  giving false negatives at WAN targets.",
+            "On corporate networks some firewalls block ICMP.",
+            "A single test is not representative: run at different times."
         )
         Recs   = @(
-            "Latencia al router > 20ms = problema en la red local (WiFi, cable).",
-            "Latencia a Internet > 100ms = probable problema con el ISP.",
-            "Perdida de paquetes > 30% = fallo grave que requiere atencion.",
-            "Comparar resultados en hora punta vs hora baja."
+            "Router latency > 20ms = problem on local network (WiFi, cable).",
+            "Internet latency > 100ms = likely ISP issue.",
+            "Packet loss > 30% = severe failure requiring attention.",
+            "Compare results at peak vs off-peak hours."
         )
         Ejem   = @(
-            "Cliente reporta 'Internet lento': si el ping al router es alto",
-            "  el problema es la LAN. Si el router responde bien pero 1.1.1.1",
-            "  falla, llamar al ISP con los datos del test como evidencia.",
-            "Videoconferencias que se cortan: buscar perdida de paquetes > 5%."
+            "Client reports 'Internet slow': if router ping is high",
+            "  the problem is the LAN. If the router responds well but 1.1.1.1",
+            "  fails, call the ISP with the test data as evidence.",
+            "Video calls dropping: look for packet loss > 5%."
         )
     }
     "E" = @{
-        Titulo = "Informacion Completa del Adaptador de Red"
+        Titulo = "Full Network Adapter Information"
         Color  = "White"
         Desc   = @(
-            "Muestra todos los datos del adaptador de red activo: nombre,",
-            "descripcion, estado, velocidad de enlace, MAC propia, IP local,",
-            "mascara de red (notacion /XX), puerta de enlace y servidores",
-            "DNS configurados."
+            "Shows all data of the active network adapter: name,",
+            "description, status, link speed, own MAC, local IP,",
+            "netmask (/XX notation), gateway and DNS",
+            "servers configured."
         )
         Prec   = @(
-            "Si hay multiples adaptadores (VPN activa + adaptador fisico),",
-            "  muestra el asociado a la ruta por defecto mas optima.",
-            "La velocidad puede aparecer como N/A en adaptadores WiFi virtuales."
+            "If there are multiple adapters (VPN active + physical adapter),",
+            "  shows the one associated with the most optimal default route.",
+            "Speed may appear as N/A on virtual WiFi adapters."
         )
         Recs   = @(
-            "Ejecutar siempre como primer modulo en cualquier diagnostico.",
-            "IP en 169.254.x.x (APIPA): el DHCP no esta respondiendo.",
-            "DNS en 127.0.0.1: hay un servicio local actuando de DNS",
-            "  (Pi-hole, VPN, DNSCrypt). Puede ser intencionado o no."
+            "Always run as the first module in any diagnostic.",
+            "IP at 169.254.x.x (APIPA): DHCP is not responding.",
+            "DNS at 127.0.0.1: a local service is acting as DNS",
+            "  (Pi-hole, VPN, DNSCrypt). May be intentional or not."
         )
         Ejem   = @(
-            "PC sin Internet pero con IP correcta: verificar si el gateway",
-            "  es el del router o uno incorrecto asignado por error.",
-            "Maquina con velocidad 10Mbps en red Gigabit: cable o puerto",
-            "  del switch en modo half-duplex o deteriorado."
+            "PC without Internet but with correct IP: check whether the gateway",
+            "  is the router's or one wrongly assigned by mistake.",
+            "Machine at 10Mbps speed on Gigabit network: cable or port",
+            "  of the switch in half-duplex mode or deteriorated."
         )
     }
     "F" = @{
-        Titulo = "Test de Resolucion DNS"
+        Titulo = "DNS Resolution Test"
         Color  = "White"
         Desc   = @(
-            "Resuelve 5 dominios conocidos (Google, Cloudflare, Microsoft,",
-            "Amazon, YouTube) midiendo el tiempo de respuesta en ms.",
-            "Alerta si algun dominio tarda mas de 500ms o falla.",
-            "Diagnostica si el problema de 'webs que no abren' es DNS."
+            "Resolves 5 known domains (Google, Cloudflare, Microsoft,",
+            "Amazon, YouTube) measuring response time in ms.",
+            "Alerts if any domain takes more than 500ms or fails.",
+            "Diagnoses whether the 'websites not loading' issue is DNS."
         )
         Prec   = @(
-            "Si el equipo usa un DNS local (Pi-hole, AdGuard), la latencia",
-            "  puede ser mas alta sin que eso sea un problema.",
-            "Fallos completos con ping funcional = DNS del router caido."
+            "If the computer uses local DNS (Pi-hole, AdGuard), latency",
+            "  can be higher without that being a problem.",
+            "Total failures with working ping = router DNS down."
         )
         Recs   = @(
-            "Si todos los dominios fallan pero el ping a 8.8.8.8 funciona,",
-            "  el DNS esta caido. Solucion rapida: cambiar DNS a 1.1.1.1",
-            "  en la configuracion de red del equipo o del router.",
-            "Tiempos > 200ms de forma consistente: cambiar a DNS publico."
+            "If all domains fail but ping to 8.8.8.8 works,",
+            "  DNS is down. Quick fix: change DNS to 1.1.1.1",
+            "  in the network configuration of the computer or router.",
+            "Times > 200ms consistently: switch to public DNS."
         )
         Ejem   = @(
-            "Webs lentas pero descargas rapidas: el DNS esta tardando mucho",
-            "  en resolver. Cambio a 1.1.1.1 suele solucionar el problema.",
-            "Algunas webs no abren: resolucion selectiva fallando,",
-            "  posible lista de bloqueo o cache DNS corrupta en el router."
+            "Slow websites but fast downloads: DNS is taking too long",
+            "  to resolve. Switching to 1.1.1.1 usually fixes the problem.",
+            "Some websites don't open: selective resolution failing,",
+            "  possible blocklist or corrupted DNS cache on the router."
         )
     }
     "H" = @{
-        Titulo = "Deteccion de Puertos Peligrosos Expuestos en Internet (WAN)"
+        Titulo = "Detection of Dangerous Ports Exposed on Internet (WAN)"
         Color  = "Red"
         Desc   = @(
-            "Obtiene tu IP publica via api.ipify.org y escanea desde Internet",
-            "los puertos mas peligrosos: 21 (FTP), 22 (SSH), 23 (Telnet),",
-            "80 (HTTP), 443 (HTTPS), 3389 (RDP) y 8080 (HTTP-Alt).",
-            "Detecta si tu router esta expuesto a ataques externos."
+            "Gets your public IP via api.ipify.org and scans from Internet",
+            "the most dangerous ports: 21 (FTP), 22 (SSH), 23 (Telnet),",
+            "80 (HTTP), 443 (HTTPS), 3389 (RDP) and 8080 (HTTP-Alt).",
+            "Detects whether your router is exposed to external attacks."
         )
         Prec   = @(
-            "Algunos ISP usan CG-NAT: el resultado podria no reflejar",
-            "  la exposicion real del router (IPs compartidas).",
-            "Redes con hairpin NAT pueden reportar puertos como cerrados.",
-            "SOLO escanear tu propia red. Nunca usar contra IPs ajenas."
+            "Some ISPs use CG-NAT: the result may not reflect",
+            "  the real exposure of the router (shared IPs).",
+            "Networks with hairpin NAT may report ports as closed.",
+            "ONLY scan your own network. Never use against third-party IPs."
         )
         Recs   = @(
             "Puerto 23 o 3389 abiertos desde Internet: URGENTE cerrarlos.",
-            "  Panel del router -> Administracion remota -> desactivar.",
+            "  Router panel -> Remote administration -> disable.",
             "Puerto 22 abierto: cambiar SSH a un puerto no estandar",
-            "  y habilitar autenticacion por clave, no por contrasena."
+            "  and enable key-based authentication, not password-based."
         )
         Ejem   = @(
             "Router recibiendo ataques de fuerza bruta: puertos 22 o 23",
-            "  abiertos en WAN son el vector. Cerrarlos detiene el ataque.",
-            "Cliente con Internet lento por las noches: puerto 23 abierto",
-            "  puede indicar que el router esta siendo utilizado como proxy."
+            "  open in WAN are the vector. Closing them stops the attack.",
+            "Client with slow Internet at night: port 23 open",
+            "  may indicate the router is being used as a proxy."
         )
     }
     "J" = @{
-        Titulo = "Identificacion de Fabricantes por Prefijo MAC (OUI)"
+        Titulo = "Manufacturer Identification by MAC Prefix (OUI)"
         Color  = "White"
         Desc   = @(
-            "Escanea la red y cruza cada MAC con una tabla local de 200+",
-            "prefijos OUI para identificar el fabricante del chip de red.",
-            "Muestra los resultados agrupados por fabricante para facilitar",
-            "la identificacion de dispositivos desconocidos.",
-            "No requiere conexion a Internet: la tabla esta embebida."
+            "Scans the network and cross-references each MAC with a local table of 200+",
+            "OUI prefixes to identify the manufacturer of the network chip.",
+            "Shows results grouped by manufacturer to make easier",
+            "la identificacion de devices desconocidos.",
+            "Does not require Internet: the table is embedded."
         )
         Prec   = @(
-            "El OUI identifica al fabricante del CHIP de red, no del dispositivo.",
-            "  Un router Xiaomi puede usar un chip Intel o Realtek.",
+            "OUI identifies the manufacturer of the network CHIP, not the device.",
+            "  A Xiaomi router can use an Intel or Realtek chip.",
             "MACs aleatorizadas (Android 10+, iOS 14+, Windows 10 reciente)",
-            "  pueden aparecer como 'Desconocido' o con fabricante incorrecto.",
-            "La tabla cubre los mas comunes pero no es exhaustiva."
+            "  may appear as 'Unknown' or with incorrect manufacturer.",
+            "The table covers the most common ones but is not exhaustive."
         )
         Recs   = @(
             "Cuando aparece un fabricante inesperado (Raspberry Pi, Amazon,",
-            "  QEMU) en casa de un cliente, investigar ese dispositivo.",
-            "Si varios dispositivos muestran el mismo fabricante (Intel),",
-            "  es probable que sean laptops o PCs con NIC integrada."
+            "  QEMU) in a client's home, investigate that device.",
+            "If several devices show the same manufacturer (Intel),",
+            "  they are likely laptops or PCs with integrated NIC."
         )
         Ejem   = @(
-            "Aparece 'Raspberry Pi' en la red del cliente: alguien instalo",
-            "  una mini-PC, posiblemente un servidor o un relay de red.",
+            "If 'Raspberry Pi' appears on the client network: someone installed",
+            "  a mini-PC, possibly a server or a network relay.",
             "Aparece 'Amazon': es un Echo, Fire TV, Kindle o Ring.",
-            "Aparece 'VMware'/'QEMU': hay una maquina virtual en la red."
+            "If 'VMware'/'QEMU' appears: a virtual machine is on the network."
         )
     }
     "L" = @{
-        Titulo = "Deteccion de Version de Firmware del Router"
+        Titulo = "Router Firmware Version Detection"
         Color  = "DarkYellow"
         Desc   = @(
-            "Intenta acceder sin autenticacion a rutas conocidas de paginas",
-            "de informacion del firmware en TP-Link, ASUS, D-Link, Movistar",
-            "y routers genericos. Extrae la version si la encuentra.",
-            "Funciona en aproximadamente el 60-70% de los routers domesticos."
+            "Tries to access without authentication well-known paths of pages",
+            "firmware information in TP-Link, ASUS, D-Link, Movistar",
+            "and generic routers. Extracts the version if it finds it.",
+            "Works on approximately 60-70% of home routers."
         )
         Prec   = @(
-            "Algunos routers requieren login para mostrar la version.",
-            "  En ese caso, usar el modulo C para acceder al panel.",
-            "El resultado puede variar segun la configuracion del fabricante.",
-            "No genera ningun cambio en el router: es solo lectura."
+            "Some routers require login to show the version.",
+            "  In that case, use module C to access the panel.",
+            "Result may vary depending on manufacturer configuration.",
+            "Does not change anything on the router: read-only."
         )
         Recs   = @(
-            "Si encuentras la version, comparar con la disponible en la web",
-            "  del fabricante. Mas de 1 ano sin actualizar = riesgo.",
-            "TP-Link y ASUS suelen exponer la version sin autenticacion.",
-            "En caso de duda, acceder manualmente al panel (modulo C)."
+            "If you find the version, compare with the one available on the web",
+            "  from the manufacturer. More than 1 year without updates = risk.",
+            "TP-Link and ASUS usually expose the version without authentication.",
+            "When in doubt, access the panel manually (module C)."
         )
         Ejem   = @(
-            "Router con firmware de 2019 en 2024: probablemente vulnerable",
-            "  a CVEs publicos. Recomendar actualizacion al cliente.",
-            "Version no encontrada: el router require login o no es compatible",
-            "  con las rutas conocidas. Usar el modulo C manualmente."
+            "Router with 2019 firmware in 2024: likely vulnerable",
+            "  to public CVEs. Recommend update to the client.",
+            "Version not found: the router requires login or is not supported",
+            "  with known routes. Use module C manually."
         )
     }
     "M" = @{
-        Titulo = "Informe Completo Automatico (A + E + F + D)"
+        Titulo = "Automatic Full Report (A + E + F + D)"
         Color  = "Green"
         Desc   = @(
-            "Ejecuta automaticamente los modulos A, E, F y D en secuencia",
-            "sin interaccion del usuario. Al finalizar genera un unico",
-            "archivo TXT consolidado con fecha y hora en el Escritorio.",
-            "Ideal para inicio o fin de una visita de soporte tecnico."
+            "Automatically runs modules A, E, F and D in sequence",
+            "without user interaction. When done it generates a single",
+            "consolidated TXT file with date and time on the Desktop.",
+            "Ideal for the start or end of a tech support visit."
         )
         Prec   = @(
-            "La ejecucion completa tarda entre 2 y 5 minutos.",
-            "  No cerrar la ventana a la mitad del proceso.",
-            "Requiere conexion de red activa para todos los modulos.",
-            "El archivo TXT se sobrescribe si ya existe uno del mismo segundo."
+            "Full execution takes between 2 and 5 minutes.",
+            "  Do not close the window mid-process.",
+            "Requires active network connection for all modules.",
+            "The TXT file is overwritten if one from the same second already exists."
         )
         Recs   = @(
-            "Lanzar al inicio de la visita para tener una linea base.",
-            "Lanzar al final para documentar el estado tras los cambios.",
-            "Enviar el TXT al cliente por email como registro de la visita.",
-            "Para ejecutar sin interaccion desde un .bat: AuditoriaRouter.ps1 -Auto"
+            "Run at the start of the visit to have a baseline.",
+            "Run at the end to document the state after changes.",
+            "Email the TXT to the client as a record of the visit.",
+            "To run without interaction from a .bat: AuditoriaRouter.ps1 -Auto"
         )
         Ejem   = @(
             "Mantenimiento preventivo mensual: lanzar M, esperar, adjuntar",
-            "  el TXT al ticket de soporte como evidencia del estado.",
-            "Tarea programada: configurar en el Programador de Tareas de",
-            "  Windows con el parametro -Auto para ejecucion nocturna."
+            "  the TXT to the support ticket as evidence of state.",
+            "Scheduled task: configure in the Windows Task Scheduler",
+            "  Windows with the -Auto parameter for nightly execution."
         )
     }
     "N" = @{
-        Titulo = "Comparativa de Dispositivos (Antes / Ahora)"
+        Titulo = "Device Comparison (Before / Now)"
         Color  = "Magenta"
         Desc   = @(
-            "Escanea la red actual y la compara con el ultimo escaneo",
-            "guardado en disco. Muestra en verde los dispositivos nuevos",
-            "y en rojo los que han desaparecido. Los dispositivos sin",
-            "cambios se muestran en gris."
+            "Scans the current network and compares with the last scan",
+            "saved on disk. Shows new devices in green",
+            "and in red the ones that have disappeared. Devices without",
+            "changes are shown in gray."
         )
         Prec   = @(
-            "El estado guardado persiste entre sesiones en una carpeta temp.",
+            "Saved state persists across sessions in a temp folder.",
             "  Si se limpia %TEMP%, el historial se pierde.",
-            "Dispositivos apagados pueden aparecer como 'desaparecidos'",
-            "  aunque sigan perteneciendo a la red."
+            "Powered-off devices may appear as 'missing'",
+            "  even if they still belong to the network."
         )
         Recs   = @(
-            "En la primera visita al cliente: ejecutar para guardar el estado base.",
-            "En visitas posteriores: ejecutar para detectar dispositivos nuevos.",
-            "Si aparece un dispositivo nuevo inesperado: cruzar con modulo J",
-            "  para identificar el fabricante."
+            "On first client visit: run to save baseline state.",
+            "On subsequent visits: run to detect new devices.",
+            "If a new unexpected device appears: cross-reference with module J",
+            "  to identify the manufacturer."
         )
         Ejem   = @(
-            "Cliente dice 'alguien se conecto a mi WiFi': comparar con el",
-            "  escaneo anterior para ver exactamente que dispositivo es nuevo.",
-            "Tras cambiar la contrasena del WiFi: verificar que no queden",
-            "  dispositivos del escaneo anterior que no deberian estar."
+            "Client says 'someone connected to my WiFi': compare with the",
+            "  previous scan to see exactly which device is new.",
+            "After changing WiFi password: verify there are no leftover",
+            "  devices from the previous scan that should not be there."
         )
     }
     "P" = @{
-        Titulo = "Test de Velocidad de Descarga"
+        Titulo = "Download Speed Test"
         Color  = "Yellow"
         Desc   = @(
-            "Descarga un archivo de ~5MB desde los servidores de Cloudflare",
-            "y mide la velocidad real de descarga en MB/s y Mbps.",
+            "Downloads a ~5MB file from Cloudflare servers",
+            "and measures actual download speed in MB/s and Mbps.",
             "No depende de aplicaciones externas ni de Speedtest.net.",
-            "Proporciona una estimacion rapida y sin instalacion."
+            "Provides a quick estimate with no installation."
         )
         Prec   = @(
-            "El resultado puede variar con la carga del servidor y la hora.",
-            "  Ejecutar varias veces para obtener una media representativa.",
-            "Mide la velocidad del equipo, no del router: otros dispositivos",
-            "  en la red consumiendo ancho de banda afectaran el resultado.",
+            "Result may vary with server load and time of day.",
+            "  Run several times to get a representative average.",
+            "Measures the computer speed, not the router: other devices",
+            "  on the network consuming bandwidth will affect the result.",
             "Requiere acceso a Internet (cloudflare.com)."
         )
         Recs   = @(
-            "Comparar el resultado con la velocidad contratada con el ISP.",
+            "Compare the result with the speed contracted with the ISP.",
             "  Regla practica: se espera al menos el 70% de la velocidad",
-            "  contratada en condiciones normales.",
-            "Ejecutar tanto en WiFi como en cable para comparar diferencias."
+            "  contracted under normal conditions.",
+            "Run on both WiFi and cable to compare differences."
         )
         Ejem   = @(
-            "Cliente con 300 Mbps contratados obteniendo 5 Mbps: posible",
-            "  QoS mal configurado, throttling del ISP o router saturado.",
+            "Client with 300 Mbps contracted getting 5 Mbps: possible",
+            "  Misconfigured QoS, ISP throttling or saturated router.",
             "Diferencia grande entre WiFi y cable: problema de cobertura o",
-            "  interferencias en el canal WiFi. Recomendacion: cambiar canal."
+            "  interference on the WiFi channel. Recommendation: change channel."
         )
     }
     "Q" = @{
-        Titulo = "Deteccion de Portal Cautivo"
+        Titulo = "Captive Portal Detection"
         Color  = "DarkYellow"
         Desc   = @(
-            "Hace una peticion HTTP a connectivitycheck.gstatic.com/generate_204.",
-            "Si devuelve HTTP 204: conexion limpia a Internet.",
+            "Makes an HTTP request to connectivitycheck.gstatic.com/generate_204.",
+            "If it returns HTTP 204: clean connection to Internet.",
             "Si devuelve HTTP 200 o redirige: hay un portal cautivo activo",
-            "que requiere aceptacion antes de navegar (hoteles, aeropuertos)."
+            "which requires acceptance before browsing (hotels, airports)."
         )
         Prec   = @(
-            "En redes muy restrictivas puede dar falso positivo.",
-            "  Verificar manualmente abriendo el navegador si hay duda.",
-            "Algunos sistemas de control parental o filtros de contenido",
-            "  pueden interceptar la peticion y dar un falso positivo."
+            "On very restrictive networks it may give false positives.",
+            "  Verify manually by opening the browser if in doubt.",
+            "Some parental control systems or content filters",
+            "  may intercept the request and give a false positive."
         )
         Recs   = @(
-            "Ejecutar cuando 'hay conexion WiFi pero las webs no cargan'.",
-            "  Es el sintoma clasico del portal cautivo sin aceptar.",
-            "Solucion: abrir cualquier URL HTTP (sin S) en el navegador.",
+            "Run when 'WiFi is connected but websites don't load'.",
+            "  Classic symptom of an unaccepted captive portal.",
+            "Solution: open any HTTP URL (without S) in the browser.",
             "  Ejemplo: http://neverssl.com redirige siempre al portal."
         )
         Ejem   = @(
-            "WiFi de hotel: ping funciona, DNS resuelve, pero webs no abren.",
-            "  Portal cautivo sin aceptar los terminos. Abrir navegador.",
-            "Red corporativa nueva: portal de registro de dispositivos activo.",
-            "  El IT del cliente debe aprobar el MAC del equipo."
+            "Hotel WiFi: ping works, DNS resolves, but websites don't open.",
+            "  Captive portal without accepting terms. Open browser.",
+            "Red corporativa nueva: portal de registro de devices activo.",
+            "  The client IT must approve the computer MAC."
         )
     }
 }
@@ -630,16 +630,16 @@ function Get-Fabricante {
 function Exportar-Informe {
     param([string[]]$Contenido, [string]$NombreModulo)
     $Fecha      = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-    $Escritorio = [Environment]::GetFolderPath("Desktop")
-    $Archivo    = "$Escritorio\AtlasRed_${NombreModulo}_${Fecha}.txt"
+    $Desktop = [Environment]::GetFolderPath("Desktop")
+    $Archivo    = "$Desktop\AtlasRed_${NombreModulo}_${Fecha}.txt"
     $Contenido | Out-File -FilePath $Archivo -Encoding UTF8
-    Write-Host "  Informe guardado: $Archivo" -ForegroundColor Green
+    Write-Host "  Informe saved: $Archivo" -ForegroundColor Green
     return $Archivo
 }
 
 # ================================================================
 #  PANTALLA DE INFORMACION DEL MODULO
-#  Retorna $true para continuar, $false para cancelar
+#  Retorna $true to continue, $false para cancelar
 # ================================================================
 function Mostrar-InfoModulo {
     param([string]$Letra)
@@ -671,7 +671,7 @@ function Mostrar-InfoModulo {
 
     Write-Host ""
     Write-Host "  $Sep" -ForegroundColor DarkGray
-    Write-Host "  S = continuar   N = cancelar   X = no mostrar info en el futuro" -ForegroundColor DarkGray
+    Write-Host "  Y = continue    N = cancel    X = do not show info in the future" -ForegroundColor DarkGray
     Write-Host "  $Sep" -ForegroundColor DarkGray
     $R = Read-Host "  Tu eleccion"
 
@@ -683,7 +683,7 @@ function Mostrar-InfoModulo {
 function Esperar-Enter {
     param([switch]$Silencioso)
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        Read-Host "`n  Presiona ENTER para volver al menu..."
+        Read-Host "`n  Press ENTER to go back to menu..."
     }
 }
 
@@ -709,7 +709,7 @@ function Modulo-Auditoria {
 
     $Extra = ""
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Extra = Read-Host "`n  Puertos adicionales separados por coma (o ENTER para omitir)"
+        $Extra = Read-Host "`n  Additional ports separated by comma (or ENTER to skip)"
     }
 
     $Puertos = $Base
@@ -719,19 +719,19 @@ function Modulo-Auditoria {
         $Puertos = ($Puertos + $Add) | Sort-Object -Unique
     }
 
-    Write-Host "`n  Escaneando $($Puertos.Count) puertos en $GW...`n" -ForegroundColor DarkGray
+    Write-Host "`n  Scanning $($Puertos.Count) puertos en $GW...`n" -ForegroundColor DarkGray
 
     $Leyendas = @{
         21 = "FTP         Transferencia de archivos. INSEGURO si expuesto."
-        22 = "SSH         Acceso CLI cifrado. Normal en routers administrables."
-        23 = "Telnet      Texto plano, sin cifrado. MUY PELIGROSO si abierto."
-        80 = "HTTP        Panel del router por red local."
-        443= "HTTPS       Panel seguro del router por red local."
-        8080="HTTP-Alt    Panel secundario en muchos routers."
+        22 = "SSH         Encrypted CLI access. Normal on managed routers."
+        23 = "Telnet      Plain text, no encryption. VERY DANGEROUS if open."
+        80 = "HTTP        Router panel via local network."
+        443= "HTTPS       Secure router panel via local network."
+        8080="HTTP-Alt    Secondary panel in many routers."
         8443="HTTPS-Alt   Panel HTTPS secundario."
-        8888="Alt comun   Presente en algunos routers modernos."
+        8888="Common Alt  Present in some modern routers."
         9090="Admin-Alt   Puerto de administracion alternativo."
-        3389="RDP         Escritorio remoto Windows. CRITICO si abierto."
+        3389="RDP         Desktop remoto Windows. CRITICO si abierto."
     }
 
     $Log      = @("=== AUDITORIA DE PUERTOS LAN === $(Get-Date)", "Router: $GW", "")
@@ -754,13 +754,13 @@ function Modulo-Auditoria {
     foreach ($P in $Puertos) {
         if ($Leyendas.ContainsKey($P)) { Write-Host "    [$P]  $($Leyendas[$P])" -ForegroundColor Gray }
     }
-    Write-Host "`n  NOTA: Puertos abiertos en LAN son normales. El riesgo real es" -ForegroundColor DarkGray
-    Write-Host "        si aparecen abiertos desde Internet. Usar el modulo H." -ForegroundColor DarkGray
+    Write-Host "`n  NOTE: Open ports on LAN are normal. The real risk is" -ForegroundColor DarkGray
+    Write-Host "        if they appear open from Internet. Use module H." -ForegroundColor DarkGray
 
-    $script:HistorialSesion.Add("[A] Auditoria $GW | Abiertos: $(if ($Abiertos.Count) { $Abiertos -join ',' } else { 'Ninguno' })")
+    $script:HistorialSesion.Add("[A] Auditoria $GW | Abiertos: $(if ($Abiertos.Count) { $Abiertos -join ',' } else { 'None' })")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Auditoria" | Out-Null }
     }
 
@@ -786,7 +786,7 @@ function Modulo-Escaneo {
     $Sub = Obtener-SubredBase -Gateway $GW -InterfaceIndex $RI.InterfaceIndex
 
     Write-Host "`n  Subred: ${Sub}.1 - ${Sub}.254" -ForegroundColor White
-    Write-Host "  Esto puede tardar hasta 90 segundos. Por favor espera.`n" -ForegroundColor DarkGray
+    Write-Host "  This may take up to 90 seconds. Please wait.`n" -ForegroundColor DarkGray
 
     $Ping        = New-Object System.Net.NetworkInformation.Ping
     $Encontrados = [System.Collections.Generic.List[hashtable]]::new()
@@ -834,22 +834,22 @@ function Modulo-Escaneo {
     }
 
     Write-Host "`n  $("-" * 60)" -ForegroundColor DarkGray
-    Write-Host "  Total encontrados: $($Encontrados.Count) dispositivos" -ForegroundColor Yellow
+    Write-Host "  Total found: $($Encontrados.Count) devices" -ForegroundColor Yellow
     if ($MACVisto.Count -lt ($Encontrados | Where-Object { $_.MAC -ne "Desconocida" } | Measure-Object).Count) {
-        Write-Host "  AVISO: Se detectaron conflictos de IP. Ver lineas marcadas [CONFLICTO]." -ForegroundColor Red
+        Write-Host "  WARNING: IP conflicts detected. See lines marked [CONFLICT]." -ForegroundColor Red
     }
 
     # Guardar estado para modulo N
     try {
         $Lineas = $Encontrados | ForEach-Object { "$($_.IP)|$($_.MAC)|$($_.Host)" }
         $Lineas | Out-File $script:ArchivoEstado -Encoding UTF8 -Force
-        Write-Host "  Estado guardado para comparativa (modulo N)." -ForegroundColor DarkGray
+        Write-Host "  State saved for comparison (module N)." -ForegroundColor DarkGray
     } catch { }
 
-    $script:HistorialSesion.Add("[B] Escaneo ${Sub}.x | $($Encontrados.Count) dispositivos")
+    $script:HistorialSesion.Add("[B] Escaneo ${Sub}.x | $($Encontrados.Count) devices")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Escaneo" | Out-Null }
     }
 
@@ -873,7 +873,7 @@ function Modulo-Panel {
     if (-not $RI) { Write-Host "`n  No se pudo detectar el router." -ForegroundColor Red; Esperar-Enter -Silencioso:$Silencioso; return }
     $GW = $RI.Gateway
 
-    Write-Host "`n  Detectando protocolo en $GW..." -ForegroundColor DarkGray
+    Write-Host "`n  Detecting protocolo en $GW..." -ForegroundColor DarkGray
     $URL = $null
     if (Test-Puerto -Destino $GW -Puerto 443 -TimeoutMs 1500) {
         $URL = "https://$GW"
@@ -883,11 +883,11 @@ function Modulo-Panel {
         Write-Host "  Puerto 80 disponible   ->  usando HTTP" -ForegroundColor Yellow
     } else {
         $URL = "http://$GW"
-        Write-Host "  Ningun puerto confirmo respuesta. Intentando HTTP..." -ForegroundColor DarkGray
+        Write-Host "  Ningun puerto confirmo response. Intentando HTTP..." -ForegroundColor DarkGray
     }
 
     Write-Host "`n  Abriendo: $URL" -ForegroundColor White
-    Write-Host "  Si el navegador muestra 'Sitio no seguro', es normal en LAN." -ForegroundColor DarkGray
+    Write-Host "  If browser shows 'Site not secure', that is normal on LAN." -ForegroundColor DarkGray
     Write-Host "  Credenciales habituales: admin / admin  |  admin / 1234  |  admin / (vacio)" -ForegroundColor DarkGray
 
     try { Start-Process $URL } catch { Write-Host "  Error al abrir el navegador." -ForegroundColor Red }
@@ -942,19 +942,19 @@ function Modulo-Latencia {
             $Res = "Min:${Min}ms  Max:${Max}ms  Media:${Avg}ms  Perdidos:$F/$N"
             Write-Host "  RESULTADO  $Res" -ForegroundColor Yellow
             $Log += "  $($Obj.N.Trim()): $Res"
-            if ($Obj.IP -eq $GW     -and $Avg -gt 20)  { Write-Host "  AVISO: Latencia al router alta. Posible congestion en LAN o WiFi debil." -ForegroundColor Red }
-            if ($Obj.IP -ne $GW     -and $Avg -gt 100) { Write-Host "  AVISO: Latencia a Internet alta. Posible problema con el ISP." -ForegroundColor Red }
-            if ($F -gt ($N / 2))                        { Write-Host "  AVISO: Mas de la mitad de los pings se perdieron. Fallo grave." -ForegroundColor Red }
+            if ($Obj.IP -eq $GW     -and $Avg -gt 20)  { Write-Host "  WARNING: High router latency. Possible LAN congestion or weak WiFi." -ForegroundColor Red }
+            if ($Obj.IP -ne $GW     -and $Avg -gt 100) { Write-Host "  WARNING: High Internet latency. Possible ISP issue." -ForegroundColor Red }
+            if ($F -gt ($N / 2))                        { Write-Host "  WARNING: Over half of pings were lost. Severe failure." -ForegroundColor Red }
         } else {
-            Write-Host "  Sin respuestas. Destino inaccesible." -ForegroundColor Red
+            Write-Host "  Sin responses. Destino inaccesible." -ForegroundColor Red
             $Log += "  $($Obj.N.Trim()): SIN RESPUESTA"
         }
     }
 
-    $script:HistorialSesion.Add("[D] Diagnostico de latencia completado")
+    $script:HistorialSesion.Add("[D] Diagnostico de latencia completed")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Latencia" | Out-Null }
     }
 
@@ -993,11 +993,11 @@ function Modulo-InfoAdaptador {
     Write-Host "  MAC propia     : $($A.MacAddress)" -ForegroundColor Yellow
 
     Write-Host ""
-    Write-Host "  CONFIGURACION IP" -ForegroundColor Cyan
+    Write-Host "  IP CONFIGURATION" -ForegroundColor Cyan
     $IPColor = if ($IP.IPAddress -match "^169\.254") { "Red" } else { "Yellow" }
     Write-Host "  IP Local       : $($IP.IPAddress)" -ForegroundColor $IPColor
     if ($IP.IPAddress -match "^169\.254") {
-        Write-Host "  AVISO: IP APIPA (169.254.x.x). El DHCP no esta respondiendo." -ForegroundColor Red
+        Write-Host "  WARNING: APIPA IP (169.254.x.x). DHCP is not responding." -ForegroundColor Red
     }
     Write-Host "  Mascara de red : /$($IP.PrefixLength)"
     Write-Host "  Puerta enlace  : $GW"
@@ -1030,7 +1030,7 @@ function Modulo-InfoAdaptador {
     $script:HistorialSesion.Add("[E] Adaptador: $($A.Name) | IP: $($IP.IPAddress) | GW: $GW")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Adaptador" | Out-Null }
     }
 
@@ -1064,7 +1064,7 @@ function Modulo-TestDNS {
             $C  = if ($Ms -gt 500) { "Yellow" } else { "Green" }
             Write-Host "  [OK]    $D" -NoNewline -ForegroundColor $C
             Write-Host "   ${Ms}ms  ->  $IP" -ForegroundColor DarkGray
-            if ($Ms -gt 500) { Write-Host "          AVISO: resolucion lenta. DNS del router puede estar congestionado." -ForegroundColor DarkYellow }
+            if ($Ms -gt 500) { Write-Host "          WARNING: slow resolution. Router DNS may be congested." -ForegroundColor DarkYellow }
             $Log += "  [OK]    $D : ${Ms}ms -> $IP"
         } catch {
             $Ms = [Math]::Round((New-TimeSpan -Start $T0 -End (Get-Date)).TotalMilliseconds)
@@ -1076,16 +1076,16 @@ function Modulo-TestDNS {
 
     Write-Host ""
     if ($F -eq $Doms.Count) {
-        Write-Host "  AVISO: Todos los dominios fallaron. Sin Internet o DNS completamente caido." -ForegroundColor Red
-        Write-Host "  Solucion rapida: cambiar DNS a 1.1.1.1 en la configuracion del adaptador." -ForegroundColor Yellow
+        Write-Host "  WARNING: All domains failed. No Internet or DNS completely down." -ForegroundColor Red
+        Write-Host "  Quick fix: change DNS to 1.1.1.1 in the adapter configuration." -ForegroundColor Yellow
     } elseif ($F -gt 0) {
-        Write-Host "  AVISO: $F dominio(s) fallaron. Posible filtracion o cache DNS corrupta." -ForegroundColor Yellow
+        Write-Host "  WARNING: $F domain(s) fallaron. Posible filtracion o cache DNS corrupta." -ForegroundColor Yellow
     }
 
-    $script:HistorialSesion.Add("[F] Test DNS: $($Doms.Count - $F)/$($Doms.Count) dominios OK")
+    $script:HistorialSesion.Add("[F] Test DNS: $($Doms.Count - $F)/$($Doms.Count) domains OK")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "DNS" | Out-Null }
     }
 
@@ -1116,7 +1116,7 @@ function Modulo-PuertosWAN {
     if (-not $IPP) { Write-Host "  No se pudo obtener la IP publica." -ForegroundColor Red; Esperar-Enter -Silencioso:$Silencioso; return @() }
 
     Write-Host "  IP Publica: $IPP" -ForegroundColor White
-    Write-Host "`n  Escaneando puertos criticos desde Internet...`n" -ForegroundColor DarkGray
+    Write-Host "`n  Scanning puertos criticos desde Internet...`n" -ForegroundColor DarkGray
 
     $Puertos = @(
         @{ P = 21;   N = "FTP";      R = "CRITICO" }
@@ -1147,16 +1147,16 @@ function Modulo-PuertosWAN {
     Write-Host ""
     if ($Alertas.Count -gt 0) {
         Write-Host "  ACCION RECOMENDADA:" -ForegroundColor Yellow
-        Write-Host "    Panel del router (modulo C) -> Administracion remota -> desactivar." -ForegroundColor Yellow
-        Write-Host "    O en Port Forwarding: eliminar las reglas de los puertos marcados." -ForegroundColor Yellow
+        Write-Host "    Router panel (module C) -> Remote administration -> disable." -ForegroundColor Yellow
+        Write-Host "    Or in Port Forwarding: remove rules for the marked ports." -ForegroundColor Yellow
     } else {
         Write-Host "  Sin puertos criticos expuestos. Router bien configurado." -ForegroundColor Green
     }
 
-    $script:HistorialSesion.Add("[H] WAN $IPP | Expuestos: $(if ($Alertas.Count) { $Alertas -join ',' } else { 'Ninguno' })")
+    $script:HistorialSesion.Add("[H] WAN $IPP | Expuestos: $(if ($Alertas.Count) { $Alertas -join ',' } else { 'None' })")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "WAN" | Out-Null }
     }
 
@@ -1181,7 +1181,7 @@ function Modulo-Fabricantes {
     $GW  = $RI.Gateway
     $Sub = Obtener-SubredBase -Gateway $GW -InterfaceIndex $RI.InterfaceIndex
 
-    Write-Host "`n  Escaneando ${Sub}.1 - ${Sub}.254 (tabla OUI local, sin Internet)..." -ForegroundColor DarkGray
+    Write-Host "`n  Scanning ${Sub}.1 - ${Sub}.254 (tabla OUI local, sin Internet)..." -ForegroundColor DarkGray
     Write-Host ""
 
     $Ping    = New-Object System.Net.NetworkInformation.Ping
@@ -1210,23 +1210,23 @@ function Modulo-Fabricantes {
     foreach ($Fab in ($Grupos.Keys | Sort-Object)) {
         $Alerta = $Fab -match "VMware|VirtualBox|QEMU|Raspberry Pi|Ubiquiti"
         $C = if ($Fab -eq "Desconocido") { "DarkGray" } elseif ($Alerta) { "Yellow" } else { "White" }
-        Write-Host "  $Fab ($($Grupos[$Fab].Count) dispositivo(s))" -ForegroundColor $C
+        Write-Host "  $Fab ($($Grupos[$Fab].Count) device(s))" -ForegroundColor $C
         $Log += "  $Fab ($($Grupos[$Fab].Count)):"
         foreach ($L in $Grupos[$Fab]) {
             Write-Host "    -> $L" -ForegroundColor DarkGray
             $Log += "    -> $L"
             $Total++
         }
-        if ($Alerta) { Write-Host "    NOTA: Fabricante inusual en red domestica. Verificar." -ForegroundColor Yellow }
+        if ($Alerta) { Write-Host "    NOTE: Unusual manufacturer on home network. Verify." -ForegroundColor Yellow }
         $Log += ""
         Write-Host ""
     }
 
-    Write-Host "  Total: $Total dispositivos encontrados." -ForegroundColor Yellow
-    $script:HistorialSesion.Add("[J] Fabricantes ${Sub}.x | $Total dispositivos | $($Grupos.Count) fabricantes")
+    Write-Host "  Total: $Total devices found." -ForegroundColor Yellow
+    $script:HistorialSesion.Add("[J] Fabricantes ${Sub}.x | $Total devices | $($Grupos.Count) fabricantes")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Fabricantes" | Out-Null }
     }
 
@@ -1302,37 +1302,37 @@ function Modulo-Firmware {
                 Write-Host "  Version firmware       : $Version" -ForegroundColor Yellow
                 Write-Host "  URL fuente             : $($R.URL)" -ForegroundColor DarkGray
                 Write-Host ""
-                Write-Host "  RECOMENDACION: Compara esta version con la disponible en la web" -ForegroundColor Cyan
-                Write-Host "  del fabricante. Si tiene mas de 1 ano, considera actualizarla." -ForegroundColor Cyan
+                Write-Host "  RECOMMENDATION: Compare this version with the one available on the web" -ForegroundColor Cyan
+                Write-Host "  from the manufacturer. If older than 1 year, consider updating." -ForegroundColor Cyan
                 $Log += "  Marca   : $($R.Marca)"
                 $Log += "  Version : $Version"
                 $Log += "  URL     : $($R.URL)"
                 $Encontrada = $true
                 break
             } elseif ($Resp.StatusCode -eq 200) {
-                Write-Host "  responde (sin version parseable)" -ForegroundColor DarkGray
+                Write-Host "  responds (no parseable version)" -ForegroundColor DarkGray
             } else {
-                Write-Host "  sin acceso" -ForegroundColor DarkGray
+                Write-Host "  no access" -ForegroundColor DarkGray
             }
         } catch {
-            Write-Host "  sin acceso" -ForegroundColor DarkGray
+            Write-Host "  no access" -ForegroundColor DarkGray
         }
     }
 
     if (-not $Encontrada) {
         Write-Host ""
-        Write-Host "  No se encontro la version de firmware de forma automatica." -ForegroundColor Yellow
-        Write-Host "  Opciones manuales:" -ForegroundColor DarkGray
-        Write-Host "    1. Usa el modulo C para acceder al panel del router." -ForegroundColor Gray
-        Write-Host "    2. Busca la version en: Administracion > Actualizacion de firmware." -ForegroundColor Gray
-        Write-Host "    3. Revisa la etiqueta fisica en la parte inferior del router." -ForegroundColor Gray
-        $Log += "  Resultado: No encontrado de forma automatica."
+        Write-Host "  Firmware version not detected automatically." -ForegroundColor Yellow
+        Write-Host "  Options manuales:" -ForegroundColor DarkGray
+        Write-Host "    1. Use module C to access the router panel." -ForegroundColor Gray
+        Write-Host "    2. Look for the version in: Administration > Firmware update." -ForegroundColor Gray
+        Write-Host "    3. Check the physical label on the bottom of the router." -ForegroundColor Gray
+        $Log += "  Resultado: No found de forma automatica."
     }
 
-    $script:HistorialSesion.Add("[L] Firmware $GW | $(if ($Encontrada) { 'Encontrado' } else { 'No encontrado' })")
+    $script:HistorialSesion.Add("[L] Firmware $GW | $(if ($Encontrada) { 'Encontrado' } else { 'No found' })")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Firmware" | Out-Null }
     }
 
@@ -1350,13 +1350,13 @@ function Modulo-InformeCompleto {
     Write-Host ""
     Write-Host "  [ M ]  INFORME COMPLETO AUTOMATICO" -ForegroundColor Green
     Write-Host "  $("-" * 60)" -ForegroundColor DarkGray
-    Write-Host "`n  Ejecutando modulos A, E, F y D en secuencia..." -ForegroundColor DarkGray
-    Write-Host "  No cerrar esta ventana. Tardara entre 2 y 5 minutos.`n" -ForegroundColor Yellow
+    Write-Host "`n  Running modules A, E, F and D in sequence..." -ForegroundColor DarkGray
+    Write-Host "  Do not close this window. Will take 2-5 minutes.`n" -ForegroundColor Yellow
 
     $LogTotal = @(
         "================================================================"
         "  INFORME COMPLETO - Atlas PC Support  v3.0"
-        "  Fecha: $(Get-Date)"
+        "  Date: $(Get-Date)"
         "================================================================"
         ""
     )
@@ -1365,7 +1365,7 @@ function Modulo-InformeCompleto {
     $LA = Modulo-Auditoria -Silencioso
     $LogTotal += @("", "--- [ A ] AUDITORIA DE PUERTOS ---") + $LA
 
-    Write-Host "`n  [2/4]  Info del Adaptador..." -ForegroundColor Cyan
+    Write-Host "`n  [2/4]  Adapter Info..." -ForegroundColor Cyan
     $LE = Modulo-InfoAdaptador -Silencioso
     $LogTotal += @("", "--- [ E ] INFO DEL ADAPTADOR ---") + $LE
 
@@ -1377,13 +1377,13 @@ function Modulo-InformeCompleto {
     $LD = Modulo-Latencia -Silencioso
     $LogTotal += @("", "--- [ D ] LATENCIA ---") + $LD
 
-    $LogTotal += @("", "================================================================", "  Fin del informe", "================================================================")
+    $LogTotal += @("", "================================================================", "  End of report", "================================================================")
 
     Write-Host ""
     $Archivo = Exportar-Informe -Contenido $LogTotal -NombreModulo "InformeCompleto"
 
     $script:HistorialSesion.Add("[M] Informe completo generado: $Archivo")
-    Write-Host "`n  Informe completo listo." -ForegroundColor Green
+    Write-Host "`n  Full report ready." -ForegroundColor Green
 
     Esperar-Enter -Silencioso:$Silencioso
 }
@@ -1404,19 +1404,19 @@ function Modulo-Comparativa {
     $Previo = @{}
     if (Test-Path $script:ArchivoEstado) {
         $FechaMod = (Get-Item $script:ArchivoEstado).LastWriteTime
-        Write-Host "`n  Estado previo encontrado: $FechaMod" -ForegroundColor DarkGray
+        Write-Host "`n  Estado previo found: $FechaMod" -ForegroundColor DarkGray
         foreach ($L in (Get-Content $script:ArchivoEstado)) {
             $P = $L -split '\|'
             if ($P.Count -ge 2) { $Previo[$P[0]] = @{ MAC = $P[1]; Host = if ($P.Count -ge 3) { $P[2] } else { "Oculto" } } }
         }
-        Write-Host "  Dispositivos en estado previo: $($Previo.Count)" -ForegroundColor DarkGray
+        Write-Host "  Devices en estado previo: $($Previo.Count)" -ForegroundColor DarkGray
     } else {
-        Write-Host "`n  No hay estado previo guardado." -ForegroundColor Yellow
-        Write-Host "  Ejecuta el modulo B primero para guardar una linea base." -ForegroundColor Yellow
+        Write-Host "`n  No hay estado previo saved." -ForegroundColor Yellow
+        Write-Host "  Run module B first to save a baseline." -ForegroundColor Yellow
         Esperar-Enter -Silencioso:$Silencioso; return
     }
 
-    Write-Host "`n  Escaneando la red actual..." -ForegroundColor DarkGray
+    Write-Host "`n  Scanning la red actual..." -ForegroundColor DarkGray
     $RI = Obtener-Router
     if (-not $RI) { Write-Host "  No se pudo detectar el router." -ForegroundColor Red; Esperar-Enter -Silencioso:$Silencioso; return }
     $Sub  = Obtener-SubredBase -Gateway $RI.Gateway -InterfaceIndex $RI.InterfaceIndex
@@ -1441,10 +1441,10 @@ function Modulo-Comparativa {
 
     $Log = @("=== COMPARATIVA DE DISPOSITIVOS === $(Get-Date)", "Subred: ${Sub}.x", "")
 
-    # Dispositivos nuevos
+    # Devices nuevos
     $Nuevos = $Actual.Keys | Where-Object { -not $Previo.ContainsKey($_) }
     if ($Nuevos) {
-        Write-Host "  DISPOSITIVOS NUEVOS (no estaban en el escaneo anterior)" -ForegroundColor Yellow
+        Write-Host "  NEW DEVICES (not present in previous scan)" -ForegroundColor Yellow
         $Log += "  NUEVOS:"
         foreach ($IP in ($Nuevos | Sort-Object)) {
             $Fab = Get-Fabricante -MAC $Actual[$IP].MAC
@@ -1455,10 +1455,10 @@ function Modulo-Comparativa {
         Write-Host ""
     }
 
-    # Dispositivos desaparecidos
+    # Devices desaparecidos
     $Idos = $Previo.Keys | Where-Object { -not $Actual.ContainsKey($_) }
     if ($Idos) {
-        Write-Host "  DISPOSITIVOS DESAPARECIDOS (estaban antes, ya no responden)" -ForegroundColor DarkGray
+        Write-Host "  MISSING DEVICES (were present before, no longer responding)" -ForegroundColor DarkGray
         $Log += "  DESAPARECIDOS:"
         foreach ($IP in ($Idos | Sort-Object)) {
             Write-Host "  [-] $IP  |  $($Previo[$IP].MAC)  |  $($Previo[$IP].Host)" -ForegroundColor DarkGray
@@ -1470,7 +1470,7 @@ function Modulo-Comparativa {
 
     # Sin cambios
     $Iguales = $Actual.Keys | Where-Object { $Previo.ContainsKey($_) }
-    Write-Host "  SIN CAMBIOS: $($Iguales.Count) dispositivo(s)" -ForegroundColor DarkGray
+    Write-Host "  SIN CAMBIOS: $($Iguales.Count) device(s)" -ForegroundColor DarkGray
     $Log += "  SIN CAMBIOS: $($Iguales.Count)"
 
     Write-Host ""
@@ -1487,7 +1487,7 @@ function Modulo-Comparativa {
     $script:HistorialSesion.Add("[N] Comparativa | +$($Nuevos.Count) nuevos | -$($Idos.Count) desaparecidos")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Comparativa" | Out-Null }
     }
 
@@ -1514,7 +1514,7 @@ function Modulo-Velocidad {
     $Log = @("=== TEST DE VELOCIDAD === $(Get-Date)", "Servidor: Cloudflare CDN", "")
 
     foreach ($Prueba in @(@{ URL = $URL_5MB; Tam = 5 }, @{ URL = $URL_10MB; Tam = 10 })) {
-        Write-Host "  Descargando $($Prueba.Tam) MB desde Cloudflare..." -ForegroundColor DarkGray -NoNewline
+        Write-Host "  Downloading $($Prueba.Tam) MB desde Cloudflare..." -ForegroundColor DarkGray -NoNewline
         try {
             $T0   = Get-Date
             $null = Invoke-WebRequest -Uri $Prueba.URL -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
@@ -1529,7 +1529,7 @@ function Modulo-Velocidad {
             $Resultados += $Mbps
         } catch {
             Write-Host " ERROR" -ForegroundColor Red
-            Write-Host "  No se pudo descargar el archivo. Verifica la conexion." -ForegroundColor Red
+            Write-Host "  Could not download file. Check connection." -ForegroundColor Red
             $Log += "  Test $($Prueba.Tam) MB : ERROR"
         }
         Write-Host ""
@@ -1540,19 +1540,19 @@ function Modulo-Velocidad {
         Write-Host "  Media aproximada: $Media Mbps" -ForegroundColor White
         Write-Host ""
         Write-Host "  REFERENCIA:" -ForegroundColor Cyan
-        Write-Host "    < 5 Mbps    Muy lenta. Problemas graves de conexion." -ForegroundColor Red
+        Write-Host "    < 5 Mbps    Very slow. Severe connection issues." -ForegroundColor Red
         Write-Host "    5 - 25 Mbps Basica. Navegacion y streaming SD." -ForegroundColor Yellow
         Write-Host "    25 - 100 Mbps Buena. Streaming HD y videollamadas." -ForegroundColor Green
-        Write-Host "    > 100 Mbps  Excelente. Apta para cualquier uso." -ForegroundColor Cyan
+        Write-Host "    > 100 Mbps  Excellent. Fit for any use." -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "  NOTA: Ejecutar en cable y en WiFi para comparar diferencias." -ForegroundColor DarkGray
+        Write-Host "  NOTE: Run on cable and WiFi to compare differences." -ForegroundColor DarkGray
         $Log += "  Media: $Media Mbps"
     }
 
     $script:HistorialSesion.Add("[P] Test velocidad | Media: $(if ($Resultados.Count) { ($Resultados | Measure-Object -Average).Average.ToString('F1') } else { 'ERROR' }) Mbps")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "Velocidad" | Out-Null }
     }
 
@@ -1570,7 +1570,7 @@ function Modulo-PortalCautivo {
     Write-Host ""
     Write-Host "  [ Q ]  DETECCION DE PORTAL CAUTIVO" -ForegroundColor DarkYellow
     Write-Host "  $("-" * 60)" -ForegroundColor DarkGray
-    Write-Host "`n  Verificando conectividad limpia a Internet...`n" -ForegroundColor DarkGray
+    Write-Host "`n  Verifying conectividad limpia a Internet...`n" -ForegroundColor DarkGray
 
     $Log = @("=== PORTAL CAUTIVO === $(Get-Date)", "")
     $Resultado = "DESCONOCIDO"
@@ -1581,23 +1581,23 @@ function Modulo-PortalCautivo {
              -UseBasicParsing -TimeoutSec 5 -MaximumRedirection 0 -ErrorAction Stop
 
         if ($R.StatusCode -eq 204) {
-            Write-Host "  RESULTADO: Conexion limpia" -ForegroundColor Green
+            Write-Host "  RESULTADO: Connection limpia" -ForegroundColor Green
             Write-Host "  HTTP 204 recibido -> No hay portal cautivo activo." -ForegroundColor Green
-            Write-Host "`n  Tu dispositivo tiene acceso directo a Internet sin intercepcion." -ForegroundColor White
+            Write-Host "`n  Your device has direct Internet access with no interception." -ForegroundColor White
             $Resultado = "LIMPIA"
-            $Log      += "  Resultado : Conexion limpia (HTTP 204)"
+            $Log      += "  Resultado : Connection limpia (HTTP 204)"
         } elseif ($R.StatusCode -eq 200) {
             Write-Host "  RESULTADO: Portal cautivo detectado" -ForegroundColor Red
-            Write-Host "  HTTP 200 en lugar de 204 -> La respuesta fue interceptada." -ForegroundColor Red
+            Write-Host "  HTTP 200 instead of 204 -> Response was intercepted." -ForegroundColor Red
             Write-Host "`n  ACCION RECOMENDADA:" -ForegroundColor Yellow
-            Write-Host "    Abre el navegador y navega a http://neverssl.com" -ForegroundColor Yellow
-            Write-Host "    El portal de registro se abrira automaticamente." -ForegroundColor Yellow
+            Write-Host "    Open the browser and navigate to http://neverssl.com" -ForegroundColor Yellow
+            Write-Host "    The registration portal will open automatically." -ForegroundColor Yellow
             $Resultado = "PORTAL CAUTIVO"
             $Log      += "  Resultado : Portal cautivo detectado (HTTP 200)"
         } else {
-            Write-Host "  RESULTADO: Respuesta inesperada (HTTP $($R.StatusCode))" -ForegroundColor Yellow
+            Write-Host "  RESULTADO: Response inesperada (HTTP $($R.StatusCode))" -ForegroundColor Yellow
             $Resultado = "INESPERADO ($($R.StatusCode))"
-            $Log      += "  Resultado : Respuesta inesperada HTTP $($R.StatusCode)"
+            $Log      += "  Resultado : Response inesperada HTTP $($R.StatusCode)"
         }
     } catch {
         # Una redireccion (30x) normalmente es portal cautivo
@@ -1605,15 +1605,15 @@ function Modulo-PortalCautivo {
         if ($Msg -match "redirect|30[0-9]|Location") {
             Write-Host "  RESULTADO: Portal cautivo detectado (redireccion 3xx)" -ForegroundColor Red
             Write-Host "`n  ACCION RECOMENDADA:" -ForegroundColor Yellow
-            Write-Host "    Abre el navegador y navega a http://neverssl.com" -ForegroundColor Yellow
+            Write-Host "    Open the browser and navigate to http://neverssl.com" -ForegroundColor Yellow
             $Resultado = "PORTAL CAUTIVO (redireccion)"
             $Log      += "  Resultado : Portal cautivo - redireccion detectada"
         } else {
-            Write-Host "  RESULTADO: Sin conexion a Internet" -ForegroundColor Red
+            Write-Host "  RESULT: No Internet connection" -ForegroundColor Red
             Write-Host "  No se pudo alcanzar el servidor de verificacion." -ForegroundColor DarkGray
-            Write-Host "`n  Comprueba que el WiFi/cable este conectado y ejecuta el modulo D." -ForegroundColor Yellow
+            Write-Host "`n  Check that WiFi/cable is connected and run module D." -ForegroundColor Yellow
             $Resultado = "SIN INTERNET"
-            $Log      += "  Resultado : Sin conexion a Internet"
+            $Log      += "  Result  : No Internet connection"
         }
     }
 
@@ -1628,7 +1628,7 @@ function Modulo-PortalCautivo {
     $script:HistorialSesion.Add("[Q] Portal cautivo: $Resultado")
 
     if (-not $Silencioso -and -not $script:ModoAuto) {
-        $Exp = Read-Host "`n  Exportar informe a TXT? (S/N)"
+        $Exp = Read-Host "`n  Exportar informe a TXT? (Y/N)"
         if ($Exp.ToUpper() -eq "S") { Exportar-Informe -Contenido $Log -NombreModulo "PortalCautivo" | Out-Null }
     }
 
@@ -1641,21 +1641,21 @@ function Modulo-PortalCautivo {
 function Modulo-WiFiGuardadas {
     Clear-Host
     Write-Host ""
-    Write-Host "  [ K ]  CONTRASENAS WIFI GUARDADAS" -ForegroundColor Yellow
+    Write-Host "  [ K ]  PASSWORDS WIFI GUARDADAS" -ForegroundColor Yellow
     Write-Host "  $("-" * 60)" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  [!] Se mostraran las redes WiFi guardadas en este PC" -ForegroundColor Cyan
-    Write-Host "      junto con sus contrasenas (requiere admin)." -ForegroundColor Cyan
-    Write-Host "  [!] Es informacion sensible. Usala solo en equipos propios" -ForegroundColor Yellow
-    Write-Host "      o con autorizacion explicita del duenio." -ForegroundColor Yellow
+    Write-Host "  [!] WiFi networks saved on this PC will be shown" -ForegroundColor Cyan
+    Write-Host "      along with their passwords (requires admin)." -ForegroundColor Cyan
+    Write-Host "  [!] This is sensitive information. Use only on your own computers" -ForegroundColor Yellow
+    Write-Host "      or with explicit owner authorization." -ForegroundColor Yellow
     Write-Host ""
-    $ok = Read-Host "  Continuar? [S/N]"
+    $ok = Read-Host "  Continuar? [Y/N]"
     if ($ok -notmatch '^[SsYy]$') { return }
 
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) {
         Write-Host ""
-        Write-Host "  [X] Esta opcion requiere ejecutar como administrador." -ForegroundColor Red
+        Write-Host "  [X] Esta option requiere run como administrador." -ForegroundColor Red
         Esperar-Enter
         return
     }
@@ -1666,23 +1666,23 @@ function Modulo-WiFiGuardadas {
     $raw = netsh wlan show profiles 2>$null
     $perfiles = @()
     foreach ($line in $raw) {
-        if ($line -match "Perfil de todos los usuarios\s*:\s*(.+)$" -or $line -match "All User Profile\s*:\s*(.+)$") {
+        if ($line -match "Perfil de all users\s*:\s*(.+)$" -or $line -match "All User Profile\s*:\s*(.+)$") {
             $perfiles += ($matches[1]).Trim()
         }
     }
 
     if ($perfiles.Count -eq 0) {
-        Write-Host "  [!] No se detectaron perfiles WLAN guardados." -ForegroundColor Yellow
+        Write-Host "  [!] No se detectaron perfiles WLAN saved." -ForegroundColor Yellow
         Esperar-Enter
         return
     }
 
     $resultado = @()
-    $resultado += "=== CONTRASENAS WIFI GUARDADAS ==="
-    $resultado += "Equipo: $env:COMPUTERNAME"
-    $resultado += "Fecha:  $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $resultado += "=== PASSWORDS WIFI GUARDADAS ==="
+    $resultado += "Computer: $env:COMPUTERNAME"
+    $resultado += "Date:  $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     $resultado += ""
-    $resultado += "{0,-40} {1,-15} {2}" -f "SSID", "Autenticacion", "Contrasena"
+    $resultado += "{0,-40} {1,-15} {2}" -f "SSID", "Autenticacion", "Password"
     $resultado += ("-" * 80)
 
     foreach ($p in $perfiles) {
@@ -1693,7 +1693,7 @@ function Modulo-WiFiGuardadas {
             if ($l -match "Autenticaci.n\s*:\s*(.+)$" -or $l -match "Authentication\s*:\s*(.+)$") { $auth = ($matches[1]).Trim() }
             elseif ($l -match "Contenido de la clave\s*:\s*(.+)$" -or $l -match "Key Content\s*:\s*(.+)$") { $pass = ($matches[1]).Trim() }
         }
-        if (-not $pass) { $pass = "(sin contrasena / abierta)" }
+        if (-not $pass) { $pass = "(no password / open)" }
         if (-not $auth) { $auth = "?" }
         $linea = "{0,-40} {1,-15} {2}" -f $p, $auth, $pass
         $resultado += $linea
@@ -1703,9 +1703,9 @@ function Modulo-WiFiGuardadas {
     Write-Host ""
     Write-Host "  Total perfiles: $($perfiles.Count)" -ForegroundColor Cyan
     Write-Host ""
-    $x = Read-Host "  Exportar a TXT en Escritorio? [S/N]"
+    $x = Read-Host "  Export to TXT on Desktop? [Y/N]"
     if ($x -match '^[SsYy]$') { Exportar-Informe -Contenido $resultado -NombreModulo "WiFiGuardadas" }
-    $script:HistorialSesion.Add("WiFi guardadas: $($perfiles.Count) perfiles") | Out-Null
+    $script:HistorialSesion.Add("WiFi saved: $($perfiles.Count) perfiles") | Out-Null
     Esperar-Enter
 }
 
@@ -1724,7 +1724,7 @@ function Modulo-PortScanGateway {
 
     Write-Host "  Gateway: $gw" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "  Escaneando puertos tipicos abiertos..." -ForegroundColor DarkGray
+    Write-Host "  Scanning puertos tipicos abiertos..." -ForegroundColor DarkGray
     Write-Host ""
 
     $puertos = @(
@@ -1757,13 +1757,13 @@ function Modulo-PortScanGateway {
     $resultado = @()
     $resultado += "=== ESCANEO PUERTOS GATEWAY ==="
     $resultado += "Gateway: $gw"
-    $resultado += "Fecha:   $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $resultado += "Date:   $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     $resultado += ""
 
     $abiertos = 0; $total = $puertos.Count; $n = 0
     foreach ($e in $puertos) {
         $n++
-        Write-Progress -Activity "Escaneando puertos del gateway" -Status ("Puerto {0}/{1} - {2}" -f $n, $total, $e.p) -PercentComplete (($n / $total) * 100)
+        Write-Progress -Activity "Scanning gateway ports" -Status ("Puerto {0}/{1} - {2}" -f $n, $total, $e.p) -PercentComplete (($n / $total) * 100)
         $ok = Test-Puerto -Destino $gw -Puerto $e.p -TimeoutMs 600
         if ($ok) {
             $line = ("  [OK] {0,5}/tcp  {1}" -f $e.p, $e.s)
@@ -1772,18 +1772,18 @@ function Modulo-PortScanGateway {
             $abiertos++
         }
     }
-    Write-Progress -Activity "Escaneando puertos del gateway" -Completed
+    Write-Progress -Activity "Scanning gateway ports" -Completed
 
     Write-Host ""
     Write-Host "  Total abiertos: $abiertos / $total" -ForegroundColor Cyan
     Write-Host ""
     if ($abiertos -gt 0) {
         Write-Host "  NOTA: Un panel web (80/443/8080/8443) es normal." -ForegroundColor DarkGray
-        Write-Host "  Puertos como Telnet (23), SMB (445), FTP (21) abiertos en el router" -ForegroundColor Yellow
-        Write-Host "  suelen indicar configuracion insegura. Revisa el panel." -ForegroundColor Yellow
+        Write-Host "  Ports such as Telnet (23), SMB (445), FTP (21) open on the router" -ForegroundColor Yellow
+        Write-Host "  suelen indicar configuration insegura. Revisa el panel." -ForegroundColor Yellow
     }
     Write-Host ""
-    $x = Read-Host "  Exportar TXT? [S/N]"
+    $x = Read-Host "  Exportar TXT? [Y/N]"
     if ($x -match '^[SsYy]$') { Exportar-Informe -Contenido $resultado -NombreModulo "PortScanGateway" }
     $script:HistorialSesion.Add("PortScan Gateway: $abiertos abiertos en $gw") | Out-Null
     Esperar-Enter
@@ -1833,7 +1833,7 @@ function Modulo-ARPCompleto {
     }
 
     if ($entries.Count -eq 0) {
-        Write-Host "  [!] No se detectaron dispositivos. Intenta tras hacer ping al gateway." -ForegroundColor Yellow
+        Write-Host "  [!] No devices detected. Try after pinging the gateway." -ForegroundColor Yellow
         Esperar-Enter; return
     }
 
@@ -1842,7 +1842,7 @@ function Modulo-ARPCompleto {
     $resultado = @()
     $resultado += "=== DISPOSITIVOS EN LA LAN ==="
     $resultado += "Gateway: $gw"
-    $resultado += "Fecha:   $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    $resultado += "Date:   $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     $resultado += ""
     $resultado += "{0,-16} {1,-18} {2,-10} {3,-12} {4}" -f "IP", "MAC", "Estado", "Fuente", "Fabricante"
     $resultado += ("-" * 80)
@@ -1862,17 +1862,17 @@ function Modulo-ARPCompleto {
     }
 
     Write-Host ""
-    Write-Host "  Total dispositivos: $($entries.Count)  (* = gateway)" -ForegroundColor Cyan
+    Write-Host "  Total devices: $($entries.Count)  (* = gateway)" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "  Resumen por fabricante:" -ForegroundColor DarkGray
+    Write-Host "  Summary by manufacturer:" -ForegroundColor DarkGray
     foreach ($k in ($porFabricante.Keys | Sort-Object)) {
         Write-Host ("    {0,-20} {1}" -f $k, $porFabricante[$k]) -ForegroundColor DarkGray
     }
     Write-Host ""
 
-    $x = Read-Host "  Exportar TXT? [S/N]"
+    $x = Read-Host "  Exportar TXT? [Y/N]"
     if ($x -match '^[SsYy]$') { Exportar-Informe -Contenido $resultado -NombreModulo "ARPCompleto" }
-    $script:HistorialSesion.Add("ARP LAN: $($entries.Count) dispositivos") | Out-Null
+    $script:HistorialSesion.Add("ARP LAN: $($entries.Count) devices") | Out-Null
     Esperar-Enter
 }
 
@@ -1883,9 +1883,9 @@ function Mostrar-Historial {
     Write-Host "  $("-" * 60)" -ForegroundColor DarkGray
     Write-Host ""
     if ($script:HistorialSesion.Count -eq 0) {
-        Write-Host "  Aun no has ejecutado ninguna herramienta en esta sesion." -ForegroundColor DarkGray
+        Write-Host "  You have not run any tool in this session yet." -ForegroundColor DarkGray
     } else {
-        Write-Host "  Acciones realizadas esta sesion:`n" -ForegroundColor Cyan
+        Write-Host "  Actions performed this session:`n" -ForegroundColor Cyan
         $n = 1
         foreach ($E in $script:HistorialSesion) {
             Write-Host ("  {0,2}. {1}" -f $n, $E) -ForegroundColor White
@@ -1896,7 +1896,7 @@ function Mostrar-Historial {
 }
 
 # ================================================================
-#  MODO AUTO (-Auto): ejecutar informe completo y salir
+#  MODO AUTO (-Auto): run informe completo y salir
 # ================================================================
 if ($script:ModoAuto) {
     Modulo-InformeCompleto -Silencioso
@@ -1918,27 +1918,27 @@ while ($true) {
     Write-Host ""
     Escribir-Centrado "  +--- DIAGNOSTICO BASICO ------+---- HERRAMIENTAS AVANZADAS --+  " "DarkGray"
     Escribir-Centrado "  |                             |                              |  " "DarkGray"
-    Escribir-Centrado "  |  [A]  Auditoria Puertos LAN |  [L]  Firmware del Router   |  " "White"
-    Escribir-Centrado "  |  [B]  Escaneo Dispositivos  |  [M]  Informe Automatico    |  " "White"
-    Escribir-Centrado "  |  [C]  Panel del Router      |  [N]  Comparativa Redes     |  " "Cyan"
+    Escribir-Centrado "  |  [A]  LAN Ports Audit       |  [L]  Router Firmware       |  " "White"
+    Escribir-Centrado "  |  [B]  Escaneo Devices  |  [M]  Informe Automatico    |  " "White"
+    Escribir-Centrado "  |  [C]  Router Panel          |  [N]  Network Comparison    |  " "Cyan"
     Escribir-Centrado "  |  [D]  Latencia / Estabilidad|  [P]  Test de Velocidad     |  " "White"
-    Escribir-Centrado "  |  [E]  Info del Adaptador    |  [Q]  Portal Cautivo        |  " "White"
+    Escribir-Centrado "  |  [E]  Adapter Info          |  [Q]  Captive Portal        |  " "White"
     Escribir-Centrado "  |  [F]  Test de DNS           |                              |  " "White"
     Escribir-Centrado "  |  [H]  Puertos WAN           |  [J]  Fabricantes (MAC/OUI) |  " "White"
     Escribir-Centrado "  |                             |                              |  " "DarkGray"
     Escribir-Centrado "  +--- SEGURIDAD / RECON -------+------------------------------+  " "DarkGray"
-    Escribir-Centrado "  |  [K]  Contrasenas WiFi      |  [O]  Scan puertos gateway  |  " "Cyan"
-    Escribir-Centrado "  |  [R]  Dispositivos LAN (ARP)|                              |  " "Cyan"
+    Escribir-Centrado "  |  [K]  Passwords WiFi      |  [O]  Scan puertos gateway  |  " "Cyan"
+    Escribir-Centrado "  |  [R]  Devices LAN (ARP)|                              |  " "Cyan"
     Escribir-Centrado "  +--- SESION ------------------+------------------------------+  " "DarkGray"
     Escribir-Centrado "  |  [I]  Historial de Sesion   |  [S]  Salir                 |  " "DarkGray"
     Escribir-Centrado "  +-----------------------------+------------------------------+  " "DarkGray"
     Write-Host ""
     if ($script:HistorialSesion.Count -gt 0) {
-        Escribir-Centrado "  Acciones en esta sesion: $($script:HistorialSesion.Count)  |  Info: $(if ($script:MostrarInfo) { 'activada' } else { 'desactivada' })  " "DarkGray"
+        Escribir-Centrado "  Session actions: $($script:HistorialSesion.Count)  |  Info: $(if ($script:MostrarInfo) { 'on' } else { 'off' })  " "DarkGray"
         Write-Host ""
     }
 
-    $Op = Read-Host "  Elige una opcion"
+    $Op = Read-Host "  Choose an option"
 
     switch ($Op.ToUpper()) {
         "A" { Modulo-Auditoria     }
@@ -1968,14 +1968,14 @@ while ($true) {
                     $n++
                 }
             }
-            Write-Host "`n  Cerrando herramientas... Hasta pronto, Atlas!" -ForegroundColor Yellow
+            Write-Host "`n  Closing herramientas... Hasta pronto, Atlas!" -ForegroundColor Yellow
             Start-Sleep -Seconds 1
             [console]::ResetColor()
             Clear-Host
             return
         }
         default {
-            Write-Host "`n  Opcion no valida. Elige una letra del menu." -ForegroundColor Red
+            Write-Host "`n  Invalid option. Choose a letter from the menu." -ForegroundColor Red
             Start-Sleep -Seconds 1
         }
     }
