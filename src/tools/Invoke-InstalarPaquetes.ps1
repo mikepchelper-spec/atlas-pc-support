@@ -573,11 +573,27 @@ function Invoke-InstalarPaquetes {
         $headerLine = $Lines[$sepIdx - 1]
         $sepLine    = $Lines[$sepIdx]
 
+        # Figure out column boundaries. Winget has two formats in the wild:
+        #   1. Separator with per-column dashes: "------  -----  ---------"
+        #      (common on --source winget, non-English locales, older builds)
+        #   2. Single monolithic dash run: "-------------------------------"
+        #      (seen on --source msstore and some newer winget builds — then
+        #      we can't read columns off the separator at all and must derive
+        #      them from the header line itself, splitting on 2+ whitespace).
         $cols = @()
         foreach ($m in [regex]::Matches($sepLine, '[\-─━]+')) {
             $cols += @{ Start = $m.Index; Length = $m.Length }
         }
-        if ($cols.Count -lt 2) { return @() }
+        if ($cols.Count -lt 2) {
+            # Header-based fallback. "Name       Id           Version" →
+            # find every token and record its start column. Requires at
+            # least 2 columns separated by 2+ spaces.
+            $cols = @()
+            foreach ($m in [regex]::Matches($headerLine, '\S+')) {
+                $cols += @{ Start = $m.Index; Length = $m.Length }
+            }
+            if ($cols.Count -lt 2) { return @() }
+        }
 
         $colNames = @()
         for ($c = 0; $c -lt $cols.Count; $c++) {
