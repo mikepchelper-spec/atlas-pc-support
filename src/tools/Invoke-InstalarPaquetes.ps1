@@ -86,6 +86,7 @@ function Invoke-InstalarPaquetes {
             SearchTerm         = 'Search term'
             Searching          = 'Searching winget for: {0}'
             NoResults          = '[!] No results.'
+            RawOutputHint      = 'Raw output from winget (for diagnostics):'
             SearchPickPrompt   = 'Pick number(s) to add (e.g. "1,3" — ENTER to cancel)'
             SearchAdded        = '[OK] {0} package(s) added from search.'
             CleanTempName      = 'Clean Temporary Files'
@@ -158,6 +159,7 @@ function Invoke-InstalarPaquetes {
             SearchTerm         = 'Termino de busqueda'
             Searching          = 'Buscando en winget: {0}'
             NoResults          = '[!] Sin resultados.'
+            RawOutputHint      = 'Salida cruda de winget (para diagnostico):'
             SearchPickPrompt   = 'Numero(s) a agregar (ej. "1,3" — ENTER para cancelar)'
             SearchAdded        = '[OK] {0} paquete(s) agregado(s) desde la busqueda.'
             CleanTempName      = 'Limpiar archivos temporales'
@@ -627,17 +629,37 @@ function Invoke-InstalarPaquetes {
 
         # Query each source separately so we can tag results with their
         # Source field — needed at install time (msstore vs winget).
+        # Keep the raw outputs so we can show them in diagnostics if no
+        # results are parsed (helps remote debugging across locales).
         $allResults = @()
+        $rawOutputs = [ordered]@{}
         foreach ($src in @('winget', 'msstore')) {
             try {
                 $output = & winget.exe search $term --source $src --accept-source-agreements 2>&1
             } catch {
+                $rawOutputs[$src] = @("<exception> $($_.Exception.Message)")
                 continue
             }
             $lines = @($output | ForEach-Object { [string]$_ })
+            $rawOutputs[$src] = $lines
             $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag $src
             if ($parsed.Count -gt 0) {
                 $allResults += $parsed
+            }
+        }
+
+        # Fallback: if no per-source query found anything, try without
+        # --source so winget walks every configured source itself. We
+        # tag those results 'auto' (Source unknown until install time).
+        if ($allResults.Count -eq 0) {
+            try {
+                $output = & winget.exe search $term --accept-source-agreements 2>&1
+                $lines = @($output | ForEach-Object { [string]$_ })
+                $rawOutputs['(no --source filter)'] = $lines
+                $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag 'winget'
+                if ($parsed.Count -gt 0) { $allResults += $parsed }
+            } catch {
+                $rawOutputs['(no --source filter)'] = @("<exception> $($_.Exception.Message)")
             }
         }
 
@@ -662,6 +684,23 @@ function Invoke-InstalarPaquetes {
 
         if ($merged.Count -eq 0) {
             Write-Host ('  ' + $L.NoResults) -ForegroundColor Yellow
+            # Diagnostic: show first 8 raw lines from each source so the
+            # user (or someone debugging remotely) can see what winget
+            # actually returned. Only shown when no results parsed.
+            Write-Host ''
+            Write-Host ('  ' + $L.RawOutputHint) -ForegroundColor DarkGray
+            foreach ($src in $rawOutputs.Keys) {
+                Write-Host ('    --- ' + $src + ' ---') -ForegroundColor DarkGray
+                $snippet = @($rawOutputs[$src] | Select-Object -First 8)
+                if ($snippet.Count -eq 0) {
+                    Write-Host '    (sin salida)' -ForegroundColor DarkGray
+                } else {
+                    foreach ($line in $snippet) {
+                        Write-Host ('    ' + $line) -ForegroundColor DarkGray
+                    }
+                }
+            }
+            Write-Host ''
             return @()
         }
 

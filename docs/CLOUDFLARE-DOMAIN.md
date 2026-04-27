@@ -62,9 +62,11 @@ Cloudflare al añadir el sitio). Trámite normal de 15 min - 24 h.
        );
 
        let upstream = await fetchRef(ref);
+       let actualRef = ref;
        // Fallback a main si el ref pinneado no existe.
        if (!upstream.ok && ref !== "main") {
          upstream = await fetchRef("main");
+         actualRef = "main";
        }
 
        if (!upstream.ok) {
@@ -80,7 +82,8 @@ Cloudflare al añadir el sitio). Trámite normal de 15 min - 24 h.
          headers: {
            "Content-Type": "text/plain; charset=utf-8",
            "Cache-Control": "public, max-age=30",
-           "X-Atlas-Source-Ref": ref
+           "X-Atlas-Source-Ref": actualRef,
+           "X-Atlas-Requested-Ref": ref
          }
        });
      }
