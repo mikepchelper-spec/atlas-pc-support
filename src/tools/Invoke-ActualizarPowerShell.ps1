@@ -1,29 +1,132 @@
+# ============================================================
+# Invoke-ActualizarPowerShell  ->  Install / Update PowerShell 7
+#
+# i18n: Option A (en default + full es secondary). Tool-internal
+# function name kept as Invoke-ActualizarPowerShell so tools.json
+# registry and existing config.json files keep working.
+#
+# Atlas PC Support
+# ============================================================
+
 function Invoke-ActualizarPowerShell {
     <#
     .SYNOPSIS
-      Instala o actualiza PowerShell 7 para el panel Atlas PC Support.
+      Install or update PowerShell 7 for the Atlas PC Support panel.
 
     .DESCRIPTION
-      Detecta la version actual y, si PS 7 no esta instalado, lo descarga
-      desde GitHub (oficial de Microsoft) e instala silencioso con msiexec.
-      Si hay un MSI local en deps\ (modo offline USB), lo usa en vez de descargar.
+      Detects the current version. If PS 7 is not installed, it downloads
+      from GitHub (Microsoft's official channel) and installs silently via
+      msiexec. If a local MSI exists in deps\ (offline USB mode), it uses
+      that instead of downloading.
 
-      Tras la instalacion, las siguientes tools que lances desde el panel
-      correran automaticamente en pwsh.exe gracias al ToolRunner.
+      After install, every tool launched from the panel runs in pwsh.exe
+      automatically thanks to ToolRunner.
 
-      IMPORTANTE: esta tool corre en ventana aislada (temp .ps1). NO tiene
-      acceso a las libs del launcher; por eso todas las helpers (admin check,
-      detection, install) estan inline abajo. No remover.
+      IMPORTANT: this tool runs in an isolated window (temp .ps1) — it
+      does NOT have access to the launcher's libs, so all helpers (admin
+      check, detection, install) are inlined below. Do not remove.
     #>
 
     $ErrorActionPreference = 'Stop'
 
-    # ----- Constantes (duplicadas de src/lib/PS7.ps1, auto-contenidas) -----
+    # --- Language detection (env var -> config.json -> system culture -> en) ---
+    function _Atlas-DetectLang {
+        if ($env:ATLAS_LANG) { return [string]$env:ATLAS_LANG }
+        try {
+            $cfg = Join-Path $env:LOCALAPPDATA 'AtlasPC\config.json'
+            if (Test-Path -LiteralPath $cfg) {
+                $obj = Get-Content -Raw -LiteralPath $cfg -Encoding UTF8 | ConvertFrom-Json
+                if ($obj.language) { return [string]$obj.language }
+            }
+        } catch {}
+        $sys = (Get-Culture).TwoLetterISOLanguageName
+        if ($sys -eq 'es') { return 'es' }
+        return 'en'
+    }
+
+    # --- Localized strings ---
+    $T = @{
+        en = @{
+            Title             = 'Install / Update PowerShell 7'
+            CurrentConsole    = 'Current console version: {0}'
+            CurrentEdition    = 'Edition: {0}'
+            AlreadyInstalled  = '[OK] PowerShell 7 already installed: {0}'
+            AlreadyDetected   = '[OK] pwsh.exe detected: {0}'
+            PathLabel         = '     Path: {0}'
+            ToolsRunInPS7     = 'Panel tools already launch in PS 7 automatically.'
+            ReinstallPrompt   = 'Press [R] to reinstall / upgrade. Any other key to exit.'
+            Option            = 'Option'
+            NeedAdmin         = '[!] Administrator is required to install PowerShell 7.'
+            NeedAdminHint     = '    Close this window and relaunch the panel as admin.'
+            FoundOfflineMsi   = '[i] Local MSI found: {0}'
+            WillInstallLocal  = '    Will install without downloading.'
+            NoOfflineMsi      = '[i] No local MSI found. Will download from github.com/PowerShell/PowerShell (~120 MB).'
+            VersionToInstall  = '    Version to install: {0}'
+            ConfirmContinue   = 'Continue? [Y/n]'
+            Cancelled         = 'Cancelled.'
+            UsingLocalMsi     = '[>] Using local MSI: {0}'
+            Downloading       = '[>] Downloading PowerShell {0} (~120 MB)...'
+            Installing        = '[>] Installing MSI (silent msiexec)...'
+            InstallOK         = '[OK] PowerShell 7 installed: {0}'
+            InstalledHeader   = 'PowerShell 7 installed successfully.'
+            RouteLabel        = 'Path: {0}'
+            RecommendRestart  = 'RECOMMENDED: restart the panel so ToolRunner picks up PS 7.'
+            CloseAndReopen    = 'Close this window and reopen the panel from the short URL.'
+            InstallError      = '[X] Install error: {0}'
+            ManualAlt         = 'Manual alternative:'
+            ManualWinget      = '  winget install --id Microsoft.PowerShell --source winget'
+            ManualOr          = 'or download the MSI from:'
+            ManualUrl         = '  https://github.com/PowerShell/PowerShell/releases/latest'
+            DownloadFailed    = 'PS 7 download failed: {0}'
+            MsiExitCode       = 'msiexec exited with code {0}'
+            InstalledButLost  = 'Install reported OK but pwsh.exe not found. Restart your session.'
+        }
+        es = @{
+            Title             = 'Instalar / Actualizar PowerShell 7'
+            CurrentConsole    = 'Version actual de la consola: {0}'
+            CurrentEdition    = 'Edicion: {0}'
+            AlreadyInstalled  = '[OK] PowerShell 7 ya instalado: {0}'
+            AlreadyDetected   = '[OK] pwsh.exe detectado: {0}'
+            PathLabel         = '     Ruta: {0}'
+            ToolsRunInPS7     = 'Las tools del panel ya se lanzan en PS 7 automaticamente.'
+            ReinstallPrompt   = 'Pulsa [R] para reinstalar / actualizar. Cualquier otra tecla para salir.'
+            Option            = 'Opcion'
+            NeedAdmin         = '[!] Se requiere Administrador para instalar PowerShell 7.'
+            NeedAdminHint     = '    Cierra esta ventana y relanza el panel en modo admin.'
+            FoundOfflineMsi   = '[i] MSI local encontrado: {0}'
+            WillInstallLocal  = '    Se instalara sin descargar nada de internet.'
+            NoOfflineMsi      = '[i] MSI local NO encontrado. Se descargara de github.com/PowerShell/PowerShell (~120 MB).'
+            VersionToInstall  = '    Version a instalar: {0}'
+            ConfirmContinue   = 'Continuar? [S/n]'
+            Cancelled         = 'Cancelado.'
+            UsingLocalMsi     = '[>] Usando MSI local: {0}'
+            Downloading       = '[>] Descargando PowerShell {0} (~120 MB)...'
+            Installing        = '[>] Instalando MSI (msiexec silencioso)...'
+            InstallOK         = '[OK] PowerShell 7 instalado: {0}'
+            InstalledHeader   = 'PowerShell 7 instalado correctamente.'
+            RouteLabel        = 'Ruta: {0}'
+            RecommendRestart  = 'RECOMENDADO: reinicia el panel para que ToolRunner detecte PS 7.'
+            CloseAndReopen    = 'Cierra esta ventana y vuelve a abrir el panel desde la URL corta.'
+            InstallError      = '[X] Error durante la instalacion: {0}'
+            ManualAlt         = 'Alternativa manual:'
+            ManualWinget      = '  winget install --id Microsoft.PowerShell --source winget'
+            ManualOr          = 'o descarga el MSI desde:'
+            ManualUrl         = '  https://github.com/PowerShell/PowerShell/releases/latest'
+            DownloadFailed    = 'Fallo descarga de PS 7: {0}'
+            MsiExitCode       = 'msiexec salio con codigo {0}'
+            InstalledButLost  = 'Instalacion reportada OK pero pwsh.exe no se encuentra. Reinicia la sesion.'
+        }
+    }
+    $lang = _Atlas-DetectLang
+    if (-not $T.ContainsKey($lang)) { $lang = 'en' }
+    $L = $T[$lang]
+
+    # ----- Constants (mirrored from src/lib/PS7.ps1, self-contained) -----
     $PS7_VERSION  = '7.5.0'
     $PS7_URL_X64  = "https://github.com/PowerShell/PowerShell/releases/download/v$PS7_VERSION/PowerShell-$PS7_VERSION-win-x64.msi"
     $PS7_MSI_NAME = "PowerShell-$PS7_VERSION-win-x64.msi"
 
-    # ----- Helpers inline (no dependen de lib del launcher) -----
+    # ----- Inline helpers (no dependency on launcher libs) -----
     function _Test-IsAdmin {
         try {
             $id = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -50,9 +153,9 @@ function Invoke-ActualizarPowerShell {
 
     function _Find-OfflineMsi {
         $searchDirs = @()
-        # Buscar hacia arriba del script actual por si estamos lanzados desde USB
-        # (el launcher tipicamente corre desde %TEMP%\AtlasPC, asi que tambien
-        # miramos estandar de USB).
+        # Walk up from the current script in case we're launched from USB
+        # (the launcher typically runs from %TEMP%\AtlasPC, so we also
+        # check standard USB locations).
         try {
             $invocPath = $MyInvocation.MyCommand.Path
             if ($invocPath) {
@@ -63,8 +166,8 @@ function Invoke-ActualizarPowerShell {
             }
         } catch {}
         $searchDirs += (Join-Path $env:LOCALAPPDATA 'AtlasPC\deps')
-        # Tambien probar todas las unidades removibles (USB) por si el panel
-        # se lanzo desde una URL pero el cliente puso la USB en paralelo.
+        # Also try every removable drive (USB) in case the panel was
+        # launched from a URL but the client plugged the USB in parallel.
         try {
             Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
                 $root = $_.Root
@@ -85,37 +188,37 @@ function Invoke-ActualizarPowerShell {
     }
 
     function _Install-PS7 {
-        param([string]$OfflineSource)
+        param([string]$OfflineSource, $L, [string]$Version, [string]$Url, [string]$MsiName)
         $msi = $null
         if ($OfflineSource -and (Test-Path -LiteralPath $OfflineSource)) {
             $msi = (Resolve-Path -LiteralPath $OfflineSource).Path
-            Write-Host "  [>] Usando MSI local: $msi" -ForegroundColor Cyan
+            Write-Host ('  ' + ($L.UsingLocalMsi -f $msi)) -ForegroundColor Cyan
         }
         if (-not $msi) {
             $cacheDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\deps'
             if (-not (Test-Path -LiteralPath $cacheDir)) {
                 New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
             }
-            $msi = Join-Path $cacheDir $PS7_MSI_NAME
-            Write-Host "  [>] Descargando PowerShell $PS7_VERSION (~120 MB)..." -ForegroundColor Cyan
+            $msi = Join-Path $cacheDir $MsiName
+            Write-Host ('  ' + ($L.Downloading -f $Version)) -ForegroundColor Cyan
             try {
                 $ProgressPreference = 'SilentlyContinue'
-                Invoke-WebRequest -Uri $PS7_URL_X64 -OutFile $msi -UseBasicParsing -TimeoutSec 900
+                Invoke-WebRequest -Uri $Url -OutFile $msi -UseBasicParsing -TimeoutSec 900
             } catch {
-                throw "Fallo descarga de PS 7: $($_.Exception.Message)"
+                throw ($L.DownloadFailed -f $_.Exception.Message)
             }
         }
         $msiArgs = @('/i', "`"$msi`"", '/qn', '/norestart', 'ADD_PATH=1', 'ENABLE_PSREMOTING=0', 'REGISTER_MANIFEST=1')
-        Write-Host "  [>] Instalando MSI (msiexec silencioso)..." -ForegroundColor Cyan
+        Write-Host ('  ' + $L.Installing) -ForegroundColor Cyan
         $p = Start-Process -FilePath 'msiexec.exe' -ArgumentList $msiArgs -Wait -PassThru
         if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) {
-            throw "msiexec salio con codigo $($p.ExitCode)"
+            throw ($L.MsiExitCode -f $p.ExitCode)
         }
         $path = _Get-PS7Path
         if (-not $path) {
-            throw "Instalacion reportada OK pero pwsh.exe no se encuentra. Reinicia la sesion."
+            throw $L.InstalledButLost
         }
-        Write-Host "  [OK] PowerShell 7 instalado: $path" -ForegroundColor Green
+        Write-Host ('  ' + ($L.InstallOK -f $path)) -ForegroundColor Green
         return $path
     }
 
@@ -123,72 +226,73 @@ function Invoke-ActualizarPowerShell {
     Clear-Host
     Write-Host ''
     Write-Host '================================================================' -ForegroundColor Cyan
-    Write-Host '  Actualizar PowerShell 7' -ForegroundColor Cyan
+    Write-Host ('  ' + $L.Title) -ForegroundColor Cyan
     Write-Host '================================================================' -ForegroundColor Cyan
     Write-Host ''
 
     $current = "{0}.{1}" -f $PSVersionTable.PSVersion.Major, $PSVersionTable.PSVersion.Minor
-    Write-Host "  Version actual de la consola: $current" -ForegroundColor White
-    Write-Host "  Edicion: $($PSVersionTable.PSEdition)" -ForegroundColor White
+    Write-Host ('  ' + ($L.CurrentConsole -f $current)) -ForegroundColor White
+    Write-Host ('  ' + ($L.CurrentEdition -f $PSVersionTable.PSEdition)) -ForegroundColor White
     Write-Host ''
 
     $ps7Path = _Get-PS7Path
     if ($ps7Path) {
         try {
             $verOutput = & $ps7Path -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
-            Write-Host "  [OK] PowerShell 7 ya instalado: $verOutput" -ForegroundColor Green
-            Write-Host "       Ruta: $ps7Path" -ForegroundColor DarkGray
+            Write-Host ('  ' + ($L.AlreadyInstalled -f $verOutput)) -ForegroundColor Green
+            Write-Host ('  ' + ($L.PathLabel -f $ps7Path)) -ForegroundColor DarkGray
         } catch {
-            Write-Host "  [OK] pwsh.exe detectado: $ps7Path" -ForegroundColor Green
+            Write-Host ('  ' + ($L.AlreadyDetected -f $ps7Path)) -ForegroundColor Green
         }
         Write-Host ''
-        Write-Host '  Las tools del panel ya se lanzan en PS 7 automaticamente.' -ForegroundColor DarkGray
-        Write-Host '  Si quieres reinstalar / actualizar a una version mas nueva, pulsa [R]. Cualquier otra tecla para salir.' -ForegroundColor DarkGray
-        $ans = Read-Host '  Opcion'
+        Write-Host ('  ' + $L.ToolsRunInPS7) -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.ReinstallPrompt) -ForegroundColor DarkGray
+        $ans = Read-Host ('  ' + $L.Option)
         if ($ans -notmatch '^[Rr]') { return }
     }
 
     if (-not (_Test-IsAdmin)) {
-        Write-Host '  [!] Se requiere ejecutar como Administrador para instalar PowerShell 7.' -ForegroundColor Red
-        Write-Host '      Cierra esta ventana y relanza el panel en modo admin.' -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.NeedAdmin) -ForegroundColor Red
+        Write-Host ('  ' + $L.NeedAdminHint) -ForegroundColor DarkGray
         return
     }
 
     $offline = _Find-OfflineMsi
     if ($offline) {
-        Write-Host "  [i] MSI local encontrado: $offline" -ForegroundColor Cyan
-        Write-Host '      Se instalara sin descargar nada de internet.' -ForegroundColor DarkGray
+        Write-Host ('  ' + ($L.FoundOfflineMsi -f $offline)) -ForegroundColor Cyan
+        Write-Host ('  ' + $L.WillInstallLocal) -ForegroundColor DarkGray
     } else {
-        Write-Host "  [i] MSI local NO encontrado. Se descargara de github.com/PowerShell/PowerShell (~120 MB)." -ForegroundColor Cyan
-        Write-Host "      Version a instalar: $PS7_VERSION" -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.NoOfflineMsi) -ForegroundColor Cyan
+        Write-Host ('  ' + ($L.VersionToInstall -f $PS7_VERSION)) -ForegroundColor DarkGray
     }
 
     Write-Host ''
-    $go = Read-Host '  Continuar? [S/n]'
+    $go = Read-Host ('  ' + $L.ConfirmContinue)
+    # Accept Spanish 'n' and English 'n' identically; everything else continues.
     if ($go -match '^[Nn]') {
-        Write-Host '  Cancelado.' -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.Cancelled) -ForegroundColor DarkGray
         return
     }
 
     Write-Host ''
     try {
-        $installed = _Install-PS7 -OfflineSource $offline
+        $installed = _Install-PS7 -OfflineSource $offline -L $L -Version $PS7_VERSION -Url $PS7_URL_X64 -MsiName $PS7_MSI_NAME
         Write-Host ''
         Write-Host '  ================================================================' -ForegroundColor Green
-        Write-Host '  PowerShell 7 instalado correctamente.' -ForegroundColor Green
+        Write-Host ('  ' + $L.InstalledHeader) -ForegroundColor Green
         Write-Host '  ================================================================' -ForegroundColor Green
         Write-Host ''
-        Write-Host "  Ruta: $installed" -ForegroundColor White
+        Write-Host ('  ' + ($L.RouteLabel -f $installed)) -ForegroundColor White
         Write-Host ''
-        Write-Host '  RECOMENDADO: reinicia el panel para que ToolRunner detecte PS 7.' -ForegroundColor Yellow
-        Write-Host '  Cierra esta ventana y vuelve a abrir el panel desde la URL corta.' -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.RecommendRestart) -ForegroundColor Yellow
+        Write-Host ('  ' + $L.CloseAndReopen) -ForegroundColor DarkGray
     } catch {
         Write-Host ''
-        Write-Host "  [X] Error durante la instalacion: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host ('  ' + ($L.InstallError -f $_.Exception.Message)) -ForegroundColor Red
         Write-Host ''
-        Write-Host '  Alternativa manual:' -ForegroundColor DarkGray
-        Write-Host '    winget install --id Microsoft.PowerShell --source winget' -ForegroundColor White
-        Write-Host '  o descarga el MSI desde:' -ForegroundColor DarkGray
-        Write-Host '    https://github.com/PowerShell/PowerShell/releases/latest' -ForegroundColor White
+        Write-Host ('  ' + $L.ManualAlt) -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.ManualWinget) -ForegroundColor White
+        Write-Host ('  ' + $L.ManualOr) -ForegroundColor DarkGray
+        Write-Host ('  ' + $L.ManualUrl) -ForegroundColor White
     }
 }
