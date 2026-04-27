@@ -392,12 +392,15 @@ function Invoke-InstalarPaquetes {
 
     function Invoke-PackageInstall {
         param($Pkg)
-        $args = @('install', '--id', $Pkg.Id, '--exact', '--silent',
-                  '--accept-package-agreements', '--accept-source-agreements',
-                  '--disable-interactivity')
+        # NOTE: do NOT name this $args — that's a PowerShell automatic
+        # variable and PSScriptAnalyzer flags it; future PS versions may
+        # make it read-only and break splatting silently.
+        $wingetArgs = @('install', '--id', $Pkg.Id, '--exact', '--silent',
+                        '--accept-package-agreements', '--accept-source-agreements',
+                        '--disable-interactivity')
         $src = if ($Pkg.Source) { [string]$Pkg.Source } else { 'winget' }
-        $args += @('--source', $src)
-        $output = & winget.exe @args 2>&1
+        $wingetArgs += @('--source', $src)
+        $output = & winget.exe @wingetArgs 2>&1
         return @{ Exit = $LASTEXITCODE; Output = $output }
     }
 
@@ -424,16 +427,22 @@ function Invoke-InstalarPaquetes {
             Write-Host ('  ' + ($L.Installing -f $p.Name)) -ForegroundColor Cyan
 
             if ($p.Type -eq 'action') {
+                # `continue` inside `switch` only exits the switch, not the
+                # enclosing foreach — so use a flag instead of `continue`.
+                $handlerFailed = $false
                 try {
                     switch ($p.Handler) {
                         'Clean-TempFiles' { Clean-TempFiles }
                         default {
                             Write-Host ('    [X] Unknown action handler: {0}' -f $p.Handler) -ForegroundColor Red
-                            $fail++; continue
+                            $fail++
+                            $handlerFailed = $true
                         }
                     }
-                    Write-Host ('    ' + ($L.ActionDone -f $p.Name)) -ForegroundColor Green
-                    $ok++
+                    if (-not $handlerFailed) {
+                        Write-Host ('    ' + ($L.ActionDone -f $p.Name)) -ForegroundColor Green
+                        $ok++
+                    }
                 } catch {
                     Write-Host ('    ' + ($L.ActionFailed -f $p.Name, $_.Exception.Message)) -ForegroundColor Red
                     $fail++
