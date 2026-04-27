@@ -411,7 +411,7 @@ function Get-OsInfo {
         
         switch ($expSel) {
             '1' {
-                $outPath = "$desktopPath\ATLAS_Reporte_Licencias.txt"
+                $outPath = "$desktopPath\ATLAS_License_Report.txt"
                 [System.IO.File]::WriteAllText($outPath, $reportTxt)
                 Write-Host "`n"
                 Write-Centered -Text "[+] Successfully saved to your Desktop:" -Color Green

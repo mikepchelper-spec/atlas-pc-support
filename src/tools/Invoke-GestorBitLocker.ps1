@@ -638,7 +638,7 @@ while ($true) {
                         Write-Host ""
                         Write-Host "    USB detectado(s). Guardar copia? [Y/N]" -ForegroundColor Yellow
                         $usbSel = Read-Host "    >"
-                        if ($usbSel -eq "S" -or $usbSel -eq "s") {
+                        if ($usbSel -match '^[SsYy]$') {
                             foreach ($u in $usbs) {
                                 try {
                                     $usbPath = Join-Path ($u.DriveLetter + ":\") $NombreArchivo
@@ -654,7 +654,7 @@ while ($true) {
                     Write-Host ""
                     Write-Host "    Generate printable image of keys? [Y/N]" -ForegroundColor Yellow
                     $qrSel = Read-Host "    >"
-                    if ($qrSel -eq "S" -or $qrSel -eq "s") {
+                    if ($qrSel -match '^[SsYy]$') {
                         foreach ($kInfo in $clavesParaQR) {
                             $qrFileName = "BL_KEY_${NombreComputer}_$($kInfo.Mount.TrimEnd(':'))_${FechaHora}.png"
                             $qrPath = Join-Path $RutaDesktop $qrFileName
@@ -678,7 +678,7 @@ while ($true) {
                     Write-Host ""
                     Write-Host "    Intentar backup a Active Directory / Azure AD? [Y/N]" -ForegroundColor Yellow
                     $adSel = Read-Host "    >"
-                    if ($adSel -eq "S" -or $adSel -eq "s") {
+                    if ($adSel -match '^[SsYy]$') {
                         foreach ($Vol in $VolumenesBL) {
                             $adOk = Backup-KeyToAD -MountPoint $Vol.MountPoint
                         }
@@ -688,7 +688,7 @@ while ($true) {
                     Write-Host ""
                     Write-Host "    Copy keys to clipboard? [Y/N]" -ForegroundColor DarkGray
                     $clipSel = Read-Host "    >"
-                    if ($clipSel -eq "S" -or $clipSel -eq "s") {
+                    if ($clipSel -match '^[SsYy]$') {
                         try {
                             ($clavesParaClipboard -join "`r`n") | Set-Clipboard
                             Write-Host "    [OK] Copied to clipboard." -ForegroundColor Green
@@ -957,7 +957,7 @@ while ($true) {
             if ($logAction -eq "L" -or $logAction -eq "l") {
                 Write-Host "    Seguro? [Y/N]" -ForegroundColor Yellow
                 $logConfirm = Read-Host "    >"
-                if ($logConfirm -eq "S" -or $logConfirm -eq "s") {
+                if ($logConfirm -match '^[SsYy]$') {
                     Remove-Item $logFile -Force -ErrorAction SilentlyContinue
                     Write-Host "    Historial limpiado." -ForegroundColor Green
                     Start-Sleep 1
