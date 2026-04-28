@@ -138,6 +138,7 @@ function Expand-AtlasXaml {
         'DASH_RAM'           = (Get-AtlasString 'dash.ram')
         'DASH_DISK'          = (Get-AtlasString 'dash.disk')
         'DASH_ALERTS'        = (Get-AtlasString 'dash.alerts')
+        'DASH_REFRESH_TOOLTIP' = (Get-AtlasString 'dash.refreshTooltip')
         'SIDEBAR_HEADER'     = (Get-AtlasString 'sidebar.header')
         'SIDEBAR_HOST'       = (Get-AtlasString 'sidebar.host')
         'SIDEBAR_USER'       = (Get-AtlasString 'sidebar.user')
@@ -473,8 +474,21 @@ function Initialize-AtlasDashboard {
         }
     }
 
-    # Stash the tick action for the deferred bootstrap to pick up.
-    $script:AtlasDashboardTick = $tickAction
+    # CRITICAL: scriptblocks captured by .NET event handlers (DispatcherTimer,
+    # Window.ContentRendered, Button.Click) lose access to local variables
+    # by the time they fire. GetNewClosure() snapshots the current scope so
+    # $dashCpuVal/$sideHost/etc. are still resolvable when the tick runs.
+    $tickClosed = $tickAction.GetNewClosure()
+    $script:AtlasDashboardTick = $tickClosed
+
+    # Wire the manual refresh button (↻ next to the alerts panel).
+    $btnDashRefresh = $Window.FindName('BtnDashRefresh')
+    if ($btnDashRefresh) {
+        $btnDashRefresh.Add_Click({
+            try { & $script:AtlasDashboardTick }
+            catch { Write-AtlasLog "Manual dashboard refresh failed: $_" -Level WARN -Tool 'UI' }
+        })
+    }
 
     # Defer first tick + timer creation until AFTER the window has been
     # rendered. ContentRendered fires once on the dispatcher thread when
@@ -508,6 +522,7 @@ function Initialize-AtlasDashboard {
                 $script:AtlasDashboardTimer = $null
             }
             $script:AtlasDashboardBooted = $false
+            $script:AtlasDashboardTick = $null
         } catch { }
     })
 }

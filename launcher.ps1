@@ -1,7 +1,7 @@
 ﻿# ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-28 03:15:35
+#  Build:   2026-04-28 03:28:11
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-28 03:15:35'
+$script:AtlasBuildDate = '2026-04-28 03:28:11'
 
 $script:AtlasToolsManifest = @'
 {
@@ -559,6 +559,7 @@ $script:AtlasXamlTemplate = @'
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- CPU -->
@@ -661,6 +662,17 @@ $script:AtlasXamlTemplate = @'
                                FontSize="12"
                                TextWrapping="Wrap"/>
                 </StackPanel>
+
+                <!-- MANUAL REFRESH -->
+                <Button Grid.Column="4"
+                        x:Name="BtnDashRefresh"
+                        Content="↻"
+                        Style="{StaticResource AtlasSecondaryButton}"
+                        VerticalAlignment="Center"
+                        Margin="12,0,0,0"
+                        Padding="10,6"
+                        FontSize="16"
+                        ToolTip="{{DASH_REFRESH_TOOLTIP}}"/>
             </Grid>
         </Border>
 
@@ -1038,6 +1050,7 @@ $script:AtlasStringsDict = @{
         'dash.disk'               = 'Disco'
         'dash.alerts'             = 'Alertas'
         'dash.alerts.none'        = 'Sin alertas — el equipo está bien.'
+        'dash.refreshTooltip'     = 'Actualizar dashboard ahora'
         'dash.alert.cpu'          = 'CPU al {0}%'
         'dash.alert.ram'          = 'RAM al {0}%'
         'dash.alert.disk'         = 'Disco {0} al {1}% lleno'
@@ -1095,6 +1108,7 @@ $script:AtlasStringsDict = @{
         'dash.disk'               = 'Disk'
         'dash.alerts'             = 'Alerts'
         'dash.alerts.none'        = 'No alerts — system looks healthy.'
+        'dash.refreshTooltip'     = 'Refresh dashboard now'
         'dash.alert.cpu'          = 'CPU at {0}%'
         'dash.alert.ram'          = 'RAM at {0}%'
         'dash.alert.disk'         = 'Disk {0} at {1}% used'
@@ -1152,6 +1166,7 @@ $script:AtlasStringsDict = @{
         'dash.disk'               = 'Disc'
         'dash.alerts'             = 'Alerte'
         'dash.alerts.none'        = 'Fără alerte — sistemul e în regulă.'
+        'dash.refreshTooltip'     = 'Reîmprospătează dashboard'
         'dash.alert.cpu'          = 'CPU la {0}%'
         'dash.alert.ram'          = 'RAM la {0}%'
         'dash.alert.disk'         = 'Disc {0} folosit {1}%'
@@ -1209,6 +1224,7 @@ $script:AtlasStringsDict = @{
         'dash.disk'               = 'Disco'
         'dash.alerts'             = 'Alertas'
         'dash.alerts.none'        = 'Sem alertas — sistema saudável.'
+        'dash.refreshTooltip'     = 'Atualizar painel agora'
         'dash.alert.cpu'          = 'CPU em {0}%'
         'dash.alert.ram'          = 'RAM em {0}%'
         'dash.alert.disk'         = 'Disco {0} a {1}% cheio'
@@ -1266,6 +1282,7 @@ $script:AtlasStringsDict = @{
         'dash.disk'               = 'Disque'
         'dash.alerts'             = 'Alertes'
         'dash.alerts.none'        = 'Aucune alerte — système OK.'
+        'dash.refreshTooltip'     = 'Actualiser le tableau de bord'
         'dash.alert.cpu'          = 'CPU à {0}%'
         'dash.alert.ram'          = 'RAM à {0}%'
         'dash.alert.disk'         = 'Disque {0} à {1}% plein'
@@ -1323,6 +1340,7 @@ $script:AtlasStringsDict = @{
         'dash.disk'               = 'Datenträger'
         'dash.alerts'             = 'Warnungen'
         'dash.alerts.none'        = 'Keine Warnungen — System OK.'
+        'dash.refreshTooltip'     = 'Dashboard jetzt aktualisieren'
         'dash.alert.cpu'          = 'CPU bei {0}%'
         'dash.alert.ram'          = 'RAM bei {0}%'
         'dash.alert.disk'         = 'Datenträger {0} zu {1}% voll'
@@ -1380,6 +1398,7 @@ $script:AtlasStringsDict = @{
         'dash.disk'               = 'Disco'
         'dash.alerts'             = 'Avvisi'
         'dash.alerts.none'        = 'Nessun avviso — sistema OK.'
+        'dash.refreshTooltip'     = 'Aggiorna dashboard ora'
         'dash.alert.cpu'          = 'CPU al {0}%'
         'dash.alert.ram'          = 'RAM al {0}%'
         'dash.alert.disk'         = 'Disco {0} al {1}% pieno'
@@ -2211,6 +2230,7 @@ function Expand-AtlasXaml {
         'DASH_RAM'           = (Get-AtlasString 'dash.ram')
         'DASH_DISK'          = (Get-AtlasString 'dash.disk')
         'DASH_ALERTS'        = (Get-AtlasString 'dash.alerts')
+        'DASH_REFRESH_TOOLTIP' = (Get-AtlasString 'dash.refreshTooltip')
         'SIDEBAR_HEADER'     = (Get-AtlasString 'sidebar.header')
         'SIDEBAR_HOST'       = (Get-AtlasString 'sidebar.host')
         'SIDEBAR_USER'       = (Get-AtlasString 'sidebar.user')
@@ -2546,8 +2566,21 @@ function Initialize-AtlasDashboard {
         }
     }
 
-    # Stash the tick action for the deferred bootstrap to pick up.
-    $script:AtlasDashboardTick = $tickAction
+    # CRITICAL: scriptblocks captured by .NET event handlers (DispatcherTimer,
+    # Window.ContentRendered, Button.Click) lose access to local variables
+    # by the time they fire. GetNewClosure() snapshots the current scope so
+    # $dashCpuVal/$sideHost/etc. are still resolvable when the tick runs.
+    $tickClosed = $tickAction.GetNewClosure()
+    $script:AtlasDashboardTick = $tickClosed
+
+    # Wire the manual refresh button (↻ next to the alerts panel).
+    $btnDashRefresh = $Window.FindName('BtnDashRefresh')
+    if ($btnDashRefresh) {
+        $btnDashRefresh.Add_Click({
+            try { & $script:AtlasDashboardTick }
+            catch { Write-AtlasLog "Manual dashboard refresh failed: $_" -Level WARN -Tool 'UI' }
+        })
+    }
 
     # Defer first tick + timer creation until AFTER the window has been
     # rendered. ContentRendered fires once on the dispatcher thread when
@@ -2581,6 +2614,7 @@ function Initialize-AtlasDashboard {
                 $script:AtlasDashboardTimer = $null
             }
             $script:AtlasDashboardBooted = $false
+            $script:AtlasDashboardTick = $null
         } catch { }
     })
 }

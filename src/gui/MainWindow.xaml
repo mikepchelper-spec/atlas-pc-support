@@ -317,6 +317,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- CPU -->
@@ -419,6 +420,17 @@
                                FontSize="12"
                                TextWrapping="Wrap"/>
                 </StackPanel>
+
+                <!-- MANUAL REFRESH -->
+                <Button Grid.Column="4"
+                        x:Name="BtnDashRefresh"
+                        Content="↻"
+                        Style="{StaticResource AtlasSecondaryButton}"
+                        VerticalAlignment="Center"
+                        Margin="12,0,0,0"
+                        Padding="10,6"
+                        FontSize="16"
+                        ToolTip="{{DASH_REFRESH_TOOLTIP}}"/>
             </Grid>
         </Border>
 
