@@ -1,7 +1,7 @@
 ﻿# ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-28 04:19:36
+#  Build:   2026-04-28 04:22:41
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-28 04:19:36'
+$script:AtlasBuildDate = '2026-04-28 04:22:41'
 
 $script:AtlasToolsManifest = @'
 {
@@ -2509,9 +2509,23 @@ function Initialize-AtlasDashboard {
     $dashAlerts   = $Window.FindName('DashAlertsText')
 
     # ---- Phase 2: deferred CIM/WMI work -----------------------------
+    #
+    # In Windows PowerShell 5.1, GetNewClosure() snapshots local variables
+    # but breaks access to script-scope FUNCTIONS (verified by user log:
+    # "The term 'Write-AtlasLog' is not recognized" thrown from inside
+    # the closed scriptblock). Workaround: capture every function we need
+    # as a scriptblock value into local variables, then invoke them with
+    # `&` inside the closure. The closure picks up the local refs by value
+    # so everything resolves bullet-proof at tick time.
+    $logFn        = ${function:Write-AtlasLog}
+    $strFn        = ${function:Get-AtlasString}
+    $liveFn       = ${function:Get-AtlasLiveSystemSnapshot}
+    $staticFn     = ${function:Get-AtlasStaticSystemInfo}
+    $alertsFn     = ${function:Get-AtlasDashboardAlerts}
+
     $tickAction = {
         try {
-            $snap = Get-AtlasLiveSystemSnapshot
+            $snap = & $liveFn
 
             if ($null -ne $snap.CpuPercent) {
                 $dashCpuVal.Text = "{0}%" -f $snap.CpuPercent
@@ -2522,7 +2536,7 @@ function Initialize-AtlasDashboard {
                 $dashRamBar.Value = $snap.RamPercent
             }
             if ($null -ne $snap.DiskPercent) {
-                $dashDiskVal.Text = Get-AtlasString 'dash.disk.detail' $snap.DiskPercent $snap.DiskFreeGB
+                $dashDiskVal.Text = & $strFn 'dash.disk.detail' $snap.DiskPercent $snap.DiskFreeGB
                 $dashDiskBar.Value = $snap.DiskPercent
             }
 
@@ -2530,7 +2544,7 @@ function Initialize-AtlasDashboard {
 
             # Static info (cached) — also drives the sidebar fields that
             # were left as "..." during phase-1 instant fill.
-            $static2 = Get-AtlasStaticSystemInfo
+            $static2 = & $staticFn
             if ($sideOS -and $sideOS.Text -eq '...' -and $static2.OSCaption) {
                 $os = if ($static2.OSBuild) { "$($static2.OSCaption) (build $($static2.OSBuild))" } else { $static2.OSCaption }
                 $sideOS.Text = $os
@@ -2542,16 +2556,16 @@ function Initialize-AtlasDashboard {
                 $sideRam.Text = "$($static2.TotalRamGB) GB"
             }
             if ($sideUptime -and $snap.Uptime -and $static2.LastBoot) {
-                $upFmt = Get-AtlasString 'sidebar.uptimeFmt' `
+                $upFmt = & $strFn 'sidebar.uptimeFmt' `
                     ([int]$snap.Uptime.TotalDays) `
                     ($snap.Uptime.Hours) `
                     ($snap.Uptime.Minutes)
                 $sideUptime.Text = "$($static2.LastBoot.ToString('yyyy-MM-dd HH:mm'))  ($upFmt)"
             }
 
-            $alerts = Get-AtlasDashboardAlerts -Snap $snap
+            $alerts = & $alertsFn -Snap $snap
             if ($alerts.Count -eq 0) {
-                $dashAlerts.Text = Get-AtlasString 'dash.alerts.none'
+                $dashAlerts.Text = & $strFn 'dash.alerts.none'
                 $dashAlerts.Foreground = [System.Windows.Media.Brushes]::ForestGreen
             } else {
                 $dashAlerts.Text = '⚠  ' + ($alerts -join '   •   ')
@@ -2562,14 +2576,14 @@ function Initialize-AtlasDashboard {
                 $sideLastSync.Text = (Get-Date).ToString('HH:mm:ss')
             }
         } catch {
-            Write-AtlasLog "Dashboard tick failed: $_" -Level WARN -Tool 'UI'
+            try { & $logFn "Dashboard tick failed: $_" -Level WARN -Tool 'UI' } catch { }
         }
     }
 
     # CRITICAL: scriptblocks captured by .NET event handlers (DispatcherTimer,
     # Window.ContentRendered, Button.Click) lose access to local variables
     # by the time they fire. GetNewClosure() snapshots the current scope so
-    # $dashCpuVal/$sideHost/etc. are still resolvable when the tick runs.
+    # $dashCpuVal/$sideHost/$logFn/etc. are all resolvable when the tick runs.
     $tickClosed = $tickAction.GetNewClosure()
     $script:AtlasDashboardTick = $tickClosed
 
@@ -2577,8 +2591,7 @@ function Initialize-AtlasDashboard {
     $btnDashRefresh = $Window.FindName('BtnDashRefresh')
     if ($btnDashRefresh) {
         $btnDashRefresh.Add_Click({
-            try { & $script:AtlasDashboardTick }
-            catch { Write-AtlasLog "Manual dashboard refresh failed: $_" -Level WARN -Tool 'UI' }
+            try { & $script:AtlasDashboardTick } catch { }
         })
     }
 
