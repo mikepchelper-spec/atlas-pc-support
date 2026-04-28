@@ -178,14 +178,24 @@ $output = @(
     $epilog
 ) -join "`n"
 
-# Write UTF-8 WITH BOM. Windows PowerShell 5.1 reads BOM-less .ps1 files
-# as ANSI/CP1252, which mojibakes accents and emojis in the embedded
-# Spanish strings / XAML (e.g. "Diagnóstico" → "DiagnÃ³stico"). Set-Content
-# -Encoding UTF8 adds a BOM on Windows PS 5.1 but NOT on pwsh 7+ — and this
-# repo's CI builds on Linux with pwsh 7+. Use WriteAllText with an explicit
-# BOM-emitting UTF8Encoding so both hosts produce identical output.
-$utf8Bom = [System.Text.UTF8Encoding]::new($true)
-[System.IO.File]::WriteAllText($OutFile, $output, $utf8Bom)
+# Write UTF-8 WITHOUT BOM.
+#
+# Two competing requirements:
+#   (a) Windows PowerShell 5.1 reads BOM-less .ps1 files as ANSI/CP1252,
+#       which mojibakes accents/emojis if the launcher is loaded by file
+#       path (e.g. via run.bat → run-launcher.ps1 → launcher.ps1).
+#   (b) PS 5.1's `irm <url> | iex` keeps the UTF-8 BOM as a literal U+FEFF
+#       at the start of the string, which the PS 5.1 parser then chokes on
+#       with: "The term '﻿#' is not recognized as a name of a cmdlet ...".
+#
+# We chose path (b) wins: file in the repo / on raw.githubusercontent.com
+# stays BOM-less so `irm | iex` works for everyone. The offline USB path
+# already has self-healing BOM repair in bootstrap.ps1 (PR #53), so when
+# launcher.ps1 lands on disk via the bootstrap, the BOM is prepended
+# right before run-launcher.ps1 invokes it. WriteAllText() emits the
+# BOM-less variant on both Windows and Linux pwsh.
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText($OutFile, $output, $utf8NoBom)
 
 Write-Host ""
 Write-Host "  Atlas PC Support — build completado" -ForegroundColor Green
