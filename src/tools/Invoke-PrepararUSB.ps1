@@ -346,12 +346,21 @@ Generado por Atlas PC Support - Preparar USB Offline
         Write-Host ''
         Write-Centered $L.DLLauncher 'Yellow'
 
-        $urls = @($LAUNCHER_URL_PRIMARY, $LAUNCHER_URL_FALLBACK)
+        # Cache-bust both URLs. tools.atlaspcsupport.com goes through a
+        # Cloudflare Worker that has aggressively cached older builds in
+        # the past — appending a random ?v= guarantees a fresh fetch from
+        # origin (or at least bypasses edge cache for this request).
+        $bust = [Guid]::NewGuid().ToString('N')
+        $urls = @(
+            ("$LAUNCHER_URL_PRIMARY"  + (& { if ($LAUNCHER_URL_PRIMARY  -match '\?') { '&' } else { '?' } }) + 'v=' + $bust),
+            ("$LAUNCHER_URL_FALLBACK" + (& { if ($LAUNCHER_URL_FALLBACK -match '\?') { '&' } else { '?' } }) + 'v=' + $bust)
+        )
+        $headers = @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
         foreach ($u in $urls) {
             Write-Centered ($L.Trying -f $u) 'DarkGray'
             try {
                 $ProgressPreference = 'SilentlyContinue'
-                Invoke-WebRequest -Uri $u -OutFile $TargetFile -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+                Invoke-WebRequest -Uri $u -OutFile $TargetFile -UseBasicParsing -TimeoutSec 60 -Headers $headers -ErrorAction Stop
                 $sz = (Get-Item $TargetFile).Length
                 if ($sz -gt 100KB) {
                     Write-Centered ($L.DLOk -f (Format-Size $sz)) 'Green'
@@ -588,15 +597,18 @@ if (-not (Test-Path `$launcher)) {
 }
 
 if (`$needsDownload) {
+    # Cache-bust to defeat any stale Cloudflare/CDN edge cache.
+    `$bust = [Guid]::NewGuid().ToString('N')
     `$urls = @(
-        'https://tools.atlaspcsupport.com/',
-        'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1'
+        ('https://tools.atlaspcsupport.com/?v=' + `$bust),
+        ('https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1?v=' + `$bust)
     )
+    `$noCacheHdr = @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
     `$ok = `$false
     foreach (`$u in `$urls) {
         try {
             `$ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest -Uri `$u -OutFile `$launcher -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+            Invoke-WebRequest -Uri `$u -OutFile `$launcher -UseBasicParsing -TimeoutSec 60 -Headers `$noCacheHdr -ErrorAction Stop
             if ((Get-Item `$launcher).Length -gt 100KB) {
                 Write-Host ("$msgDLOk" -f `$u) -ForegroundColor Green
                 `$ok = `$true; break
