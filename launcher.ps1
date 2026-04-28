@@ -1,7 +1,7 @@
 ﻿# ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-28 02:07:26
+#  Build:   2026-04-28 03:15:35
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-28 02:07:26'
+$script:AtlasBuildDate = '2026-04-28 03:15:35'
 
 $script:AtlasToolsManifest = @'
 {
@@ -2450,13 +2450,17 @@ function Get-AtlasDashboardAlerts {
     return ,$alerts
 }
 
-# Initialize dashboard + sidebar data — pulls in cached info once,
-# then sets up a DispatcherTimer to refresh live metrics every N seconds.
+# Initialize dashboard + sidebar data.
+#
+# Performance: pre-fill the cheap fields (hostname/user from env vars)
+# synchronously, then defer all CIM/WMI/Get-NetIPAddress work to run AFTER
+# the window has been rendered. This way the panel pops up immediately
+# and the dashboard fills in over the next ~1 s instead of blocking the
+# Show-AtlasWindow ShowDialog call for several CIM round trips on startup.
 function Initialize-AtlasDashboard {
     param([Parameter(Mandatory)] $Window)
 
-    $static = Get-AtlasStaticSystemInfo
-
+    # ---- Phase 1: instant fill (no CIM) -----------------------------
     $sideHost     = $Window.FindName('SideHost')
     $sideUser     = $Window.FindName('SideUser')
     $sideOS       = $Window.FindName('SideOS')
@@ -2466,20 +2470,15 @@ function Initialize-AtlasDashboard {
     $sideIp       = $Window.FindName('SideIp')
     $sideLastSync = $Window.FindName('SideLastSync')
 
-    if ($sideHost) { $sideHost.Text = $static.HostName }
-    if ($sideUser) { $sideUser.Text = $static.UserName }
-    if ($sideOS) {
-        $os = if ($static.OSBuild) { "$($static.OSCaption) (build $($static.OSBuild))" } else { $static.OSCaption }
-        $sideOS.Text = $os
+    if ($sideHost) { $sideHost.Text = $env:COMPUTERNAME }
+    if ($sideUser) {
+        $sideUser.Text = if ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" } else { $env:USERNAME }
     }
-    if ($sideCpu) { $sideCpu.Text = $static.CpuName }
-    if ($sideRam) {
-        $totalGB = $static.TotalRamGB
-        $sideRam.Text = "$totalGB GB"
-    }
-    if ($sideUptime -and $static.LastBoot) {
-        $sideUptime.Text = $static.LastBoot.ToString('yyyy-MM-dd HH:mm')
-    }
+    $loadingTxt = '...'
+    if ($sideOS)     { $sideOS.Text     = $loadingTxt }
+    if ($sideCpu)    { $sideCpu.Text    = $loadingTxt }
+    if ($sideRam)    { $sideRam.Text    = $loadingTxt }
+    if ($sideUptime) { $sideUptime.Text = $loadingTxt }
 
     $dashCpuVal   = $Window.FindName('DashCpuValue')
     $dashCpuBar   = $Window.FindName('DashCpuBar')
@@ -2489,6 +2488,7 @@ function Initialize-AtlasDashboard {
     $dashDiskBar  = $Window.FindName('DashDiskBar')
     $dashAlerts   = $Window.FindName('DashAlertsText')
 
+    # ---- Phase 2: deferred CIM/WMI work -----------------------------
     $tickAction = {
         try {
             $snap = Get-AtlasLiveSystemSnapshot
@@ -2507,15 +2507,26 @@ function Initialize-AtlasDashboard {
             }
 
             if ($sideIp -and $snap.IpAddress) { $sideIp.Text = $snap.IpAddress }
-            if ($sideUptime -and $snap.Uptime) {
-                $static2 = Get-AtlasStaticSystemInfo
-                if ($static2.LastBoot) {
-                    $upFmt = Get-AtlasString 'sidebar.uptimeFmt' `
-                        ([int]$snap.Uptime.TotalDays) `
-                        ($snap.Uptime.Hours) `
-                        ($snap.Uptime.Minutes)
-                    $sideUptime.Text = "$($static2.LastBoot.ToString('yyyy-MM-dd HH:mm'))  ($upFmt)"
-                }
+
+            # Static info (cached) — also drives the sidebar fields that
+            # were left as "..." during phase-1 instant fill.
+            $static2 = Get-AtlasStaticSystemInfo
+            if ($sideOS -and $sideOS.Text -eq '...' -and $static2.OSCaption) {
+                $os = if ($static2.OSBuild) { "$($static2.OSCaption) (build $($static2.OSBuild))" } else { $static2.OSCaption }
+                $sideOS.Text = $os
+            }
+            if ($sideCpu -and $sideCpu.Text -eq '...' -and $static2.CpuName) {
+                $sideCpu.Text = $static2.CpuName
+            }
+            if ($sideRam -and $sideRam.Text -eq '...' -and $static2.TotalRamGB -gt 0) {
+                $sideRam.Text = "$($static2.TotalRamGB) GB"
+            }
+            if ($sideUptime -and $snap.Uptime -and $static2.LastBoot) {
+                $upFmt = Get-AtlasString 'sidebar.uptimeFmt' `
+                    ([int]$snap.Uptime.TotalDays) `
+                    ($snap.Uptime.Hours) `
+                    ($snap.Uptime.Minutes)
+                $sideUptime.Text = "$($static2.LastBoot.ToString('yyyy-MM-dd HH:mm'))  ($upFmt)"
             }
 
             $alerts = Get-AtlasDashboardAlerts -Snap $snap
@@ -2535,13 +2546,32 @@ function Initialize-AtlasDashboard {
         }
     }
 
-    # First tick immediately so the panel doesn't show "--" while loading.
-    & $tickAction
+    # Stash the tick action for the deferred bootstrap to pick up.
+    $script:AtlasDashboardTick = $tickAction
 
-    $timer = New-Object System.Windows.Threading.DispatcherTimer
-    $timer.Interval = [TimeSpan]::FromSeconds(2)
-    $timer.Add_Tick($tickAction)
-    $timer.Start()
+    # Defer first tick + timer creation until AFTER the window has been
+    # rendered. ContentRendered fires once on the dispatcher thread when
+    # the window is visible, so the user sees the UI instantly and the
+    # CIM round trips happen in the background.
+    $bootstrapAction = {
+        try {
+            if ($script:AtlasDashboardBooted) { return }
+            $script:AtlasDashboardBooted = $true
+
+            # First tick (fills the dashboard with real values).
+            & $script:AtlasDashboardTick
+
+            # Start the periodic timer.
+            $timer = New-Object System.Windows.Threading.DispatcherTimer
+            $timer.Interval = [TimeSpan]::FromSeconds(2)
+            $timer.Add_Tick($script:AtlasDashboardTick)
+            $timer.Start()
+            $script:AtlasDashboardTimer = $timer
+        } catch {
+            Write-AtlasLog "Dashboard bootstrap failed: $_" -Level WARN -Tool 'UI'
+        }
+    }
+    $Window.Add_ContentRendered($bootstrapAction)
 
     # Stop the timer cleanly when the window closes.
     $Window.Add_Closed({
@@ -2550,10 +2580,9 @@ function Initialize-AtlasDashboard {
                 $script:AtlasDashboardTimer.Stop()
                 $script:AtlasDashboardTimer = $null
             }
+            $script:AtlasDashboardBooted = $false
         } catch { }
     })
-
-    $script:AtlasDashboardTimer = $timer
 }
 
 function Show-AtlasWindow {
