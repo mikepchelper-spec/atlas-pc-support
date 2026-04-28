@@ -1,89 +1,135 @@
 # Atlas PC Support
 
-> Panel unificado de herramientas de soporte técnico para Windows, estilo WinUtil.
+> Unified Windows technical-support panel for IT professionals — WinUtil-style.
+
+**🌐 Language: English | [Español](README.es.md)**
 
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue)
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6)
 [![Buy me a coffee](https://img.shields.io/badge/PayPal-Buy%20me%20a%20coffee-ffdd00?logo=paypal&logoColor=white)](https://www.paypal.me/atlaspcsupport)
 
-Atlas PC Support es un launcher WPF (tema Fluent / Windows 11) que agrupa herramientas de diagnóstico, mantenimiento, redes, seguridad y entrega para técnicos que dan soporte a equipos Windows. Inspirado en [WinUtil de Chris Titus](https://github.com/ChrisTitusTech/winutil).
+Atlas PC Support is a WPF launcher (Fluent / Windows 11 theme) that bundles diagnostics, maintenance, networking, security and handover tools for technicians supporting Windows machines. Inspired by [Chris Titus' WinUtil](https://github.com/ChrisTitusTech/winutil).
 
 ---
 
-## 🚀 Instalación rápida (una sola línea)
+## 🚀 Quick install (one line)
 
-Abre **PowerShell como Administrador** y pega:
+Open **PowerShell as Administrator** and paste:
 
 ```powershell
 irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1 | iex
 ```
 
-Eso es todo — no hay que instalar nada más. El launcher se descarga, se ejecuta en memoria y abre el panel.
+That's it — nothing else to install. The launcher is downloaded, executed in memory and the panel opens.
 
-> 💡 **Actualizaciones automáticas**: cada vez que ejecutas ese comando, se baja la versión más reciente desde GitHub. No hay que "instalar updates".
+> 💡 **Auto-updates**: every time you run that command, the latest build is pulled from GitHub. There is no separate "update" step.
 
----
+If your PowerShell session ever shows a `﻿#: The term '﻿#' …` error at the start (a stray UTF-8 BOM injected by some local proxy or AV), use this BOM-tolerant variant instead:
 
-## 🖼 Captura
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  ATLAS PC SUPPORT  ·  v1.0    🔍 buscar...   🛡 Admin        │
-├──────────────────────────────────────────────────────────────┤
-│  [🔍 Diagnóstico] [🛠 Mantenimiento] [📁 Copia] [🌐 Redes]    │
-├──────────────────────────────────────────────────────────────┤
-│   ┌───────────────────┐  ┌───────────────────┐              │
-│   │ 🔍 Fase 0 — IPv6  │  │ 📁 FastCopy       │              │
-│   │    Hardening      │  │    Copia multi-   │              │
-│   │                   │  │    origen         │              │
-│   │ [▶ Ejecutar] 🛡   │  │ [▶ Ejecutar]      │              │
-│   └───────────────────┘  └───────────────────┘              │
-│   ┌───────────────────┐  ┌───────────────────┐              │
-│   │ 🔍 RAM Info       │  │ 🔒 Gestor BitLock │              │
-│   │ ...                                                       │
-└──────────────────────────────────────────────────────────────┘
+```powershell
+iex ((irm "https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1?v=$(Get-Random)") -replace '^\uFEFF','')
 ```
 
 ---
 
-## 📦 Herramientas incluidas (v1.0)
+## 🖼 Screenshot
 
-| Categoría | Herramienta | Descripción breve |
-|---|---|---|
-| 🔒 Seguridad | **Fase 0 — IPv6 Hardening** | Desactiva Teredo, 6to4 e ISATAP. Bitácora exportable. |
-| 🔍 Diagnóstico | **RAM Info** | Slots, velocidad, voltaje, XMP, detección soldada. |
-| 🛠 Mantenimiento | **Personalización Avanzada** | Wallpaper (API Win32), tema oscuro, acento, barra tareas. |
-| 🛠 Mantenimiento | **Stop Services** | Pasa a Manual: telemetría, Xbox, sensores, etc. |
-| 📁 Copia | **FastCopy** | Multi-origen, perfiles, MD5, resumen exportable. |
-| 📁 Copia | **Robocopy** | Copia optimizada con reintentos y logging central. |
-| 🌐 Redes | **Selector DNS** | Cambia DNS: Cloudflare, Google, OpenDNS, custom. |
-| 🌐 Redes | **Gestor HOSTS** | Editor con respaldo automático. |
-| 🌐 Redes | **Auditoría Router** | Escaneo y auditoría del router local. |
-| 🔒 Seguridad | **Gestor BitLocker** | Estado, activación, exportación de claves. |
-| 🔒 Seguridad | **Principio Menor Privilegio** | Auditoría de cuentas locales. |
-| 🔒 Seguridad | **Extraer Licencias** | Claves de Windows y Office (lectura segura). |
-| 📦 Software | **Software Installer** | Panel maestro de `winget`. |
-| 📦 Software | **Bundle Atlas** | Pack pre-configurado recomendado. |
-| ✅ Entrega | **Entrega PC** | Protocolo de cierre y resumen para el cliente. |
+![Atlas PC Support panel](docs/img/panel-screenshot.png)
 
-Cada herramienta se ejecuta en su propia ventana de PowerShell para mantener la UX original.
+A live dashboard banner (CPU / RAM / Disk + alerts) sits above the tool grid, and a system sidebar (hostname, user, Windows build, CPU model, total RAM, uptime, local IP) is visible at all times.
 
 ---
 
-## 🎨 Personalizar la marca (branding)
+## 📦 Bundled tools (v1.0)
 
-El panel acepta **un archivo `branding.json`** con tu propia marca: nombre, logo, colores, tagline, copyright, etc. Ideal si revendes o configuras el panel para un cliente específico.
+The panel ships with **19 tools** grouped in 7 categories. Every tool runs in its own PowerShell window so the UX stays the same as running it standalone.
 
-Copia `branding.example.json` a `branding.json` y edítalo:
+### 🔍 Diagnostics
+
+| Tool | Description |
+|---|---|
+| **Parts Upgrade Advisor** | Analyzes RAM, CPU (socket / BGA) and storage (NVMe / SATA / M.2). Buying recommendations and warnings. |
+| **Full System Report** | Comprehensive HTML report: system, hardware, CPU, RAM, storage, network, battery, BSOD and Upgrade Advisor. |
+| **Event Log Analyzer** | Reads Event Viewer and interprets errors: reboots, hardware (WHEA / disk), crashes, drivers, security. Exports HTML. |
+
+### 🛠 Maintenance
+
+| Tool | Description |
+|---|---|
+| **Deep Clean & Repair** | Full maintenance suite: Defender, cleanup, DISM / SFC, system repair, final report. |
+| **Install/Update PowerShell 7** | Installs or updates PowerShell 7 (modern runtime). Better encoding, modern enums and fewer bugs than Windows PowerShell 5.1. |
+| **Windows Tweaks** | Wallpaper via Win32 API, dark theme, accent color, taskbar tweaks and watermark. |
+| **Service Optimizer** | Stops and sets to Manual non-essential services: telemetry, Xbox, sensors, fax, etc. |
+
+### 📁 Backup & Sync
+
+| Tool | Description |
+|---|---|
+| **FastCopy** | Multi-source copy with profiles, comparison, MD5 and exportable summary. Better UX than Robocopy. |
+| **Build Offline USB** | Copies the panel and its dependencies to a USB drive for offline use. Auto-updates the launcher when connected to the internet. |
+| **Robocopy Mirror** | Optimized robocopy-based copy: mirror mode, retries, centralized logging. |
+
+### 🌐 Network
+
+| Tool | Description |
+|---|---|
+| **DNS Switcher** | Switches DNS server between profiles (Cloudflare, Google, OpenDNS, custom) with one click. Includes latency test and DoH toggle. |
+| **Hosts File Editor** | Windows HOSTS file editor with automatic backup, Steven Black list import and revert. |
+| **Router Security Audit** | Local network router scan and security audit (gateway port scan, ARP, Wi-Fi passwords). |
+
+### 🔒 Security
+
+| Tool | Description |
+|---|---|
+| **Disable Legacy IPv6 Tunnels** | Initial hardening: disables Teredo, 6to4 and ISATAP. Includes exportable technical log. |
+| **BitLocker Manager** | BitLocker status, activation, suspension and recovery key export. |
+| **Local Account Hardening** | Audits and applies principle-of-least-privilege to local user accounts. |
+| **Extract Product Keys** | Extracts Windows and Office product keys (read-only, safe). |
+
+### 📦 Software
+
+| Tool | Description |
+|---|---|
+| **Bulk App Installer (winget)** | Install software in bulk via winget. Curated catalog by category, JSON profiles per client, built-in winget search, and a Cleanup section (clear temp files). |
+
+### ✅ Handover
+
+| Tool | Description |
+|---|---|
+| **PC Handover Report** | Closeout protocol: rename PC, run final cleanup, generate branded HTML report (system summary + handover checklist + print-to-PDF). |
+
+---
+
+## 🌍 Languages
+
+The panel detects your system language automatically and ships with full translations for:
+
+**English (default), Spanish, Portuguese, French, German, Italian, Romanian.**
+
+You can switch language at runtime via the dropdown in the panel header. To force a specific language, set it in `branding.json`:
+
+```json
+{ "language": "en" }
+```
+
+Valid values: `"auto"`, `"en"`, `"es"`, `"pt"`, `"fr"`, `"de"`, `"it"`, `"ro"`. See [docs/LANGUAGES.md](docs/LANGUAGES.md) for adding more.
+
+---
+
+## 🎨 Custom branding
+
+The panel accepts a **`branding.json`** file with your own brand: name, logo, colors, tagline, copyright, etc. Useful if you resell the panel or configure it for a specific client.
+
+Copy `branding.example.json` to `branding.json` and edit it:
 
 ```json
 {
   "brand": {
-    "name": "TU EMPRESA DE SOPORTE",
-    "tagline": "Soporte técnico para pymes",
-    "companyUrl": "https://miempresa.com",
-    "copyright": "© 2026 Mi Empresa"
+    "name": "YOUR SUPPORT COMPANY",
+    "tagline": "Technical support for SMBs",
+    "companyUrl": "https://mycompany.com",
+    "copyright": "© 2026 My Company"
   },
   "theme": {
     "accentColor": "#0078D4",
@@ -91,141 +137,128 @@ Copia `branding.example.json` a `branding.json` y edítalo:
     "cornerRadius": 4
   },
   "window": {
-    "title": "Panel Mi Empresa v1.0"
+    "title": "My Company Panel v1.0"
   }
 }
 ```
 
-Rutas donde el launcher busca `branding.json` (en orden):
+The launcher looks for `branding.json` in this order:
 
-1. `branding.json` junto al `launcher.ps1` (repo local).
-2. `%LOCALAPPDATA%\AtlasPC\branding.json` (perfil del usuario).
+1. `branding.json` next to `launcher.ps1` (local repo).
+2. `%LOCALAPPDATA%\AtlasPC\branding.json` (per-user profile).
 3. `%APPDATA%\AtlasPC\branding.json`.
 
-Si no existe, se usa el branding Atlas por defecto.
+If none exist, the default Atlas branding is used.
 
-📘 Ver detalles en [docs/BRANDING.md](docs/BRANDING.md).
+📘 Full details in [docs/BRANDING.md](docs/BRANDING.md).
 
-### Idiomas
+### Custom short domain
 
-El panel detecta automáticamente el idioma del sistema. Soportados actualmente:
-**español (nativo), inglés, rumano**. Para forzar uno concreto, edita
-`branding.json`:
-
-```json
-{ "language": "en" }
-```
-
-Valores: `"auto"`, `"es"`, `"en"`, `"ro"`. Detalles y cómo añadir otros idiomas
-en [docs/LANGUAGES.md](docs/LANGUAGES.md).
-
-### Dominio corto propio
-
-Si tienes tu propio dominio, puedes servir el launcher como `tools.tudominio.com`
-con Cloudflare Workers (gratis, 10 min de setup). Instrucciones paso a paso en
-[docs/CLOUDFLARE-DOMAIN.md](docs/CLOUDFLARE-DOMAIN.md).
+If you own a domain, you can serve the launcher from `tools.yourdomain.com` using Cloudflare Workers (free, ~10 minutes of setup). Step-by-step instructions in [docs/CLOUDFLARE-DOMAIN.md](docs/CLOUDFLARE-DOMAIN.md).
 
 ---
 
-## 🧑‍💻 Desarrollo local
+## 🧑‍💻 Local development
 
 ```powershell
 git clone https://github.com/mikepchelper-spec/atlas-pc-support
 cd atlas-pc-support
-# Ejecutar modo desarrollo (usa src/, sin compilar):
+
+# Run in dev mode (uses src/, no compile step):
 pwsh -NoProfile -ExecutionPolicy Bypass -File src\Launcher.ps1
 
-# O compilar el launcher distribuible:
+# Or build the distributable launcher:
 pwsh -NoProfile -File build.ps1
-# Esto regenera launcher.ps1 (raíz del repo) con todo embebido.
+# This regenerates launcher.ps1 (repo root) with everything embedded.
 ```
 
-### Estructura del repo
+### Repo layout
 
 ```
 atlas-pc-support/
-├── launcher.ps1              ← Compilado. Es lo que descarga `irm | iex`.
-├── build.ps1                 ← Regenera launcher.ps1 desde src/.
-├── branding.example.json     ← Plantilla de branding personalizado.
-├── README.md / LICENSE / .gitignore
+├── launcher.ps1              ← Compiled. This is what `irm | iex` downloads.
+├── build.ps1                 ← Regenerates launcher.ps1 from src/.
+├── branding.example.json     ← Custom-branding template.
+├── README.md / README.es.md  ← English / Spanish docs.
+├── LICENSE / .gitignore
 ├── config/
-│   └── tools.json            ← Manifiesto de herramientas (ver abajo).
-├── docs/                     ← Guías.
+│   └── tools.json            ← Tool manifest (see "Add a tool" below).
+├── docs/                     ← Guides + screenshots.
 ├── src/
-│   ├── Launcher.ps1          ← Entry point de desarrollo.
-│   ├── lib/                  ← Helpers (Branding, Admin, Logging, Dependencies, ToolRunner).
-│   ├── gui/                  ← XAML + código de la GUI WPF.
-│   └── tools/                ← Una herramienta por archivo (`Invoke-XXX.ps1`).
-└── .github/workflows/        ← CI que rebuildea launcher.ps1 en cada push.
+│   ├── Launcher.ps1          ← Dev entry point.
+│   ├── lib/                  ← Helpers (Branding, Admin, Logging, Dependencies, ToolRunner, PS7).
+│   ├── gui/                  ← XAML + WPF GUI controllers.
+│   └── tools/                ← One tool per file (`Invoke-XXX.ps1`).
+└── .github/workflows/        ← CI rebuilds launcher.ps1 on every push.
 ```
 
-### Añadir una nueva herramienta
+### Add a new tool
 
-1. Crea `src/tools/Invoke-MiTool.ps1`:
+1. Create `src/tools/Invoke-MyTool.ps1`:
    ```powershell
-   function Invoke-MiTool {
+   function Invoke-MyTool {
        [CmdletBinding()] param()
-       Write-Host "Hola desde MiTool"
-       Read-Host "Presiona Enter para salir"
+       Write-Host "Hello from MyTool"
+       Read-Host "Press ENTER to exit"
    }
    ```
-2. Añade la entrada en `config/tools.json`:
+2. Register it in `config/tools.json`:
    ```json
    {
-     "id": "mi-tool",
-     "name": "Mi Tool",
-     "description": "Descripción corta (máx. ~150 caracteres).",
+     "id": "my-tool",
+     "name": "My Tool",
+     "description": "Short description (~150 chars max).",
      "category": "mantenimiento",
-     "function": "Invoke-MiTool",
-     "source": "MiTool.ps1",
+     "function": "Invoke-MyTool",
+     "source": "MyTool.ps1",
      "requiresAdmin": false,
      "runsInNewWindow": true,
      "dependencies": []
    }
    ```
-3. Ejecuta `pwsh -File build.ps1`.
-4. Commit y push — CI regenera `launcher.ps1` automáticamente.
+3. Run `pwsh -File build.ps1`.
+4. Commit and push — CI rebuilds `launcher.ps1` automatically.
 
-Ver [docs/ADDING-TOOLS.md](docs/ADDING-TOOLS.md) para detalles.
+See [docs/ADDING-TOOLS.md](docs/ADDING-TOOLS.md) for the full reference.
 
 ---
 
-## 📋 Logs y dependencias
+## 📋 Logs and dependencies
 
 - **Logs**: `%LOCALAPPDATA%\AtlasPC\logs\atlas-YYYY-MM-DD.log`.
-- **Binarios externos** (FastCopy.exe, etc.): se descargan bajo demanda a `%LOCALAPPDATA%\AtlasPC\bin\`.
-- **Datos de clientes / reportes**: se guardan en `%USERPROFILE%\Documents\AtlasPC\` y NUNCA se suben al repo.
+- **External binaries** (FastCopy.exe, etc.): downloaded on demand to `%LOCALAPPDATA%\AtlasPC\bin\`.
+- **Client data / reports**: stored in `%USERPROFILE%\Documents\AtlasPC\` and never committed to the repo.
 
 ---
 
-## 🛡 Requisitos
+## 🛡 Requirements
 
 - Windows 10 / 11 (x64).
-- PowerShell 5.1 (incluido en Windows) o PowerShell 7.
-- Ejecutar **como Administrador** para aprovechar todas las herramientas.
+- PowerShell 5.1 (built into Windows) or PowerShell 7.
+- Run **as Administrator** to use every tool.
 
 ---
 
-## 📄 Licencia
+## 📄 License
 
-[MIT](LICENSE). Puedes usarlo, modificarlo y redistribuirlo libremente, incluso comercialmente. Solo mantén el aviso de copyright.
-
----
-
-## 🙋 Soporte
-
-Si eres técnico profesional y quieres:
-
-- **Versión personalizada con tu marca** (logo, colores, herramientas específicas de tu empresa).
-- **Soporte premium por email**.
-- **Bundle pre-configurado** para empresas de 10+ PCs.
-
-Visita [atlaspcsupport.com](https://atlaspcsupport.com) o abre un issue.
+[MIT](LICENSE). Use, modify and redistribute freely, including commercially. Just keep the copyright notice.
 
 ---
 
-## 🙏 Agradecimientos
+## 🙋 Support
 
-- [Chris Titus Tech · WinUtil](https://github.com/ChrisTitusTech/winutil) — inspiración y arquitectura.
-- [ModernWpfUI](https://github.com/Kinnara/ModernWpf) — referencia de estilos Fluent.
-- La comunidad de PowerShell.
+If you are a professional technician and want:
+
+- A **branded version** with your own logo, colors and company-specific tools.
+- **Premium email support**.
+- A **pre-configured bundle** for fleets of 10+ PCs.
+
+Visit [atlaspcsupport.com](https://atlaspcsupport.com) or open an issue.
+
+---
+
+## 🙏 Acknowledgements
+
+- [Chris Titus Tech · WinUtil](https://github.com/ChrisTitusTech/winutil) — inspiration and architecture.
+- [ModernWpfUI](https://github.com/Kinnara/ModernWpf) — Fluent style reference.
+- The PowerShell community.
