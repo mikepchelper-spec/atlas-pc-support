@@ -1,7 +1,7 @@
-﻿# ============================================================
+# ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-28 04:22:41
+#  Build:   2026-04-28 04:32:38
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-28 04:22:41'
+$script:AtlasBuildDate = '2026-04-28 04:32:38'
 
 $script:AtlasToolsManifest = @'
 {
