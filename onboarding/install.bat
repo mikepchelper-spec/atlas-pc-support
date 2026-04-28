@@ -6,17 +6,20 @@ title Atlas PC Support - Instalador de Acceso Remoto
 REM ============================================================
 REM Atlas PC Support - RustDesk onboarding installer (.bat wrapper)
 REM
-REM This file is a thin wrapper. The real work is done by the
-REM PowerShell script that lives next to it on the repo:
-REM   onboarding/install-rustdesk.ps1
+REM This file is a thin wrapper. The real PowerShell installer
+REM lives in the PRIVATE handoff repo and is served via a
+REM Cloudflare Worker that injects a GitHub PAT.
 REM
-REM Source: https://github.com/mikepchelper-spec/atlas-pc-support
+REM Public URL (what clients hit):
+REM   https://tools.atlaspcsupport.com/install.ps1
+REM
+REM Source of this .bat:
+REM   https://github.com/mikepchelper-spec/atlas-pc-support
 REM
 REM Usage (technician-side, during a one-shot AnyDesk session):
 REM   1. Open the client's web browser.
 REM   2. Visit:
-REM        https://atlaspcsupport.com/install.bat
-REM        (or the raw GitHub URL — see onboarding/README.md)
+REM        https://tools.atlaspcsupport.com/install.bat
 REM   3. Save and double-click the file.
 REM   4. Accept the Windows SmartScreen warning ("More info" -> "Run anyway").
 REM   5. Accept UAC.
@@ -50,8 +53,11 @@ echo     [3/4] Aplicando configuracion del servidor Atlas
 echo     [4/4] Generando contrasena unica para esta PC
 echo.
 
-REM ---- Run the PowerShell installer --------------------------
-set "PS_URL=https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/onboarding/install-rustdesk.ps1"
+REM ---- Run the PowerShell installer (served by CF Worker) -----
+REM The Worker fetches install-rustdesk.ps1 from the PRIVATE repo
+REM (atlas-pc-support-handoff) using a GitHub PAT stored as a
+REM Worker secret. See docs/CLOUDFLARE-DOMAIN.md.
+set "PS_URL=https://tools.atlaspcsupport.com/install.ps1"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "& {Set-ExecutionPolicy Bypass -Scope Process -Force; iex (iwr -UseBasicParsing -Uri '%PS_URL%').Content}"
 
@@ -69,5 +75,4 @@ if %RC% neq 0 (
 echo.
 echo Pulse cualquier tecla para cerrar esta ventana...
 pause >nul
-endlocal
-exit /b %RC%
+endlocal & exit /b %RC%
