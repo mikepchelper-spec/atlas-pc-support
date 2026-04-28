@@ -429,7 +429,7 @@ function Initialize-AtlasDashboard {
                 $dashRamBar.Value = $snap.RamPercent
             }
             if ($null -ne $snap.DiskPercent) {
-                $dashDiskVal.Text = "{0}% ({1} GB free)" -f $snap.DiskPercent, $snap.DiskFreeGB
+                $dashDiskVal.Text = Get-AtlasString 'dash.disk.detail' $snap.DiskPercent $snap.DiskFreeGB
                 $dashDiskBar.Value = $snap.DiskPercent
             }
 

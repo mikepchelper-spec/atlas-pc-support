@@ -1,7 +1,7 @@
 ﻿# ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-28 01:59:19
+#  Build:   2026-04-28 02:07:26
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-28 01:59:19'
+$script:AtlasBuildDate = '2026-04-28 02:07:26'
 
 $script:AtlasToolsManifest = @'
 {
@@ -1054,6 +1054,7 @@ $script:AtlasStringsDict = @{
         'sidebar.ip'              = 'IP local'
         'sidebar.lastSync'        = 'Última actualización'
         'sidebar.uptimeFmt'       = '{0}d {1}h {2}m'
+        'dash.disk.detail'        = '{0}% ({1} GB libres)'
     }
     'en' = @{
         'app.tagline'             = 'Unified Windows tech-support panel'
@@ -1110,6 +1111,7 @@ $script:AtlasStringsDict = @{
         'sidebar.ip'              = 'Local IP'
         'sidebar.lastSync'        = 'Last refresh'
         'sidebar.uptimeFmt'       = '{0}d {1}h {2}m'
+        'dash.disk.detail'        = '{0}% ({1} GB free)'
     }
     'ro' = @{
         'app.tagline'             = 'Panou unificat de suport tehnic pentru Windows'
@@ -1166,6 +1168,7 @@ $script:AtlasStringsDict = @{
         'sidebar.ip'              = 'IP local'
         'sidebar.lastSync'        = 'Ultima actualizare'
         'sidebar.uptimeFmt'       = '{0}z {1}h {2}m'
+        'dash.disk.detail'        = '{0}% ({1} GB liberi)'
     }
     'pt' = @{
         'app.tagline'             = 'Painel unificado de suporte técnico para Windows'
@@ -1222,6 +1225,7 @@ $script:AtlasStringsDict = @{
         'sidebar.ip'              = 'IP local'
         'sidebar.lastSync'        = 'Última atualização'
         'sidebar.uptimeFmt'       = '{0}d {1}h {2}m'
+        'dash.disk.detail'        = '{0}% ({1} GB livres)'
     }
     'fr' = @{
         'app.tagline'             = 'Panneau unifié de support technique pour Windows'
@@ -1278,6 +1282,7 @@ $script:AtlasStringsDict = @{
         'sidebar.ip'              = 'IP locale'
         'sidebar.lastSync'        = 'Dernière actu'
         'sidebar.uptimeFmt'       = '{0}j {1}h {2}m'
+        'dash.disk.detail'        = '{0}% ({1} Go libres)'
     }
     'de' = @{
         'app.tagline'             = 'Einheitliches Windows-Supportpanel'
@@ -1334,6 +1339,7 @@ $script:AtlasStringsDict = @{
         'sidebar.ip'              = 'Lokale IP'
         'sidebar.lastSync'        = 'Letzte Aktualisierung'
         'sidebar.uptimeFmt'       = '{0}T {1}h {2}m'
+        'dash.disk.detail'        = '{0}% ({1} GB frei)'
     }
     'it' = @{
         'app.tagline'             = 'Pannello unificato di supporto tecnico per Windows'
@@ -1390,6 +1396,7 @@ $script:AtlasStringsDict = @{
         'sidebar.ip'              = 'IP locale'
         'sidebar.lastSync'        = 'Ultimo aggiornamento'
         'sidebar.uptimeFmt'       = '{0}g {1}h {2}m'
+        'dash.disk.detail'        = '{0}% ({1} GB liberi)'
     }
 }
 
@@ -2495,7 +2502,7 @@ function Initialize-AtlasDashboard {
                 $dashRamBar.Value = $snap.RamPercent
             }
             if ($null -ne $snap.DiskPercent) {
-                $dashDiskVal.Text = "{0}% ({1} GB free)" -f $snap.DiskPercent, $snap.DiskFreeGB
+                $dashDiskVal.Text = Get-AtlasString 'dash.disk.detail' $snap.DiskPercent $snap.DiskFreeGB
                 $dashDiskBar.Value = $snap.DiskPercent
             }
 
