@@ -134,6 +134,19 @@ function Expand-AtlasXaml {
         'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
         'LANG_TOOLTIP'       = (Get-AtlasString 'header.languageTooltip')
         'RESTART_TOOLTIP'    = (Get-AtlasString 'header.restartTooltip')
+        'DASH_CPU'           = (Get-AtlasString 'dash.cpu')
+        'DASH_RAM'           = (Get-AtlasString 'dash.ram')
+        'DASH_DISK'          = (Get-AtlasString 'dash.disk')
+        'DASH_ALERTS'        = (Get-AtlasString 'dash.alerts')
+        'SIDEBAR_HEADER'     = (Get-AtlasString 'sidebar.header')
+        'SIDEBAR_HOST'       = (Get-AtlasString 'sidebar.host')
+        'SIDEBAR_USER'       = (Get-AtlasString 'sidebar.user')
+        'SIDEBAR_OS'         = (Get-AtlasString 'sidebar.os')
+        'SIDEBAR_CPU'        = (Get-AtlasString 'sidebar.cpu')
+        'SIDEBAR_RAM'        = (Get-AtlasString 'sidebar.ram')
+        'SIDEBAR_UPTIME'     = (Get-AtlasString 'sidebar.uptime')
+        'SIDEBAR_IP'         = (Get-AtlasString 'sidebar.ip')
+        'SIDEBAR_LASTSYNC'   = (Get-AtlasString 'sidebar.lastSync')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -206,6 +219,268 @@ function New-AtlasToolCard {
                   Replace('{{ADMIN_BADGE}}', $adminBadge)
 
     return $xaml
+}
+
+# ---- Dashboard / Sidebar helpers ----------------------------------------
+
+# Cached static system info (gathered once — these don't change at runtime).
+function Get-AtlasStaticSystemInfo {
+    if ($script:AtlasStaticSysInfo) { return $script:AtlasStaticSysInfo }
+    $info = @{
+        HostName    = $env:COMPUTERNAME
+        UserName    = if ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" } else { $env:USERNAME }
+        OSCaption   = ''
+        OSVersion   = ''
+        OSBuild     = ''
+        CpuName     = ''
+        TotalRamGB  = 0
+        LastBoot    = $null
+        SysDriveLetter = ''
+        SysDriveTotalGB = 0
+    }
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        $info.OSCaption = ($os.Caption -replace '^Microsoft\s*', '').Trim()
+        $info.OSVersion = $os.Version
+        $info.OSBuild   = $os.BuildNumber
+        $info.LastBoot  = $os.LastBootUpTime
+        $info.SysDriveLetter = ($os.SystemDrive -replace ':', '')
+        # TotalVisibleMemorySize is in KB
+        $info.TotalRamGB = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
+    } catch { Write-AtlasLog "Get-AtlasStaticSystemInfo: OS query failed: $_" -Level WARN -Tool 'UI' }
+
+    try {
+        $cpu = Get-CimInstance -ClassName Win32_Processor -ErrorAction Stop | Select-Object -First 1
+        if ($cpu) { $info.CpuName = ($cpu.Name -replace '\s+', ' ').Trim() }
+    } catch { Write-AtlasLog "Get-AtlasStaticSystemInfo: CPU query failed: $_" -Level WARN -Tool 'UI' }
+
+    try {
+        if ($info.SysDriveLetter) {
+            $disk = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DeviceID='$($info.SysDriveLetter):'" -ErrorAction Stop
+            if ($disk -and $disk.Size) {
+                $info.SysDriveTotalGB = [math]::Round($disk.Size / 1GB, 0)
+            }
+        }
+    } catch { Write-AtlasLog "Get-AtlasStaticSystemInfo: Disk query failed: $_" -Level WARN -Tool 'UI' }
+
+    $script:AtlasStaticSysInfo = $info
+    return $info
+}
+
+# Live snapshot — fast queries only (called every refresh tick).
+function Get-AtlasLiveSystemSnapshot {
+    $snap = @{
+        CpuPercent  = $null
+        RamPercent  = $null
+        RamUsedGB   = 0
+        RamTotalGB  = 0
+        DiskPercent = $null
+        DiskFreeGB  = 0
+        DiskTotalGB = 0
+        IpAddress   = ''
+        BatteryPct  = $null
+        Uptime      = $null
+        UptimeDays  = 0
+        PendingReboot = $false
+    }
+
+    $static = Get-AtlasStaticSystemInfo
+
+    try {
+        $cpuPerf = Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Processor `
+            -Filter "Name='_Total'" -ErrorAction Stop
+        if ($cpuPerf) { $snap.CpuPercent = [int]$cpuPerf.PercentProcessorTime }
+    } catch { }
+
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        if ($os) {
+            $totalKb = [double]$os.TotalVisibleMemorySize
+            $freeKb  = [double]$os.FreePhysicalMemory
+            if ($totalKb -gt 0) {
+                $snap.RamPercent = [int](100 - ($freeKb * 100 / $totalKb))
+                $snap.RamTotalGB = [math]::Round($totalKb / 1MB, 1)
+                $snap.RamUsedGB  = [math]::Round(($totalKb - $freeKb) / 1MB, 1)
+            }
+            if ($os.LastBootUpTime) {
+                $snap.Uptime = (Get-Date) - $os.LastBootUpTime
+                $snap.UptimeDays = [int]$snap.Uptime.TotalDays
+            }
+        }
+    } catch { }
+
+    try {
+        if ($static.SysDriveLetter) {
+            $disk = Get-CimInstance -ClassName Win32_LogicalDisk `
+                -Filter "DeviceID='$($static.SysDriveLetter):'" -ErrorAction Stop
+            if ($disk -and $disk.Size -gt 0) {
+                $snap.DiskTotalGB = [math]::Round($disk.Size / 1GB, 0)
+                $snap.DiskFreeGB  = [math]::Round($disk.FreeSpace / 1GB, 0)
+                $snap.DiskPercent = [int]((($disk.Size - $disk.FreeSpace) / $disk.Size) * 100)
+            }
+        }
+    } catch { }
+
+    try {
+        # Prefer Get-NetIPAddress (PS 5.1+ on Win8+); fallback to ipconfig parse
+        $ip = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
+            Where-Object { $_.PrefixOrigin -ne 'WellKnown' -and $_.IPAddress -notmatch '^169\.254\.' -and $_.IPAddress -ne '127.0.0.1' } |
+            Sort-Object -Property InterfaceMetric |
+            Select-Object -First 1
+        if ($ip) { $snap.IpAddress = $ip.IPAddress }
+    } catch { }
+
+    try {
+        $bat = Get-CimInstance -ClassName Win32_Battery -ErrorAction Stop |
+            Select-Object -First 1
+        if ($bat -and $null -ne $bat.EstimatedChargeRemaining) {
+            $snap.BatteryPct = [int]$bat.EstimatedChargeRemaining
+        }
+    } catch { }
+
+    try {
+        $pendingPaths = @(
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending',
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
+        )
+        foreach ($p in $pendingPaths) {
+            if (Test-Path $p) { $snap.PendingReboot = $true; break }
+        }
+    } catch { }
+
+    return $snap
+}
+
+# Build localized alert list from the live snapshot.
+function Get-AtlasDashboardAlerts {
+    param([hashtable]$Snap)
+    $alerts = @()
+    if ($null -ne $Snap.CpuPercent -and $Snap.CpuPercent -ge 90) {
+        $alerts += (Get-AtlasString 'dash.alert.cpu' $Snap.CpuPercent)
+    }
+    if ($null -ne $Snap.RamPercent -and $Snap.RamPercent -ge 90) {
+        $alerts += (Get-AtlasString 'dash.alert.ram' $Snap.RamPercent)
+    }
+    if ($null -ne $Snap.DiskPercent -and $Snap.DiskPercent -ge 90) {
+        $static = Get-AtlasStaticSystemInfo
+        $alerts += (Get-AtlasString 'dash.alert.disk' "$($static.SysDriveLetter):" $Snap.DiskPercent)
+    }
+    if ($Snap.UptimeDays -ge 7) {
+        $alerts += (Get-AtlasString 'dash.alert.uptime' $Snap.UptimeDays)
+    }
+    if ($null -ne $Snap.BatteryPct -and $Snap.BatteryPct -le 20) {
+        $alerts += (Get-AtlasString 'dash.alert.battery' $Snap.BatteryPct)
+    }
+    if ($Snap.PendingReboot) {
+        $alerts += (Get-AtlasString 'dash.alert.pendingReboot')
+    }
+    return ,$alerts
+}
+
+# Initialize dashboard + sidebar data — pulls in cached info once,
+# then sets up a DispatcherTimer to refresh live metrics every N seconds.
+function Initialize-AtlasDashboard {
+    param([Parameter(Mandatory)] $Window)
+
+    $static = Get-AtlasStaticSystemInfo
+
+    $sideHost     = $Window.FindName('SideHost')
+    $sideUser     = $Window.FindName('SideUser')
+    $sideOS       = $Window.FindName('SideOS')
+    $sideCpu      = $Window.FindName('SideCpu')
+    $sideRam      = $Window.FindName('SideRam')
+    $sideUptime   = $Window.FindName('SideUptime')
+    $sideIp       = $Window.FindName('SideIp')
+    $sideLastSync = $Window.FindName('SideLastSync')
+
+    if ($sideHost) { $sideHost.Text = $static.HostName }
+    if ($sideUser) { $sideUser.Text = $static.UserName }
+    if ($sideOS) {
+        $os = if ($static.OSBuild) { "$($static.OSCaption) (build $($static.OSBuild))" } else { $static.OSCaption }
+        $sideOS.Text = $os
+    }
+    if ($sideCpu) { $sideCpu.Text = $static.CpuName }
+    if ($sideRam) {
+        $totalGB = $static.TotalRamGB
+        $sideRam.Text = "$totalGB GB"
+    }
+    if ($sideUptime -and $static.LastBoot) {
+        $sideUptime.Text = $static.LastBoot.ToString('yyyy-MM-dd HH:mm')
+    }
+
+    $dashCpuVal   = $Window.FindName('DashCpuValue')
+    $dashCpuBar   = $Window.FindName('DashCpuBar')
+    $dashRamVal   = $Window.FindName('DashRamValue')
+    $dashRamBar   = $Window.FindName('DashRamBar')
+    $dashDiskVal  = $Window.FindName('DashDiskValue')
+    $dashDiskBar  = $Window.FindName('DashDiskBar')
+    $dashAlerts   = $Window.FindName('DashAlertsText')
+
+    $tickAction = {
+        try {
+            $snap = Get-AtlasLiveSystemSnapshot
+
+            if ($null -ne $snap.CpuPercent) {
+                $dashCpuVal.Text = "{0}%" -f $snap.CpuPercent
+                $dashCpuBar.Value = $snap.CpuPercent
+            }
+            if ($null -ne $snap.RamPercent) {
+                $dashRamVal.Text = "{0}% ({1}/{2} GB)" -f $snap.RamPercent, $snap.RamUsedGB, $snap.RamTotalGB
+                $dashRamBar.Value = $snap.RamPercent
+            }
+            if ($null -ne $snap.DiskPercent) {
+                $dashDiskVal.Text = "{0}% ({1} GB free)" -f $snap.DiskPercent, $snap.DiskFreeGB
+                $dashDiskBar.Value = $snap.DiskPercent
+            }
+
+            if ($sideIp -and $snap.IpAddress) { $sideIp.Text = $snap.IpAddress }
+            if ($sideUptime -and $snap.Uptime) {
+                $static2 = Get-AtlasStaticSystemInfo
+                if ($static2.LastBoot) {
+                    $upFmt = Get-AtlasString 'sidebar.uptimeFmt' `
+                        ([int]$snap.Uptime.TotalDays) `
+                        ($snap.Uptime.Hours) `
+                        ($snap.Uptime.Minutes)
+                    $sideUptime.Text = "$($static2.LastBoot.ToString('yyyy-MM-dd HH:mm'))  ($upFmt)"
+                }
+            }
+
+            $alerts = Get-AtlasDashboardAlerts -Snap $snap
+            if ($alerts.Count -eq 0) {
+                $dashAlerts.Text = Get-AtlasString 'dash.alerts.none'
+                $dashAlerts.Foreground = [System.Windows.Media.Brushes]::ForestGreen
+            } else {
+                $dashAlerts.Text = '⚠  ' + ($alerts -join '   •   ')
+                $dashAlerts.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+            }
+
+            if ($sideLastSync) {
+                $sideLastSync.Text = (Get-Date).ToString('HH:mm:ss')
+            }
+        } catch {
+            Write-AtlasLog "Dashboard tick failed: $_" -Level WARN -Tool 'UI'
+        }
+    }
+
+    # First tick immediately so the panel doesn't show "--" while loading.
+    & $tickAction
+
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromSeconds(2)
+    $timer.Add_Tick($tickAction)
+    $timer.Start()
+
+    # Stop the timer cleanly when the window closes.
+    $Window.Add_Closed({
+        try {
+            if ($script:AtlasDashboardTimer) {
+                $script:AtlasDashboardTimer.Stop()
+                $script:AtlasDashboardTimer = $null
+            }
+        } catch { }
+    })
+
+    $script:AtlasDashboardTimer = $timer
 }
 
 function Show-AtlasWindow {
@@ -467,6 +742,13 @@ try {
     $script:MainWindow = $window
     $script:Branding = $Branding
     $script:AllTools = $Tools
+
+    # Populate dashboard + sidebar and start the live refresh timer.
+    try {
+        Initialize-AtlasDashboard -Window $window
+    } catch {
+        Write-AtlasLog "Initialize-AtlasDashboard failed: $_" -Level WARN -Tool 'UI'
+    }
 
     [void]$window.ShowDialog()
 }

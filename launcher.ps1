@@ -1,7 +1,7 @@
 ﻿# ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-04-27 23:57:31
+#  Build:   2026-04-28 01:59:19
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-04-27 23:57:31'
+$script:AtlasBuildDate = '2026-04-28 01:59:19'
 
 $script:AtlasToolsManifest = @'
 {
@@ -473,8 +473,9 @@ $script:AtlasXamlTemplate = @'
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>   <!-- Header -->
+            <RowDefinition Height="Auto"/>   <!-- Dashboard banner -->
             <RowDefinition Height="Auto"/>   <!-- Tabs -->
-            <RowDefinition Height="*"/>      <!-- Content -->
+            <RowDefinition Height="*"/>      <!-- Sidebar + Content -->
             <RowDefinition Height="Auto"/>   <!-- Footer -->
         </Grid.RowDefinitions>
 
@@ -546,8 +547,125 @@ $script:AtlasXamlTemplate = @'
             </Grid>
         </Border>
 
-        <!-- TABS / CATEGORÍAS -->
+        <!-- DASHBOARD BANNER (live system metrics) -->
         <Border Grid.Row="1"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="24,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="2*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- CPU -->
+                <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{{DASH_CPU}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1"
+                                   x:Name="DashCpuValue"
+                                   Text="--%"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"/>
+                    </Grid>
+                    <ProgressBar x:Name="DashCpuBar"
+                                 Height="6"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 Background="{StaticResource SurfaceAltBrush}"
+                                 Foreground="{StaticResource AccentBrush}"
+                                 BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- RAM -->
+                <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{{DASH_RAM}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1"
+                                   x:Name="DashRamValue"
+                                   Text="--%"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"/>
+                    </Grid>
+                    <ProgressBar x:Name="DashRamBar"
+                                 Height="6"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 Background="{StaticResource SurfaceAltBrush}"
+                                 Foreground="{StaticResource AccentBrush}"
+                                 BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- DISK (system drive) -->
+                <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{{DASH_DISK}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1"
+                                   x:Name="DashDiskValue"
+                                   Text="--%"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"/>
+                    </Grid>
+                    <ProgressBar x:Name="DashDiskBar"
+                                 Height="6"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 Background="{StaticResource SurfaceAltBrush}"
+                                 Foreground="{StaticResource AccentBrush}"
+                                 BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- ALERTS -->
+                <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                    <TextBlock Text="{{DASH_ALERTS}}"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,4"/>
+                    <TextBlock x:Name="DashAlertsText"
+                               Text="--"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- TABS / CATEGORÍAS -->
+        <Border Grid.Row="2"
                 Background="{{BG_COLOR}}"
                 Padding="24,12,24,0">
             <StackPanel x:Name="CategoryBar"
@@ -555,22 +673,143 @@ $script:AtlasXamlTemplate = @'
                         VerticalAlignment="Center"/>
         </Border>
 
-        <!-- CONTENT -->
-        <ScrollViewer Grid.Row="2"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled"
-                      Padding="24,12,24,12">
-            <ItemsControl x:Name="ToolsGrid">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
-        </ScrollViewer>
+        <!-- SIDEBAR + CONTENT -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- SIDEBAR (always visible PC info) -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,1,1,0"
+                    Padding="16,16,16,16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <TextBlock Text="{{SIDEBAR_HEADER}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,12"/>
+
+                        <!-- Hostname -->
+                        <TextBlock Text="{{SIDEBAR_HOST}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideHost"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- User -->
+                        <TextBlock Text="{{SIDEBAR_USER}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideUser"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- OS -->
+                        <TextBlock Text="{{SIDEBAR_OS}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideOS"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- CPU model -->
+                        <TextBlock Text="{{SIDEBAR_CPU}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideCpu"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- RAM total -->
+                        <TextBlock Text="{{SIDEBAR_RAM}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideRam"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- Uptime -->
+                        <TextBlock Text="{{SIDEBAR_UPTIME}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideUptime"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- IP -->
+                        <TextBlock Text="{{SIDEBAR_IP}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideIp"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- Last sync (when dashboard was last refreshed) -->
+                        <TextBlock Text="{{SIDEBAR_LASTSYNC}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideLastSync"
+                                   Text="--"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontStyle="Italic"
+                                   Margin="0,0,0,4"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- CONTENT -->
+            <ScrollViewer Grid.Column="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="24,12,24,12">
+                <ItemsControl x:Name="ToolsGrid">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
 
         <!-- FOOTER -->
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0"
@@ -794,6 +1033,27 @@ $script:AtlasStringsDict = @{
         'header.languageTooltip'  = 'Cambiar idioma del panel'
         'header.restartTooltip'   = 'Reiniciar el panel (aplica el cambio de idioma)'
         'language.restartRequired'= 'Reinicia el panel para aplicar el nuevo idioma.'
+        'dash.cpu'                = 'CPU'
+        'dash.ram'                = 'RAM'
+        'dash.disk'               = 'Disco'
+        'dash.alerts'             = 'Alertas'
+        'dash.alerts.none'        = 'Sin alertas — el equipo está bien.'
+        'dash.alert.cpu'          = 'CPU al {0}%'
+        'dash.alert.ram'          = 'RAM al {0}%'
+        'dash.alert.disk'         = 'Disco {0} al {1}% lleno'
+        'dash.alert.uptime'       = 'Uptime alto ({0} días) — considera reiniciar'
+        'dash.alert.battery'      = 'Batería baja ({0}%)'
+        'dash.alert.pendingReboot'= 'Reinicio pendiente de Windows Update'
+        'sidebar.header'          = 'EQUIPO'
+        'sidebar.host'            = 'Hostname'
+        'sidebar.user'            = 'Usuario'
+        'sidebar.os'              = 'Windows'
+        'sidebar.cpu'             = 'CPU'
+        'sidebar.ram'             = 'RAM total'
+        'sidebar.uptime'          = 'Encendido desde'
+        'sidebar.ip'              = 'IP local'
+        'sidebar.lastSync'        = 'Última actualización'
+        'sidebar.uptimeFmt'       = '{0}d {1}h {2}m'
     }
     'en' = @{
         'app.tagline'             = 'Unified Windows tech-support panel'
@@ -829,6 +1089,27 @@ $script:AtlasStringsDict = @{
         'header.languageTooltip'  = 'Change panel language'
         'header.restartTooltip'   = 'Restart the panel (apply language change)'
         'language.restartRequired'= 'Restart the panel to apply the new language.'
+        'dash.cpu'                = 'CPU'
+        'dash.ram'                = 'RAM'
+        'dash.disk'               = 'Disk'
+        'dash.alerts'             = 'Alerts'
+        'dash.alerts.none'        = 'No alerts — system looks healthy.'
+        'dash.alert.cpu'          = 'CPU at {0}%'
+        'dash.alert.ram'          = 'RAM at {0}%'
+        'dash.alert.disk'         = 'Disk {0} at {1}% used'
+        'dash.alert.uptime'       = 'Long uptime ({0} days) — consider rebooting'
+        'dash.alert.battery'      = 'Battery low ({0}%)'
+        'dash.alert.pendingReboot'= 'Windows Update reboot pending'
+        'sidebar.header'          = 'SYSTEM'
+        'sidebar.host'            = 'Hostname'
+        'sidebar.user'            = 'User'
+        'sidebar.os'              = 'Windows'
+        'sidebar.cpu'             = 'CPU'
+        'sidebar.ram'             = 'Total RAM'
+        'sidebar.uptime'          = 'Up since'
+        'sidebar.ip'              = 'Local IP'
+        'sidebar.lastSync'        = 'Last refresh'
+        'sidebar.uptimeFmt'       = '{0}d {1}h {2}m'
     }
     'ro' = @{
         'app.tagline'             = 'Panou unificat de suport tehnic pentru Windows'
@@ -864,6 +1145,27 @@ $script:AtlasStringsDict = @{
         'header.languageTooltip'  = 'Schimbă limba panoului'
         'header.restartTooltip'   = 'Repornește panoul (aplică schimbarea de limbă)'
         'language.restartRequired'= 'Repornește panoul pentru a aplica noua limbă.'
+        'dash.cpu'                = 'CPU'
+        'dash.ram'                = 'RAM'
+        'dash.disk'               = 'Disc'
+        'dash.alerts'             = 'Alerte'
+        'dash.alerts.none'        = 'Fără alerte — sistemul e în regulă.'
+        'dash.alert.cpu'          = 'CPU la {0}%'
+        'dash.alert.ram'          = 'RAM la {0}%'
+        'dash.alert.disk'         = 'Disc {0} folosit {1}%'
+        'dash.alert.uptime'       = 'Uptime mare ({0} zile) — repornește'
+        'dash.alert.battery'      = 'Baterie scăzută ({0}%)'
+        'dash.alert.pendingReboot'= 'Restart Windows Update în așteptare'
+        'sidebar.header'          = 'SISTEM'
+        'sidebar.host'            = 'Nume PC'
+        'sidebar.user'            = 'Utilizator'
+        'sidebar.os'              = 'Windows'
+        'sidebar.cpu'             = 'CPU'
+        'sidebar.ram'             = 'RAM total'
+        'sidebar.uptime'          = 'Pornit din'
+        'sidebar.ip'              = 'IP local'
+        'sidebar.lastSync'        = 'Ultima actualizare'
+        'sidebar.uptimeFmt'       = '{0}z {1}h {2}m'
     }
     'pt' = @{
         'app.tagline'             = 'Painel unificado de suporte técnico para Windows'
@@ -899,6 +1201,27 @@ $script:AtlasStringsDict = @{
         'header.languageTooltip'  = 'Mudar idioma do painel'
         'header.restartTooltip'   = 'Reiniciar o painel (aplicar mudança de idioma)'
         'language.restartRequired'= 'Reinicia o painel para aplicar o novo idioma.'
+        'dash.cpu'                = 'CPU'
+        'dash.ram'                = 'RAM'
+        'dash.disk'               = 'Disco'
+        'dash.alerts'             = 'Alertas'
+        'dash.alerts.none'        = 'Sem alertas — sistema saudável.'
+        'dash.alert.cpu'          = 'CPU em {0}%'
+        'dash.alert.ram'          = 'RAM em {0}%'
+        'dash.alert.disk'         = 'Disco {0} a {1}% cheio'
+        'dash.alert.uptime'       = 'Uptime alto ({0} dias) — reinicie'
+        'dash.alert.battery'      = 'Bateria fraca ({0}%)'
+        'dash.alert.pendingReboot'= 'Reinício do Windows Update pendente'
+        'sidebar.header'          = 'SISTEMA'
+        'sidebar.host'            = 'Hostname'
+        'sidebar.user'            = 'Utilizador'
+        'sidebar.os'              = 'Windows'
+        'sidebar.cpu'             = 'CPU'
+        'sidebar.ram'             = 'RAM total'
+        'sidebar.uptime'          = 'Ligado desde'
+        'sidebar.ip'              = 'IP local'
+        'sidebar.lastSync'        = 'Última atualização'
+        'sidebar.uptimeFmt'       = '{0}d {1}h {2}m'
     }
     'fr' = @{
         'app.tagline'             = 'Panneau unifié de support technique pour Windows'
@@ -934,6 +1257,27 @@ $script:AtlasStringsDict = @{
         'header.languageTooltip'  = 'Changer la langue du panneau'
         'header.restartTooltip'   = 'Redémarrer le panneau (appliquer le changement de langue)'
         'language.restartRequired'= 'Redémarre le panneau pour appliquer la nouvelle langue.'
+        'dash.cpu'                = 'CPU'
+        'dash.ram'                = 'RAM'
+        'dash.disk'               = 'Disque'
+        'dash.alerts'             = 'Alertes'
+        'dash.alerts.none'        = 'Aucune alerte — système OK.'
+        'dash.alert.cpu'          = 'CPU à {0}%'
+        'dash.alert.ram'          = 'RAM à {0}%'
+        'dash.alert.disk'         = 'Disque {0} à {1}% plein'
+        'dash.alert.uptime'       = 'Uptime élevé ({0} j) — redémarre'
+        'dash.alert.battery'      = 'Batterie faible ({0}%)'
+        'dash.alert.pendingReboot'= 'Redémarrage Windows Update en attente'
+        'sidebar.header'          = 'SYSTÈME'
+        'sidebar.host'            = 'Hostname'
+        'sidebar.user'            = 'Utilisateur'
+        'sidebar.os'              = 'Windows'
+        'sidebar.cpu'             = 'CPU'
+        'sidebar.ram'             = 'RAM totale'
+        'sidebar.uptime'          = 'Allumé depuis'
+        'sidebar.ip'              = 'IP locale'
+        'sidebar.lastSync'        = 'Dernière actu'
+        'sidebar.uptimeFmt'       = '{0}j {1}h {2}m'
     }
     'de' = @{
         'app.tagline'             = 'Einheitliches Windows-Supportpanel'
@@ -969,6 +1313,27 @@ $script:AtlasStringsDict = @{
         'header.languageTooltip'  = 'Panel-Sprache ändern'
         'header.restartTooltip'   = 'Panel neu starten (Sprache anwenden)'
         'language.restartRequired'= 'Starte das Panel neu, um die neue Sprache anzuwenden.'
+        'dash.cpu'                = 'CPU'
+        'dash.ram'                = 'RAM'
+        'dash.disk'               = 'Datenträger'
+        'dash.alerts'             = 'Warnungen'
+        'dash.alerts.none'        = 'Keine Warnungen — System OK.'
+        'dash.alert.cpu'          = 'CPU bei {0}%'
+        'dash.alert.ram'          = 'RAM bei {0}%'
+        'dash.alert.disk'         = 'Datenträger {0} zu {1}% voll'
+        'dash.alert.uptime'       = 'Lange Laufzeit ({0} T) — neu starten'
+        'dash.alert.battery'      = 'Akku niedrig ({0}%)'
+        'dash.alert.pendingReboot'= 'Windows-Update-Neustart ausstehend'
+        'sidebar.header'          = 'SYSTEM'
+        'sidebar.host'            = 'Hostname'
+        'sidebar.user'            = 'Benutzer'
+        'sidebar.os'              = 'Windows'
+        'sidebar.cpu'             = 'CPU'
+        'sidebar.ram'             = 'RAM gesamt'
+        'sidebar.uptime'          = 'An seit'
+        'sidebar.ip'              = 'Lokale IP'
+        'sidebar.lastSync'        = 'Letzte Aktualisierung'
+        'sidebar.uptimeFmt'       = '{0}T {1}h {2}m'
     }
     'it' = @{
         'app.tagline'             = 'Pannello unificato di supporto tecnico per Windows'
@@ -1004,6 +1369,27 @@ $script:AtlasStringsDict = @{
         'header.languageTooltip'  = 'Cambia lingua del pannello'
         'header.restartTooltip'   = 'Riavviare il pannello (applicare il cambio lingua)'
         'language.restartRequired'= 'Riavvia il pannello per applicare la nuova lingua.'
+        'dash.cpu'                = 'CPU'
+        'dash.ram'                = 'RAM'
+        'dash.disk'               = 'Disco'
+        'dash.alerts'             = 'Avvisi'
+        'dash.alerts.none'        = 'Nessun avviso — sistema OK.'
+        'dash.alert.cpu'          = 'CPU al {0}%'
+        'dash.alert.ram'          = 'RAM al {0}%'
+        'dash.alert.disk'         = 'Disco {0} al {1}% pieno'
+        'dash.alert.uptime'       = 'Uptime alto ({0} g) — riavvia'
+        'dash.alert.battery'      = 'Batteria scarica ({0}%)'
+        'dash.alert.pendingReboot'= 'Riavvio Windows Update in sospeso'
+        'sidebar.header'          = 'SISTEMA'
+        'sidebar.host'            = 'Hostname'
+        'sidebar.user'            = 'Utente'
+        'sidebar.os'              = 'Windows'
+        'sidebar.cpu'             = 'CPU'
+        'sidebar.ram'             = 'RAM totale'
+        'sidebar.uptime'          = 'Acceso da'
+        'sidebar.ip'              = 'IP locale'
+        'sidebar.lastSync'        = 'Ultimo aggiornamento'
+        'sidebar.uptimeFmt'       = '{0}g {1}h {2}m'
     }
 }
 
@@ -1814,6 +2200,19 @@ function Expand-AtlasXaml {
         'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
         'LANG_TOOLTIP'       = (Get-AtlasString 'header.languageTooltip')
         'RESTART_TOOLTIP'    = (Get-AtlasString 'header.restartTooltip')
+        'DASH_CPU'           = (Get-AtlasString 'dash.cpu')
+        'DASH_RAM'           = (Get-AtlasString 'dash.ram')
+        'DASH_DISK'          = (Get-AtlasString 'dash.disk')
+        'DASH_ALERTS'        = (Get-AtlasString 'dash.alerts')
+        'SIDEBAR_HEADER'     = (Get-AtlasString 'sidebar.header')
+        'SIDEBAR_HOST'       = (Get-AtlasString 'sidebar.host')
+        'SIDEBAR_USER'       = (Get-AtlasString 'sidebar.user')
+        'SIDEBAR_OS'         = (Get-AtlasString 'sidebar.os')
+        'SIDEBAR_CPU'        = (Get-AtlasString 'sidebar.cpu')
+        'SIDEBAR_RAM'        = (Get-AtlasString 'sidebar.ram')
+        'SIDEBAR_UPTIME'     = (Get-AtlasString 'sidebar.uptime')
+        'SIDEBAR_IP'         = (Get-AtlasString 'sidebar.ip')
+        'SIDEBAR_LASTSYNC'   = (Get-AtlasString 'sidebar.lastSync')
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -1886,6 +2285,268 @@ function New-AtlasToolCard {
                   Replace('{{ADMIN_BADGE}}', $adminBadge)
 
     return $xaml
+}
+
+# ---- Dashboard / Sidebar helpers ----------------------------------------
+
+# Cached static system info (gathered once — these don't change at runtime).
+function Get-AtlasStaticSystemInfo {
+    if ($script:AtlasStaticSysInfo) { return $script:AtlasStaticSysInfo }
+    $info = @{
+        HostName    = $env:COMPUTERNAME
+        UserName    = if ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" } else { $env:USERNAME }
+        OSCaption   = ''
+        OSVersion   = ''
+        OSBuild     = ''
+        CpuName     = ''
+        TotalRamGB  = 0
+        LastBoot    = $null
+        SysDriveLetter = ''
+        SysDriveTotalGB = 0
+    }
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        $info.OSCaption = ($os.Caption -replace '^Microsoft\s*', '').Trim()
+        $info.OSVersion = $os.Version
+        $info.OSBuild   = $os.BuildNumber
+        $info.LastBoot  = $os.LastBootUpTime
+        $info.SysDriveLetter = ($os.SystemDrive -replace ':', '')
+        # TotalVisibleMemorySize is in KB
+        $info.TotalRamGB = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
+    } catch { Write-AtlasLog "Get-AtlasStaticSystemInfo: OS query failed: $_" -Level WARN -Tool 'UI' }
+
+    try {
+        $cpu = Get-CimInstance -ClassName Win32_Processor -ErrorAction Stop | Select-Object -First 1
+        if ($cpu) { $info.CpuName = ($cpu.Name -replace '\s+', ' ').Trim() }
+    } catch { Write-AtlasLog "Get-AtlasStaticSystemInfo: CPU query failed: $_" -Level WARN -Tool 'UI' }
+
+    try {
+        if ($info.SysDriveLetter) {
+            $disk = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DeviceID='$($info.SysDriveLetter):'" -ErrorAction Stop
+            if ($disk -and $disk.Size) {
+                $info.SysDriveTotalGB = [math]::Round($disk.Size / 1GB, 0)
+            }
+        }
+    } catch { Write-AtlasLog "Get-AtlasStaticSystemInfo: Disk query failed: $_" -Level WARN -Tool 'UI' }
+
+    $script:AtlasStaticSysInfo = $info
+    return $info
+}
+
+# Live snapshot — fast queries only (called every refresh tick).
+function Get-AtlasLiveSystemSnapshot {
+    $snap = @{
+        CpuPercent  = $null
+        RamPercent  = $null
+        RamUsedGB   = 0
+        RamTotalGB  = 0
+        DiskPercent = $null
+        DiskFreeGB  = 0
+        DiskTotalGB = 0
+        IpAddress   = ''
+        BatteryPct  = $null
+        Uptime      = $null
+        UptimeDays  = 0
+        PendingReboot = $false
+    }
+
+    $static = Get-AtlasStaticSystemInfo
+
+    try {
+        $cpuPerf = Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Processor `
+            -Filter "Name='_Total'" -ErrorAction Stop
+        if ($cpuPerf) { $snap.CpuPercent = [int]$cpuPerf.PercentProcessorTime }
+    } catch { }
+
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        if ($os) {
+            $totalKb = [double]$os.TotalVisibleMemorySize
+            $freeKb  = [double]$os.FreePhysicalMemory
+            if ($totalKb -gt 0) {
+                $snap.RamPercent = [int](100 - ($freeKb * 100 / $totalKb))
+                $snap.RamTotalGB = [math]::Round($totalKb / 1MB, 1)
+                $snap.RamUsedGB  = [math]::Round(($totalKb - $freeKb) / 1MB, 1)
+            }
+            if ($os.LastBootUpTime) {
+                $snap.Uptime = (Get-Date) - $os.LastBootUpTime
+                $snap.UptimeDays = [int]$snap.Uptime.TotalDays
+            }
+        }
+    } catch { }
+
+    try {
+        if ($static.SysDriveLetter) {
+            $disk = Get-CimInstance -ClassName Win32_LogicalDisk `
+                -Filter "DeviceID='$($static.SysDriveLetter):'" -ErrorAction Stop
+            if ($disk -and $disk.Size -gt 0) {
+                $snap.DiskTotalGB = [math]::Round($disk.Size / 1GB, 0)
+                $snap.DiskFreeGB  = [math]::Round($disk.FreeSpace / 1GB, 0)
+                $snap.DiskPercent = [int]((($disk.Size - $disk.FreeSpace) / $disk.Size) * 100)
+            }
+        }
+    } catch { }
+
+    try {
+        # Prefer Get-NetIPAddress (PS 5.1+ on Win8+); fallback to ipconfig parse
+        $ip = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
+            Where-Object { $_.PrefixOrigin -ne 'WellKnown' -and $_.IPAddress -notmatch '^169\.254\.' -and $_.IPAddress -ne '127.0.0.1' } |
+            Sort-Object -Property InterfaceMetric |
+            Select-Object -First 1
+        if ($ip) { $snap.IpAddress = $ip.IPAddress }
+    } catch { }
+
+    try {
+        $bat = Get-CimInstance -ClassName Win32_Battery -ErrorAction Stop |
+            Select-Object -First 1
+        if ($bat -and $null -ne $bat.EstimatedChargeRemaining) {
+            $snap.BatteryPct = [int]$bat.EstimatedChargeRemaining
+        }
+    } catch { }
+
+    try {
+        $pendingPaths = @(
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending',
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
+        )
+        foreach ($p in $pendingPaths) {
+            if (Test-Path $p) { $snap.PendingReboot = $true; break }
+        }
+    } catch { }
+
+    return $snap
+}
+
+# Build localized alert list from the live snapshot.
+function Get-AtlasDashboardAlerts {
+    param([hashtable]$Snap)
+    $alerts = @()
+    if ($null -ne $Snap.CpuPercent -and $Snap.CpuPercent -ge 90) {
+        $alerts += (Get-AtlasString 'dash.alert.cpu' $Snap.CpuPercent)
+    }
+    if ($null -ne $Snap.RamPercent -and $Snap.RamPercent -ge 90) {
+        $alerts += (Get-AtlasString 'dash.alert.ram' $Snap.RamPercent)
+    }
+    if ($null -ne $Snap.DiskPercent -and $Snap.DiskPercent -ge 90) {
+        $static = Get-AtlasStaticSystemInfo
+        $alerts += (Get-AtlasString 'dash.alert.disk' "$($static.SysDriveLetter):" $Snap.DiskPercent)
+    }
+    if ($Snap.UptimeDays -ge 7) {
+        $alerts += (Get-AtlasString 'dash.alert.uptime' $Snap.UptimeDays)
+    }
+    if ($null -ne $Snap.BatteryPct -and $Snap.BatteryPct -le 20) {
+        $alerts += (Get-AtlasString 'dash.alert.battery' $Snap.BatteryPct)
+    }
+    if ($Snap.PendingReboot) {
+        $alerts += (Get-AtlasString 'dash.alert.pendingReboot')
+    }
+    return ,$alerts
+}
+
+# Initialize dashboard + sidebar data — pulls in cached info once,
+# then sets up a DispatcherTimer to refresh live metrics every N seconds.
+function Initialize-AtlasDashboard {
+    param([Parameter(Mandatory)] $Window)
+
+    $static = Get-AtlasStaticSystemInfo
+
+    $sideHost     = $Window.FindName('SideHost')
+    $sideUser     = $Window.FindName('SideUser')
+    $sideOS       = $Window.FindName('SideOS')
+    $sideCpu      = $Window.FindName('SideCpu')
+    $sideRam      = $Window.FindName('SideRam')
+    $sideUptime   = $Window.FindName('SideUptime')
+    $sideIp       = $Window.FindName('SideIp')
+    $sideLastSync = $Window.FindName('SideLastSync')
+
+    if ($sideHost) { $sideHost.Text = $static.HostName }
+    if ($sideUser) { $sideUser.Text = $static.UserName }
+    if ($sideOS) {
+        $os = if ($static.OSBuild) { "$($static.OSCaption) (build $($static.OSBuild))" } else { $static.OSCaption }
+        $sideOS.Text = $os
+    }
+    if ($sideCpu) { $sideCpu.Text = $static.CpuName }
+    if ($sideRam) {
+        $totalGB = $static.TotalRamGB
+        $sideRam.Text = "$totalGB GB"
+    }
+    if ($sideUptime -and $static.LastBoot) {
+        $sideUptime.Text = $static.LastBoot.ToString('yyyy-MM-dd HH:mm')
+    }
+
+    $dashCpuVal   = $Window.FindName('DashCpuValue')
+    $dashCpuBar   = $Window.FindName('DashCpuBar')
+    $dashRamVal   = $Window.FindName('DashRamValue')
+    $dashRamBar   = $Window.FindName('DashRamBar')
+    $dashDiskVal  = $Window.FindName('DashDiskValue')
+    $dashDiskBar  = $Window.FindName('DashDiskBar')
+    $dashAlerts   = $Window.FindName('DashAlertsText')
+
+    $tickAction = {
+        try {
+            $snap = Get-AtlasLiveSystemSnapshot
+
+            if ($null -ne $snap.CpuPercent) {
+                $dashCpuVal.Text = "{0}%" -f $snap.CpuPercent
+                $dashCpuBar.Value = $snap.CpuPercent
+            }
+            if ($null -ne $snap.RamPercent) {
+                $dashRamVal.Text = "{0}% ({1}/{2} GB)" -f $snap.RamPercent, $snap.RamUsedGB, $snap.RamTotalGB
+                $dashRamBar.Value = $snap.RamPercent
+            }
+            if ($null -ne $snap.DiskPercent) {
+                $dashDiskVal.Text = "{0}% ({1} GB free)" -f $snap.DiskPercent, $snap.DiskFreeGB
+                $dashDiskBar.Value = $snap.DiskPercent
+            }
+
+            if ($sideIp -and $snap.IpAddress) { $sideIp.Text = $snap.IpAddress }
+            if ($sideUptime -and $snap.Uptime) {
+                $static2 = Get-AtlasStaticSystemInfo
+                if ($static2.LastBoot) {
+                    $upFmt = Get-AtlasString 'sidebar.uptimeFmt' `
+                        ([int]$snap.Uptime.TotalDays) `
+                        ($snap.Uptime.Hours) `
+                        ($snap.Uptime.Minutes)
+                    $sideUptime.Text = "$($static2.LastBoot.ToString('yyyy-MM-dd HH:mm'))  ($upFmt)"
+                }
+            }
+
+            $alerts = Get-AtlasDashboardAlerts -Snap $snap
+            if ($alerts.Count -eq 0) {
+                $dashAlerts.Text = Get-AtlasString 'dash.alerts.none'
+                $dashAlerts.Foreground = [System.Windows.Media.Brushes]::ForestGreen
+            } else {
+                $dashAlerts.Text = '⚠  ' + ($alerts -join '   •   ')
+                $dashAlerts.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+            }
+
+            if ($sideLastSync) {
+                $sideLastSync.Text = (Get-Date).ToString('HH:mm:ss')
+            }
+        } catch {
+            Write-AtlasLog "Dashboard tick failed: $_" -Level WARN -Tool 'UI'
+        }
+    }
+
+    # First tick immediately so the panel doesn't show "--" while loading.
+    & $tickAction
+
+    $timer = New-Object System.Windows.Threading.DispatcherTimer
+    $timer.Interval = [TimeSpan]::FromSeconds(2)
+    $timer.Add_Tick($tickAction)
+    $timer.Start()
+
+    # Stop the timer cleanly when the window closes.
+    $Window.Add_Closed({
+        try {
+            if ($script:AtlasDashboardTimer) {
+                $script:AtlasDashboardTimer.Stop()
+                $script:AtlasDashboardTimer = $null
+            }
+        } catch { }
+    })
+
+    $script:AtlasDashboardTimer = $timer
 }
 
 function Show-AtlasWindow {
@@ -2147,6 +2808,13 @@ try {
     $script:MainWindow = $window
     $script:Branding = $Branding
     $script:AllTools = $Tools
+
+    # Populate dashboard + sidebar and start the live refresh timer.
+    try {
+        Initialize-AtlasDashboard -Window $window
+    } catch {
+        Write-AtlasLog "Initialize-AtlasDashboard failed: $_" -Level WARN -Tool 'UI'
+    }
 
     [void]$window.ShowDialog()
 }

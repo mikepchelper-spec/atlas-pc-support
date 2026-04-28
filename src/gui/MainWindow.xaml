@@ -231,8 +231,9 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>   <!-- Header -->
+            <RowDefinition Height="Auto"/>   <!-- Dashboard banner -->
             <RowDefinition Height="Auto"/>   <!-- Tabs -->
-            <RowDefinition Height="*"/>      <!-- Content -->
+            <RowDefinition Height="*"/>      <!-- Sidebar + Content -->
             <RowDefinition Height="Auto"/>   <!-- Footer -->
         </Grid.RowDefinitions>
 
@@ -304,8 +305,125 @@
             </Grid>
         </Border>
 
-        <!-- TABS / CATEGORÍAS -->
+        <!-- DASHBOARD BANNER (live system metrics) -->
         <Border Grid.Row="1"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="24,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="2*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- CPU -->
+                <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{{DASH_CPU}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1"
+                                   x:Name="DashCpuValue"
+                                   Text="--%"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"/>
+                    </Grid>
+                    <ProgressBar x:Name="DashCpuBar"
+                                 Height="6"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 Background="{StaticResource SurfaceAltBrush}"
+                                 Foreground="{StaticResource AccentBrush}"
+                                 BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- RAM -->
+                <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{{DASH_RAM}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1"
+                                   x:Name="DashRamValue"
+                                   Text="--%"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"/>
+                    </Grid>
+                    <ProgressBar x:Name="DashRamBar"
+                                 Height="6"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 Background="{StaticResource SurfaceAltBrush}"
+                                 Foreground="{StaticResource AccentBrush}"
+                                 BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- DISK (system drive) -->
+                <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{{DASH_DISK}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1"
+                                   x:Name="DashDiskValue"
+                                   Text="--%"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"/>
+                    </Grid>
+                    <ProgressBar x:Name="DashDiskBar"
+                                 Height="6"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 Background="{StaticResource SurfaceAltBrush}"
+                                 Foreground="{StaticResource AccentBrush}"
+                                 BorderThickness="0"/>
+                </StackPanel>
+
+                <!-- ALERTS -->
+                <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                    <TextBlock Text="{{DASH_ALERTS}}"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,4"/>
+                    <TextBlock x:Name="DashAlertsText"
+                               Text="--"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12"
+                               TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- TABS / CATEGORÍAS -->
+        <Border Grid.Row="2"
                 Background="{{BG_COLOR}}"
                 Padding="24,12,24,0">
             <StackPanel x:Name="CategoryBar"
@@ -313,22 +431,143 @@
                         VerticalAlignment="Center"/>
         </Border>
 
-        <!-- CONTENT -->
-        <ScrollViewer Grid.Row="2"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled"
-                      Padding="24,12,24,12">
-            <ItemsControl x:Name="ToolsGrid">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
-        </ScrollViewer>
+        <!-- SIDEBAR + CONTENT -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- SIDEBAR (always visible PC info) -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,1,1,0"
+                    Padding="16,16,16,16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <TextBlock Text="{{SIDEBAR_HEADER}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,12"/>
+
+                        <!-- Hostname -->
+                        <TextBlock Text="{{SIDEBAR_HOST}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideHost"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- User -->
+                        <TextBlock Text="{{SIDEBAR_USER}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideUser"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- OS -->
+                        <TextBlock Text="{{SIDEBAR_OS}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideOS"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- CPU model -->
+                        <TextBlock Text="{{SIDEBAR_CPU}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideCpu"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- RAM total -->
+                        <TextBlock Text="{{SIDEBAR_RAM}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideRam"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- Uptime -->
+                        <TextBlock Text="{{SIDEBAR_UPTIME}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideUptime"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- IP -->
+                        <TextBlock Text="{{SIDEBAR_IP}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideIp"
+                                   Text="--"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontSize="12"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- Last sync (when dashboard was last refreshed) -->
+                        <TextBlock Text="{{SIDEBAR_LASTSYNC}}"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="10"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock x:Name="SideLastSync"
+                                   Text="--"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   FontSize="11"
+                                   FontStyle="Italic"
+                                   Margin="0,0,0,4"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- CONTENT -->
+            <ScrollViewer Grid.Column="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="24,12,24,12">
+                <ItemsControl x:Name="ToolsGrid">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
 
         <!-- FOOTER -->
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0"
