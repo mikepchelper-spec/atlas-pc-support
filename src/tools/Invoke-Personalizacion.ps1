@@ -71,9 +71,16 @@ $T = @{
         Opt8           = '[8] Only: Hide Search bar'
         Opt9           = '[9] Only: Remove Widgets + Teams Chat icon'
         OptA           = '[A] MINIMAL MODE (taskbar+search+widgets+chat in one)'
-        Opt0           = '[0] Back / Quit'
+        OptB           = '[B] APPLY ALL SAFE TWEAKS (1-6 + A)'
+        Opt0           = '[0] Back to panel'
         SelectOpt      = 'Select option:'
         ErrorPrefix    = 'Error: '
+        ConfirmPrompt  = 'Apply this tweak? [Y/N]:'
+        Cancelled      = 'Cancelled. Nothing was changed.'
+        PressEnter     = 'Press ENTER to return to the menu...'
+        AllHeader      = 'Applying ALL safe tweaks now...'
+        AllDone        = 'All tweaks applied. Review the messages above.'
+        Bye            = 'Returning to panel...'
     }
     es = @{
         WindowTitle    = 'ATLAS PC SUPPORT - PERSONALIZACION AVANZADA'
@@ -112,9 +119,16 @@ $T = @{
         Opt8           = '[8] Solo: Ocultar barra de Busqueda'
         Opt9           = '[9] Solo: Quitar Widgets + icono Chat Teams'
         OptA           = '[A] MODO MINIMAL (taskbar+search+widgets+chat en uno)'
-        Opt0           = '[0] Volver / Salir'
+        OptB           = '[B] APLICAR TODOS LOS TWEAKS SEGUROS (1-6 + A)'
+        Opt0           = '[0] Volver al panel'
         SelectOpt      = 'Seleccione opcion:'
         ErrorPrefix    = 'Error: '
+        ConfirmPrompt  = 'Aplicar este tweak? [S/N]:'
+        Cancelled      = 'Cancelado. No se ha cambiado nada.'
+        PressEnter     = 'Pulsa ENTER para volver al menu...'
+        AllHeader      = 'Aplicando TODOS los tweaks seguros...'
+        AllDone        = 'Todos los tweaks aplicados. Revisa los mensajes arriba.'
+        Bye            = 'Volviendo al panel...'
     }
 }
 $lang = _Atlas-DetectLang
@@ -162,6 +176,19 @@ function Show-Header {
     Write-Centered $L.Brand "Yellow"
     Write-Centered $L.Sep "Yellow"
     Write-Host "`n"
+}
+
+function Confirm-AtlasTweak {
+    Write-Host ''
+    Write-Centered $L.ConfirmPrompt 'Yellow'
+    $resp = Read-Host
+    return ($resp -match '^[SsYy]$')
+}
+
+function Wait-Return {
+    Write-Host ''
+    Write-Centered $L.PressEnter 'Gray'
+    [void](Read-Host)
 }
 
 # ==========================================
@@ -275,12 +302,37 @@ function Toggle-Watermark {
     } catch { Write-Centered $L.RegistryErr "Red" }
 }
 
+function Disable-StartSuggestions {
+    try {
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_TrackProgs" -Value 0 -Force
+        Write-Centered $L.StartSuggOff "Green"
+    } catch { Write-Centered $L.RegistryErr "Red" }
+}
+
+function Apply-AllSafeTweaks {
+    param([string]$WallpaperPath)
+    Write-Host ''
+    Write-Centered $L.AllHeader 'Cyan'
+    Write-Host ''
+    Set-AtlasWallpaper -PathImagen $WallpaperPath
+    Set-DarkTheme
+    Set-AccentColor
+    Optimize-Taskbar
+    Toggle-Watermark
+    Disable-StartSuggestions
+    Apply-Win11Minimal
+    Write-Host ''
+    Write-Centered $L.AllDone 'Green'
+}
+
 # ==========================================
 # MAIN LOOP
 # ==========================================
 $ejecutar = $true
 $ScriptPath = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'AtlasPC' } else { $env:TEMP }
 if (-not (Test-Path $ScriptPath)) { New-Item -ItemType Directory -Path $ScriptPath -Force | Out-Null }
+
+$wallpaperPath = "$ScriptPath\wallpaper.jpg"
 
 while ($ejecutar) {
     Show-Header
@@ -300,6 +352,7 @@ while ($ejecutar) {
     Write-Host "$M $($L.Opt8)"
     Write-Host "$M $($L.Opt9)"
     Write-Host "$M $($L.OptA)" -ForegroundColor Green
+    Write-Host "$M $($L.OptB)" -ForegroundColor Magenta
     Write-Host "`n"
     Write-Host "$M $($L.Opt0)" -ForegroundColor Gray
     Write-Host "`n"
@@ -307,25 +360,26 @@ while ($ejecutar) {
 
     $sel = Read-Host
 
+    $ran = $false
     switch ($sel) {
-        '1' {
-            Set-AtlasWallpaper -PathImagen "$ScriptPath\wallpaper.jpg"
-            Start-Sleep 2
+        '1' { if (Confirm-AtlasTweak) { Set-AtlasWallpaper -PathImagen $wallpaperPath } else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '2' { if (Confirm-AtlasTweak) { Set-DarkTheme }                 else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '3' { if (Confirm-AtlasTweak) { Set-AccentColor }               else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '4' { if (Confirm-AtlasTweak) { Optimize-Taskbar }              else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '5' { if (Confirm-AtlasTweak) { Toggle-Watermark }              else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '6' { if (Confirm-AtlasTweak) { Disable-StartSuggestions }      else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '7' { if (Confirm-AtlasTweak) { Align-TaskbarLeft }             else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '8' { if (Confirm-AtlasTweak) { Hide-SearchBar }                else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '9' { if (Confirm-AtlasTweak) { Hide-Widgets }                  else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        { $_ -in 'A','a' } { if (Confirm-AtlasTweak) { Apply-Win11Minimal } else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        { $_ -in 'B','b' } { if (Confirm-AtlasTweak) { Apply-AllSafeTweaks -WallpaperPath $wallpaperPath } else { Write-Centered $L.Cancelled 'Gray' } ; $ran = $true }
+        '0' {
+            Write-Centered $L.Bye 'Gray'
+            $ejecutar = $false
         }
-        '2' { Set-DarkTheme; Start-Sleep 1 }
-        '3' { Set-AccentColor; Start-Sleep 1 }
-        '4' { Optimize-Taskbar; Start-Sleep 2 }
-        '5' { Toggle-Watermark; Start-Sleep 1 }
-        '6' {
-             Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_TrackProgs" -Value 0 -Force
-             Write-Centered $L.StartSuggOff "Green"
-             Start-Sleep 1
-        }
-        '7' { Align-TaskbarLeft; Start-Sleep 2 }
-        '8' { Hide-SearchBar;   Start-Sleep 2 }
-        '9' { Hide-Widgets;     Start-Sleep 2 }
-        { $_ -in 'A','a' } { Apply-Win11Minimal; Start-Sleep 2 }
-        '0' { $ejecutar = $false }
+        default { }
     }
+
+    if ($ran) { Wait-Return }
 }
 }
