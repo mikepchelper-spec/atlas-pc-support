@@ -184,6 +184,7 @@ atlas-pc-support/
 ├── config/
 │   └── tools.json            ← Tool manifest (see "Add a tool" below).
 ├── docs/                     ← Guides + screenshots.
+├── onboarding/               ← Standalone RustDesk client onboarding installer.
 ├── src/
 │   ├── Launcher.ps1          ← Dev entry point.
 │   ├── lib/                  ← Helpers (Branding, Admin, Logging, Dependencies, ToolRunner, PS7).
