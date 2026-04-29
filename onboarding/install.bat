@@ -28,6 +28,19 @@ REM      ID and password generated for this PC.
 REM   7. Copy them into Vaultwarden + RustDesk API Admin.
 REM ============================================================
 
+REM ---- Strip Mark of the Web (MotW) before self-elevation ----
+REM When this .bat is downloaded from a browser, Windows attaches an
+REM Alternate Data Stream (Zone.Identifier) that triggers a SmartScreen
+REM "Open File - Security Warning" dialog every time it is launched.
+REM The user already accepted that warning when they double-clicked the
+REM file. When we self-elevate via Start-Process -Verb RunAs below, the
+REM new admin instance re-checks MotW and shows the SAME dialog AGAIN,
+REM which is confusing for non-technical clients.
+REM Unblock-File removes the Zone.Identifier ADS so the post-elevation
+REM launch does not re-prompt. The first prompt (before this line runs)
+REM is unavoidable since it precedes any code execution.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Unblock-File -LiteralPath '%~f0'" >nul 2>&1
+
 REM ---- Self-elevate to administrator -------------------------
 fltmc >nul 2>&1
 if %errorlevel% neq 0 (
