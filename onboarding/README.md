@@ -10,14 +10,14 @@ A two-piece installer that bootstraps RustDesk on a new client's PC, pre-configu
 |---|---|---|
 | `onboarding/install.bat` | **public** (this repo) | Clients download and double-click. Contains no secrets. |
 | `install-rustdesk.ps1` | **private** ([atlas-pc-support-handoff](https://github.com/mikepchelper-spec/atlas-pc-support-handoff)) | Contains the exported RustDesk *Server Config* string (host + ed25519 pubkey). The pubkey is technically public-by-design, but keeping it out of a public, search-indexed repo is a sensible defense in depth. |
-| Cloudflare Worker `atlas-launcher` | Cloudflare account | Routes `tools.atlaspcsupport.com/install.ps1` → fetches the .ps1 from the **private** repo using a GitHub PAT stored as a Worker secret. |
+| Cloudflare Worker `atlas-launcher` | Cloudflare account | Routes `toolspanel.atlaspcsupport.com/install.ps1` → fetches the .ps1 from the **private** repo using a GitHub PAT stored as a Worker secret. |
 
 End-to-end flow:
 
 ```
-client browser   →   tools.atlaspcsupport.com/install.bat   →   GitHub raw (public repo)
+client browser   →   toolspanel.atlaspcsupport.com/install.bat   →   GitHub raw (public repo)
 double-click     →   install.bat self-elevates              →   UAC prompt
-.bat fetches     →   tools.atlaspcsupport.com/install.ps1   →   Cloudflare Worker
+.bat fetches     →   toolspanel.atlaspcsupport.com/install.ps1   →   Cloudflare Worker
                                                              ↓
                                                      api.github.com (Bearer $GITHUB_PAT)
                                                              ↓
@@ -31,7 +31,7 @@ double-click     →   install.bat self-elevates              →   UAC prompt
 2. Send them a one-shot **AnyDesk** session (free for personal use). Ask them to install AnyDesk, give you their 9-digit code.
 3. Connect to their PC. Open their browser. Go to:
    ```
-   https://tools.atlaspcsupport.com/install.bat
+   https://toolspanel.atlaspcsupport.com/install.bat
    ```
 4. Save the file → double-click → "More info" → "Run anyway" → UAC → wait ~60-90 seconds.
 5. A WinForms popup appears with the **ID** and **Password** for this PC. Hit `Copiar`, paste into Vaultwarden + RustDesk API Admin.
@@ -96,14 +96,14 @@ Replace your current Worker code with the version in [`docs/CLOUDFLARE-DOMAIN.md
 
 Click **"Save and deploy"**.
 
-That's it. The whole flow is now live at `https://tools.atlaspcsupport.com/install.bat`.
+That's it. The whole flow is now live at `https://toolspanel.atlaspcsupport.com/install.bat`.
 
 ## Quick sanity check
 
 After step 5, open a private/incognito browser tab and visit:
 
-- `https://tools.atlaspcsupport.com/install.bat` → should download a .bat file (~3 KB).
-- `https://tools.atlaspcsupport.com/install.ps1` → should display the PowerShell script (after step 2, with your real config inside).
+- `https://toolspanel.atlaspcsupport.com/install.bat` → should download a .bat file (~3 KB).
+- `https://toolspanel.atlaspcsupport.com/install.ps1` → should display the PowerShell script (after step 2, with your real config inside).
 
 If you get a 502 or empty response on `/install.ps1`, double-check:
 - The PAT has Contents:Read on the handoff repo.
@@ -115,7 +115,7 @@ If you get a 502 or empty response on `/install.ps1`, double-check:
 - The **public ed25519 key** of your hbbs is, by design, public. Keeping it in a private repo is mild defense in depth, not a hard security requirement. The matching **private key** never leaves `/var/lib/docker/volumes/.../id_ed25519` on your Oracle ARM.
 - **Each client gets a unique random 16-character password.** Never reuse a password across clients. If one is compromised, only that client is affected and you can rotate it on a new visit.
 - The recovery file at `C:\ProgramData\Atlas\rustdesk-onboarding-*.txt` contains the password in plain text. This is fine while you're on the machine in the same session — but consider deleting it via Atlas's `EntregaPC` checklist before handover, or include it in your standard PC-handover delivery routine.
-- The CF Worker URL `tools.atlaspcsupport.com/install.ps1` is *publicly downloadable* — anyone hitting the URL gets the file. The PAT only protects the GitHub side. If you want stronger protection (e.g., rate-limiting, allow-list of installers), add Cloudflare WAF rules or require a query-string token validated by the Worker.
+- The CF Worker URL `toolspanel.atlaspcsupport.com/install.ps1` is *publicly downloadable* — anyone hitting the URL gets the file. The PAT only protects the GitHub side. If you want stronger protection (e.g., rate-limiting, allow-list of installers), add Cloudflare WAF rules or require a query-string token validated by the Worker.
 
 ## Future integration with Atlas (Phase 2)
 
