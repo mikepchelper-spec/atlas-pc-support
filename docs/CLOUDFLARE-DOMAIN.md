@@ -9,12 +9,12 @@ irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/la
 Puedes servirlo bajo **tu dominio** así:
 
 ```powershell
-irm https://tools.atlaspcsupport.com | iex
+irm https://toolspanel.atlaspcsupport.com | iex
 ```
 
 Gratis, 2 minutos de setup con Cloudflare Workers.
 
-El mismo Worker también sirve `https://tools.atlaspcsupport.com/install.bat` (instalador de RustDesk para clientes nuevos, ver [`onboarding/README.md`](../onboarding/README.md)).
+El mismo Worker también sirve `https://toolspanel.atlaspcsupport.com/install.bat` (instalador de RustDesk para clientes nuevos, ver [`onboarding/README.md`](../onboarding/README.md)).
 
 ---
 
@@ -42,10 +42,10 @@ Cloudflare al añadir el sitio). Trámite normal de 15 min - 24 h.
 
 Ya funciona bajo `atlas-launcher.<tu-subdominio>.workers.dev`. Falta atarlo a tu dominio.
 
-### 2. Ruta personalizada `tools.atlaspcsupport.com`
+### 2. Ruta personalizada `toolspanel.atlaspcsupport.com`
 
 1. En el Worker → pestaña **Settings** → **Triggers** → **Add Custom Domain**.
-2. Escribe `tools.atlaspcsupport.com`.
+2. Escribe `toolspanel.atlaspcsupport.com`.
 3. Cloudflare crea el DNS automáticamente y propaga en minutos.
 
 ### 3. (Solo si vas a usar `/install.ps1`) — Añadir el GitHub PAT
@@ -74,19 +74,19 @@ guardado como secret.
 
 ```powershell
 # Launcher principal:
-irm https://tools.atlaspcsupport.com | iex
+irm https://toolspanel.atlaspcsupport.com | iex
 
 # Forzar bypass del cache de Cloudflare/PowerShell:
-irm "https://tools.atlaspcsupport.com/?v=$(Get-Random)" | iex
+irm "https://toolspanel.atlaspcsupport.com/?v=$(Get-Random)" | iex
 
 # Pinnear versión (cuando hagamos releases con tags):
-irm "https://tools.atlaspcsupport.com?ref=v1.2.0" | iex
+irm "https://toolspanel.atlaspcsupport.com?ref=v1.2.0" | iex
 
 # Probar un branch específico antes de merge:
-irm "https://tools.atlaspcsupport.com?ref=devin/alguna-rama" | iex
+irm "https://toolspanel.atlaspcsupport.com?ref=devin/alguna-rama" | iex
 
 # Onboarding installer (descarga el .bat):
-# Abrir en navegador: https://tools.atlaspcsupport.com/install.bat
+# Abrir en navegador: https://toolspanel.atlaspcsupport.com/install.bat
 ```
 
 ---
@@ -220,7 +220,7 @@ export default {
 Si no quieres tocar código de Workers (y no necesitas el endpoint privado `/install.ps1`):
 
 1. Cloudflare Dashboard → tu dominio → **Rules** → **Page Rules** → **Create Page Rule**.
-2. URL: `tools.atlaspcsupport.com/*`
+2. URL: `toolspanel.atlaspcsupport.com/*`
 3. Settings: **Forwarding URL** → **302 Temporary Redirect** →
    `https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1`
 4. Save.

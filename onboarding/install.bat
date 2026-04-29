@@ -11,7 +11,7 @@ REM lives in the PRIVATE handoff repo and is served via a
 REM Cloudflare Worker that injects a GitHub PAT.
 REM
 REM Public URL (what clients hit):
-REM   https://tools.atlaspcsupport.com/install.ps1
+REM   https://toolspanel.atlaspcsupport.com/install.ps1
 REM
 REM Source of this .bat:
 REM   https://github.com/mikepchelper-spec/atlas-pc-support
@@ -19,7 +19,7 @@ REM
 REM Usage (technician-side, during a one-shot AnyDesk session):
 REM   1. Open the client's web browser.
 REM   2. Visit:
-REM        https://tools.atlaspcsupport.com/install.bat
+REM        https://toolspanel.atlaspcsupport.com/install.bat
 REM   3. Save and double-click the file.
 REM   4. Accept the Windows SmartScreen warning ("More info" -> "Run anyway").
 REM   5. Accept UAC.
@@ -57,7 +57,7 @@ REM ---- Run the PowerShell installer (served by CF Worker) -----
 REM The Worker fetches install-rustdesk.ps1 from the PRIVATE repo
 REM (atlas-pc-support-handoff) using a GitHub PAT stored as a
 REM Worker secret. See docs/CLOUDFLARE-DOMAIN.md.
-set "PS_URL=https://tools.atlaspcsupport.com/install.ps1"
+set "PS_URL=https://toolspanel.atlaspcsupport.com/install.ps1"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "& {Set-ExecutionPolicy Bypass -Scope Process -Force; iex (iwr -UseBasicParsing -Uri '%PS_URL%').Content}"
 
