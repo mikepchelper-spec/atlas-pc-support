@@ -50,7 +50,7 @@ The panel ships with **20 tools** grouped in 7 categories. Every tool runs in it
 | Tool | Description |
 |---|---|
 | **Parts Upgrade Advisor** | Analyzes RAM, CPU (socket / BGA) and storage (NVMe / SATA / M.2). Buying recommendations and warnings. |
-| **Full System Report** | Comprehensive HTML report: system, hardware, CPU, RAM, storage, network, battery, BSOD and Upgrade Advisor. |
+| **Full System Report** | Comprehensive HTML report: system, hardware, CPU, RAM, storage, network, battery, BSOD, GPU slowness triage and Upgrade Advisor. |
 | **Event Log Analyzer** | Reads Event Viewer and interprets errors: reboots, hardware (WHEA / disk), crashes, drivers, security. Exports HTML. |
 | **GPU Slowness Triage** | Safe read-only GPU/display-driver triage to avoid promising maintenance when slowness may come from GPU instability. |
 
