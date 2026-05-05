@@ -73,6 +73,7 @@ function Invoke-DiagnosticoMaster {
             H7Bsod        = '7. Critical events log'
             H8Battery     = '8. Power analysis'
             H9Upgrade     = '9. ⚡ UPGRADE RECOMMENDATIONS - ATLAS ADVISOR'
+            H10GpuTriage  = '10. GPU / display-driver slowness triage'
             BsodNone      = 'No recent errors.'
             HtmlFooter1   = 'This report was generated automatically by ATLAS PC SUPPORT v82'
             HtmlFooter2   = 'ATLAS PC SUPPORT &copy; {0} - Huanuco, Peru'
@@ -228,6 +229,51 @@ function Invoke-DiagnosticoMaster {
             OsActObs      = 'Update to Windows 10/11 urgently.'
             OsCostObs     = 'Windows license: S/50-150'
             OsImpactObs   = 'Unpatched system = vulnerable to malware and ransomware.'
+            GpuStep       = '8B. GPU slowness triage...'
+            GpuVerdictOk  = 'APTO'
+            GpuVerdictObs = 'OBSERVATION'
+            GpuVerdictRisk= 'GPU/DRIVER RISK'
+            GpuAdviceOk   = 'No strong GPU/driver failure signal was found. It is reasonable to continue with normal maintenance, while still checking SSD/RAM/CPU/software.'
+            GpuAdviceObs  = 'Moderate GPU/driver signals were found. Warn the customer that maintenance may help, but there is no guarantee.'
+            GpuAdviceRisk = 'Do not promise that thermal paste or a Windows reinstall will fix the slowness. Validate GPU/driver/hardware first and protect customer data.'
+            GpuNoFindings = 'No strong GPU/driver red flags found.'
+            GpuLimits     = 'Safe triage only: no stress test. It may not catch intermittent thermal GPU failures.'
+            GpuInv        = 'GPU inventory'
+            GpuSignals    = 'Risk signals'
+            GpuRecentEv   = 'Relevant recent events'
+            GpuSeverity   = 'Severity'
+            GpuSignal     = 'Signal'
+            GpuEvidence   = 'Evidence'
+            GpuAction     = 'Recommended action'
+            GpuPoints     = 'Points'
+            GpuDriverOld  = 'Very old GPU driver'
+            GpuDriverOldEv= '{0} driver date {1}'
+            GpuDriverAct  = 'Update or clean-install GPU driver, then retest.'
+            GpuBasicDrv   = 'Basic display driver'
+            GpuBasicAct   = 'Install or repair the vendor GPU driver before promising performance work.'
+            GpuDeviceErr  = 'GPU device error'
+            GpuDeviceAct  = 'Fix device/driver state before maintenance promises.'
+            GpuTdrRep     = 'Repeated TDR/LiveKernelEvent'
+            GpuTdrSeen    = 'TDR/LiveKernelEvent seen'
+            GpuTdrEv      = '{0} TDR-like event(s) in last 30 days'
+            GpuTdrAct     = 'Treat as GPU/driver instability until proven otherwise.'
+            GpuDriverEvt  = 'Repeated display driver events'
+            GpuDriverEvtEv= '{0} vendor/dxg display events'
+            GpuDriverEvtAct = 'Review GPU driver and hardware stability.'
+            GpuWheaRep    = 'Repeated WHEA hardware events'
+            GpuWheaSeen   = 'WHEA hardware event'
+            GpuWheaEv     = '{0} WHEA event(s)'
+            GpuWheaAct    = 'Do not treat as simple software slowness; validate hardware.'
+            GpuBugcheck   = 'Video bugcheck signature'
+            GpuBugcheckEv = '{0} video bugcheck/TDR signature(s)'
+            GpuBugcheckAct= 'Prioritize GPU/driver diagnosis over cleanup/reinstall promises.'
+            GpuLiveKernel = 'Recent LiveKernel/minidump files'
+            GpuLiveKernelEv = '{0} dump file(s) under LiveKernelReports/Minidump'
+            GpuLiveKernelAct = 'Inspect dumps or treat as instability evidence before normal maintenance promises.'
+            GpuRiskLine   = 'GPU triage: {0} ({1}/100)'
+            SevHigh       = 'High'
+            SevMed        = 'Medium'
+            SevLow        = 'Low'
         }
         es = @{
             HdrTitle      = 'A T L A S   P C   S U P P O R T'
@@ -279,6 +325,7 @@ function Invoke-DiagnosticoMaster {
             H7Bsod        = '7. Registro de Eventos Criticos'
             H8Battery     = '8. Analisis de Energia'
             H9Upgrade     = '9. ⚡ RECOMENDACIONES DE UPGRADE - ATLAS ADVISOR'
+            H10GpuTriage  = '10. Triaje de lentitud por GPU / driver de video'
             BsodNone      = 'Sin errores recientes.'
             HtmlFooter1   = 'Este informe fue generado automaticamente por ATLAS PC SUPPORT v82'
             HtmlFooter2   = 'ATLAS PC SUPPORT &copy; {0} - Huanuco, Peru'
@@ -434,6 +481,51 @@ function Invoke-DiagnosticoMaster {
             OsActObs      = 'Actualizar a Windows 10/11 urgentemente.'
             OsCostObs     = 'Licencia Windows: S/50-150'
             OsImpactObs   = 'Sistema sin parches = vulnerable a malware y ransomware.'
+            GpuStep       = '8B. Triaje de lentitud por GPU...'
+            GpuVerdictOk  = 'APTO'
+            GpuVerdictObs = 'OBSERVACION'
+            GpuVerdictRisk= 'RIESGO GPU/DRIVER'
+            GpuAdviceOk   = 'No se encontraron senales fuertes de fallo GPU/driver. Es razonable seguir con mantenimiento normal, revisando tambien SSD/RAM/CPU/software.'
+            GpuAdviceObs  = 'Se encontraron senales moderadas de GPU/driver. Avisa al cliente que el mantenimiento puede ayudar, pero sin garantia.'
+            GpuAdviceRisk = 'No prometas que pasta termica o reinstalar Windows va a resolver la lentitud. Valida GPU/driver/hardware primero y protege los datos del cliente.'
+            GpuNoFindings = 'No se encontraron alertas fuertes de GPU/driver.'
+            GpuLimits     = 'Triaje seguro solamente: sin stress test. Puede no capturar fallos termicos intermitentes de GPU.'
+            GpuInv        = 'Inventario GPU'
+            GpuSignals    = 'Senales de riesgo'
+            GpuRecentEv   = 'Eventos recientes relevantes'
+            GpuSeverity   = 'Severidad'
+            GpuSignal     = 'Senal'
+            GpuEvidence   = 'Evidencia'
+            GpuAction     = 'Accion recomendada'
+            GpuPoints     = 'Puntos'
+            GpuDriverOld  = 'Driver GPU muy antiguo'
+            GpuDriverOldEv= '{0} driver fecha {1}'
+            GpuDriverAct  = 'Actualizar o reinstalar limpio el driver GPU, luego repetir prueba.'
+            GpuBasicDrv   = 'Driver basico de pantalla'
+            GpuBasicAct   = 'Instalar o reparar el driver del fabricante antes de prometer mejora.'
+            GpuDeviceErr  = 'Error de dispositivo GPU'
+            GpuDeviceAct  = 'Corregir estado de dispositivo/driver antes de prometer mantenimiento.'
+            GpuTdrRep     = 'TDR/LiveKernelEvent repetido'
+            GpuTdrSeen    = 'TDR/LiveKernelEvent detectado'
+            GpuTdrEv      = '{0} evento(s) tipo TDR en 30 dias'
+            GpuTdrAct     = 'Tratar como inestabilidad GPU/driver hasta demostrar lo contrario.'
+            GpuDriverEvt  = 'Eventos repetidos de driver de video'
+            GpuDriverEvtEv= '{0} eventos vendor/dxg de video'
+            GpuDriverEvtAct = 'Revisar driver GPU y estabilidad de hardware.'
+            GpuWheaRep    = 'Eventos WHEA repetidos'
+            GpuWheaSeen   = 'Evento WHEA de hardware'
+            GpuWheaEv     = '{0} evento(s) WHEA'
+            GpuWheaAct    = 'No tratar como lentitud simple de software; validar hardware.'
+            GpuBugcheck   = 'Firma de pantallazo/video bugcheck'
+            GpuBugcheckEv = '{0} firma(s) video bugcheck/TDR'
+            GpuBugcheckAct= 'Priorizar diagnostico GPU/driver antes que prometer limpieza/reinstalacion.'
+            GpuLiveKernel = 'Archivos LiveKernel/minidump recientes'
+            GpuLiveKernelEv = '{0} dump(s) en LiveKernelReports/Minidump'
+            GpuLiveKernelAct = 'Inspeccionar dumps o tratar como evidencia de inestabilidad antes de prometer mantenimiento normal.'
+            GpuRiskLine   = 'Triaje GPU: {0} ({1}/100)'
+            SevHigh       = 'Alta'
+            SevMed        = 'Media'
+            SevLow        = 'Baja'
         }
     }
     $lang = _Atlas-DetectLang
@@ -890,6 +982,187 @@ function Get-NetworkProfile {
     return $result
 }
 
+function Convert-GpuDriverDate {
+    param([object]$Value)
+    if ($null -eq $Value) { return $null }
+    try {
+        if ($Value -is [datetime]) { return $Value }
+        $s = [string]$Value
+        if ($s -match '^\d{14}\.') { return [System.Management.ManagementDateTimeConverter]::ToDateTime($s) }
+        return [datetime]::Parse($s)
+    } catch {
+        return $null
+    }
+}
+
+function Add-GpuFinding {
+    param(
+        [System.Collections.ArrayList]$List,
+        [int]$Points,
+        [string]$Severity,
+        [string]$Signal,
+        [string]$Evidence,
+        [string]$Action
+    )
+    [void]$List.Add([pscustomobject]@{
+        Points = $Points
+        Severity = $Severity
+        Signal = $Signal
+        Evidence = $Evidence
+        Action = $Action
+    })
+}
+
+function Get-GpuTargetedEvents {
+    param([datetime]$Since)
+    $events = New-Object System.Collections.ArrayList
+    $providers = @(
+        'Display',
+        'nvlddmkm',
+        'amdkmdag',
+        'amdwddmg',
+        'igfx',
+        'igfxn',
+        'dxgkrnl',
+        'Microsoft-Windows-DxgKrnl',
+        'Microsoft-Windows-WHEA-Logger'
+    )
+    foreach ($provider in $providers) {
+        try {
+            foreach ($ev in @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = $provider; StartTime = $Since } -ErrorAction Stop)) {
+                [void]$events.Add($ev)
+            }
+        } catch {}
+    }
+    foreach ($id in 4101, 14, 13, 117, 141, 144, 1001) {
+        try {
+            $found = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = $id; StartTime = $Since } -ErrorAction Stop | Where-Object {
+                $_.ProviderName -match 'Display|nvlddmkm|amdkmdag|amdwddmg|igfx|dxg|WHEA|BugCheck'
+            })
+            foreach ($ev in $found) { [void]$events.Add($ev) }
+        } catch {}
+    }
+    try {
+        $wer = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; Id = 1001; StartTime = $Since } -ErrorAction Stop | Where-Object {
+            $_.ProviderName -match 'Windows Error Reporting' -and $_.Message -match 'LiveKernelEvent|117|141|144|VIDEO_TDR|Display|graphics|hardware error'
+        })
+        foreach ($ev in $wer) { [void]$events.Add($ev) }
+    } catch {}
+    return @($events | Sort-Object LogName, ProviderName, Id, TimeCreated, RecordId -Unique | Sort-Object TimeCreated -Descending)
+}
+
+function Get-GpuLiveKernelFiles {
+    param([datetime]$Since)
+    $roots = @("$env:SystemRoot\LiveKernelReports", "$env:SystemRoot\Minidump")
+    $files = @()
+    foreach ($root in $roots) {
+        if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
+        try {
+            $files += @(Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+                $_.LastWriteTime -ge $Since -and ($_.FullName -match 'WATCHDOG|WHEA|VIDEO|GRAPHICS|GPU|\.dmp$')
+            } | Select-Object FullName, LastWriteTime, Length)
+        } catch {}
+    }
+    return @($files | Sort-Object LastWriteTime -Descending)
+}
+
+function Get-GPUSlownessTriageForReport {
+    $since = (Get-Date).AddDays(-30)
+    $findings = New-Object System.Collections.ArrayList
+    $gpus = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | ForEach-Object {
+        $driverDate = Convert-GpuDriverDate $_.DriverDate
+        $adapterGb = $null
+        try {
+            if ($_.AdapterRAM -and [double]$_.AdapterRAM -gt 0) { $adapterGb = [math]::Round(([double]$_.AdapterRAM / 1GB), 2) }
+        } catch {}
+        [pscustomobject]@{
+            Name = $_.Name
+            DriverVersion = $_.DriverVersion
+            DriverDate = $driverDate
+            DriverDateText = if ($driverDate) { $driverDate.ToString('yyyy-MM-dd') } else { [string]$_.DriverDate }
+            AdapterRAMGB = $adapterGb
+            Status = $_.Status
+            ConfigManagerErrorCode = $_.ConfigManagerErrorCode
+        }
+    })
+
+    foreach ($gpu in $gpus) {
+        if ([string]$gpu.Name -match 'Microsoft Basic Display|Basic Render|Basic Video') {
+            Add-GpuFinding $findings 25 $L.SevMed $L.GpuBasicDrv $gpu.Name $L.GpuBasicAct
+        }
+        if ($null -ne $gpu.ConfigManagerErrorCode -and [int]$gpu.ConfigManagerErrorCode -ne 0) {
+            Add-GpuFinding $findings 35 $L.SevHigh $L.GpuDeviceErr "ConfigManagerErrorCode=$($gpu.ConfigManagerErrorCode) on $($gpu.Name)" $L.GpuDeviceAct
+        }
+        if ($gpu.DriverDate -and ((Get-Date) - $gpu.DriverDate).TotalDays -ge 1460) {
+            Add-GpuFinding $findings 18 $L.SevMed $L.GpuDriverOld ($L.GpuDriverOldEv -f $gpu.Name, $gpu.DriverDateText) $L.GpuDriverAct
+        }
+    }
+
+    $events = @(Get-GpuTargetedEvents -Since $since)
+    $tdrEvents = @($events | Where-Object { $_.Id -in 4101, 117, 141, 144 -or $_.Message -match 'TDR|LiveKernelEvent|VIDEO_TDR|Display driver stopped responding' })
+    $driverEvents = @($events | Where-Object { $_.ProviderName -match 'nvlddmkm|amdkmdag|amdwddmg|igfx|dxg' })
+    $wheaEvents = @($events | Where-Object { $_.ProviderName -match 'WHEA' })
+    $bugCheckTdr = @($events | Where-Object { $_.Message -match '0x00000116|0x00000117|VIDEO_TDR_FAILURE|VIDEO_SCHEDULER_INTERNAL_ERROR' })
+    $lkFiles = @(Get-GpuLiveKernelFiles -Since $since)
+
+    if ($tdrEvents.Count -ge 3) {
+        Add-GpuFinding $findings 35 $L.SevHigh $L.GpuTdrRep ($L.GpuTdrEv -f $tdrEvents.Count) $L.GpuTdrAct
+    } elseif ($tdrEvents.Count -gt 0) {
+        Add-GpuFinding $findings 20 $L.SevMed $L.GpuTdrSeen ($L.GpuTdrEv -f $tdrEvents.Count) $L.GpuTdrAct
+    }
+    if ($driverEvents.Count -ge 5) {
+        Add-GpuFinding $findings 20 $L.SevMed $L.GpuDriverEvt ($L.GpuDriverEvtEv -f $driverEvents.Count) $L.GpuDriverEvtAct
+    }
+    if ($wheaEvents.Count -ge 3) {
+        Add-GpuFinding $findings 30 $L.SevHigh $L.GpuWheaRep ($L.GpuWheaEv -f $wheaEvents.Count) $L.GpuWheaAct
+    } elseif ($wheaEvents.Count -gt 0) {
+        Add-GpuFinding $findings 18 $L.SevMed $L.GpuWheaSeen ($L.GpuWheaEv -f $wheaEvents.Count) $L.GpuWheaAct
+    }
+    if ($bugCheckTdr.Count -gt 0) {
+        Add-GpuFinding $findings 40 $L.SevHigh $L.GpuBugcheck ($L.GpuBugcheckEv -f $bugCheckTdr.Count) $L.GpuBugcheckAct
+    }
+    if ($lkFiles.Count -gt 0) {
+        Add-GpuFinding $findings 25 $L.SevMed $L.GpuLiveKernel ($L.GpuLiveKernelEv -f $lkFiles.Count) $L.GpuLiveKernelAct
+    }
+
+    $score = [int](($findings | Measure-Object -Property Points -Sum).Sum)
+    if ($score -gt 100) { $score = 100 }
+    if ($score -ge 70) {
+        $verdict = $L.GpuVerdictRisk; $color = '#dc3545'; $advice = $L.GpuAdviceRisk
+    } elseif ($score -ge 40) {
+        $verdict = $L.GpuVerdictObs; $color = '#fd7e14'; $advice = $L.GpuAdviceObs
+    } else {
+        $verdict = $L.GpuVerdictOk; $color = '#28a745'; $advice = $L.GpuAdviceOk
+    }
+
+    $html = "<div style='border-left:5px solid ${color};background:#fff;padding:12px;margin:10px 0'><strong style='color:${color};font-size:18px'>${verdict} (${score}/100)</strong><br>${advice}<br><span style='font-size:12px;color:#666'>$($L.GpuLimits)</span></div>"
+    $html += "<h3>$($L.GpuInv)</h3><table class='info-table'><tr><th>GPU</th><th>Driver</th><th>Fecha driver</th><th>VRAM GB</th><th>Status</th><th>PNP code</th></tr>"
+    foreach ($gpu in $gpus) {
+        $html += "<tr><td>$($gpu.Name)</td><td>$($gpu.DriverVersion)</td><td>$($gpu.DriverDateText)</td><td>$($gpu.AdapterRAMGB)</td><td>$($gpu.Status)</td><td>$($gpu.ConfigManagerErrorCode)</td></tr>"
+    }
+    $html += "</table>"
+    $html += "<h3>$($L.GpuSignals)</h3><table class='info-table'><tr><th>$($L.GpuSeverity)</th><th>$($L.GpuSignal)</th><th>$($L.GpuEvidence)</th><th>$($L.GpuAction)</th><th>$($L.GpuPoints)</th></tr>"
+    if ($findings.Count -gt 0) {
+        foreach ($f in $findings) {
+            $html += "<tr><td>$($f.Severity)</td><td>$($f.Signal)</td><td>$($f.Evidence)</td><td>$($f.Action)</td><td>$($f.Points)</td></tr>"
+        }
+    } else {
+        $html += "<tr><td colspan='5'>$($L.GpuNoFindings)</td></tr>"
+    }
+    $html += "</table>"
+    $html += "<h3>$($L.GpuRecentEv)</h3><table class='info-table'><tr><th>Time</th><th>Provider</th><th>ID</th><th>Level</th></tr>"
+    if ($events.Count -gt 0) {
+        foreach ($ev in @($events | Select-Object -First 15)) {
+            $html += "<tr><td>$($ev.TimeCreated)</td><td>$($ev.ProviderName)</td><td>$($ev.Id)</td><td>$($ev.LevelDisplayName)</td></tr>"
+        }
+    } else {
+        $html += "<tr><td colspan='4'>-</td></tr>"
+    }
+    $html += "</table>"
+
+    return @{ HtmlSection = $html; Score = $score; Verdict = $verdict; Color = $color; Findings = @($findings) }
+}
+
 do {
     $continuar = $false
     try {
@@ -1081,6 +1354,12 @@ do {
             $htmlBat="<h2>$($L.H8Battery)</h2><table class='info-table'><tr><th>$($L.BatStatus)</th><td>${batStatus} (${batPercent})</td></tr><tr><th>$($L.BatHealth)</th><td style='color:${saludColor};font-weight:bold'>${saludStr}</td></tr><tr><th>$($L.BatCycles)</th><td>${cycleCount}</td></tr><tr><th>$($L.BatCap)</th><td>${designCap} / ${fullCap} mWh</td></tr><tr><th>$($L.BatMan)</th><td>${manufactureName} / ${chemistry}</td></tr></table>${notaFraude}"
         } else { $htmlBat="<h2>$($L.H8Battery)</h2><pre>$($L.NoBattery)</pre>" }
 
+        Escribir-Centrado $L.GpuStep "Cyan"
+        $gpuTriage = Get-GPUSlownessTriageForReport
+        $htmlGpuTriage = "<h2>$($L.H10GpuTriage)</h2>" + $gpuTriage.HtmlSection
+        $gpuCol = if ($gpuTriage.Score -ge 70) { 'Red' } elseif ($gpuTriage.Score -ge 40) { 'Yellow' } else { 'Green' }
+        Write-Host "    $($L.GpuRiskLine -f $gpuTriage.Verdict, $gpuTriage.Score)" -ForegroundColor $gpuCol
+
         Escribir-Centrado $L.Step9 "Magenta"
         $upgradeResult = Get-UpgradeAdvisor -RAMData $ramDiag -CPUData $cpuInfo -StorageData $storageData -OSCaption $os.Caption
         $htmlUpgrade = "<h2 style='background:#FF5500'>$($L.H9Upgrade)</h2>" + $upgradeResult.HtmlSection
@@ -1141,6 +1420,7 @@ do {
             ${htmlNet}
             ${htmlBsod}
             ${htmlBat}
+            ${htmlGpuTriage}
             ${htmlUpgrade}
         </div>
         <div class="footer">
