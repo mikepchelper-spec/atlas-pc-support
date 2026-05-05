@@ -46,6 +46,17 @@
       "dependencies": []
     },
     {
+      "id": "printer-doctor",
+      "name": "Printer Doctor",
+      "description": "Printer diagnostics: printers, ports, drivers, spooler, queues, network test, print events, optional repairs and report export.",
+      "category": "diagnostico",
+      "function": "Invoke-PrinterDoctor",
+      "source": "PrinterDoctor.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "mantenimiento-pro",
       "name": "Deep Clean & Repair",
       "description": "Full maintenance suite: Defender, cleanup, DISM/SFC, system repair, final report.",
