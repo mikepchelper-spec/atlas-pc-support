@@ -139,6 +139,9 @@ function Expand-AtlasXaml {
         'DASH_DISK'          = (Get-AtlasString 'dash.disk')
         'DASH_ALERTS'        = (Get-AtlasString 'dash.alerts')
         'DASH_REFRESH_TOOLTIP' = (Get-AtlasString 'dash.refreshTooltip')
+        'DASH_TOGGLE_ON'     = (Get-AtlasString 'dash.monitor.on')
+        'DASH_TOGGLE_OFF'    = (Get-AtlasString 'dash.monitor.off')
+        'DASH_TOGGLE_TOOLTIP'= (Get-AtlasString 'dash.monitor.tooltip')
         'SIDEBAR_HEADER'     = (Get-AtlasString 'sidebar.header')
         'SIDEBAR_HOST'       = (Get-AtlasString 'sidebar.host')
         'SIDEBAR_USER'       = (Get-AtlasString 'sidebar.user')
@@ -415,6 +418,17 @@ function Initialize-AtlasDashboard {
     $dashDiskVal  = $Window.FindName('DashDiskValue')
     $dashDiskBar  = $Window.FindName('DashDiskBar')
     $dashAlerts   = $Window.FindName('DashAlertsText')
+    $btnDashRefresh = $Window.FindName('BtnDashRefresh')
+    $btnDashMonitorToggle = $Window.FindName('BtnDashMonitorToggle')
+
+    $monitorOffText = Get-AtlasString 'dash.monitor.off'
+    $monitorOnText = Get-AtlasString 'dash.monitor.on'
+    $monitorPausedText = Get-AtlasString 'dash.monitor.paused'
+
+    if ($dashAlerts) {
+        $dashAlerts.Text = $monitorPausedText
+        $dashAlerts.Foreground = [System.Windows.Media.Brushes]::Gray
+    }
 
     # ---- Phase 2: deferred CIM/WMI work -----------------------------
     #
@@ -495,32 +509,67 @@ function Initialize-AtlasDashboard {
     $tickClosed = $tickAction.GetNewClosure()
     $script:AtlasDashboardTick = $tickClosed
 
+    $startMonitorAction = {
+        try {
+            if (-not $script:AtlasDashboardTimer) {
+                $timer = New-Object System.Windows.Threading.DispatcherTimer
+                $timer.Interval = [TimeSpan]::FromSeconds(2)
+                $timer.Add_Tick($script:AtlasDashboardTick)
+                $script:AtlasDashboardTimer = $timer
+            }
+            & $script:AtlasDashboardTick
+            $script:AtlasDashboardTimer.Start()
+            $script:AtlasDashboardMonitorEnabled = $true
+            if ($btnDashMonitorToggle) { $btnDashMonitorToggle.Content = $monitorOnText }
+        } catch {
+            try { & $logFn "Dashboard monitor start failed: $_" -Level WARN -Tool 'UI' } catch { }
+        }
+    }
+
+    $stopMonitorAction = {
+        try {
+            if ($script:AtlasDashboardTimer) {
+                $script:AtlasDashboardTimer.Stop()
+            }
+            $script:AtlasDashboardMonitorEnabled = $false
+            if ($btnDashMonitorToggle) { $btnDashMonitorToggle.Content = $monitorOffText }
+            if ($dashAlerts) {
+                $dashAlerts.Text = $monitorPausedText
+                $dashAlerts.Foreground = [System.Windows.Media.Brushes]::Gray
+            }
+        } catch {
+            try { & $logFn "Dashboard monitor stop failed: $_" -Level WARN -Tool 'UI' } catch { }
+        }
+    }
+
+    $script:AtlasDashboardStartMonitor = $startMonitorAction.GetNewClosure()
+    $script:AtlasDashboardStopMonitor = $stopMonitorAction.GetNewClosure()
+
     # Wire the manual refresh button (↻ next to the alerts panel).
-    $btnDashRefresh = $Window.FindName('BtnDashRefresh')
     if ($btnDashRefresh) {
         $btnDashRefresh.Add_Click({
             try { & $script:AtlasDashboardTick } catch { }
         })
     }
 
-    # Defer first tick + timer creation until AFTER the window has been
-    # rendered. ContentRendered fires once on the dispatcher thread when
-    # the window is visible, so the user sees the UI instantly and the
-    # CIM round trips happen in the background.
+    if ($btnDashMonitorToggle) {
+        $btnDashMonitorToggle.Add_Click({
+            try {
+                if ($script:AtlasDashboardMonitorEnabled) {
+                    & $script:AtlasDashboardStopMonitor
+                } else {
+                    & $script:AtlasDashboardStartMonitor
+                }
+            } catch { }
+        })
+    }
+
+    # Keep startup cheap. The live monitor stays off until the user enables it.
     $bootstrapAction = {
         try {
             if ($script:AtlasDashboardBooted) { return }
             $script:AtlasDashboardBooted = $true
-
-            # First tick (fills the dashboard with real values).
-            & $script:AtlasDashboardTick
-
-            # Start the periodic timer.
-            $timer = New-Object System.Windows.Threading.DispatcherTimer
-            $timer.Interval = [TimeSpan]::FromSeconds(2)
-            $timer.Add_Tick($script:AtlasDashboardTick)
-            $timer.Start()
-            $script:AtlasDashboardTimer = $timer
+            & $script:AtlasDashboardStopMonitor
         } catch {
             Write-AtlasLog "Dashboard bootstrap failed: $_" -Level WARN -Tool 'UI'
         }
@@ -535,7 +584,10 @@ function Initialize-AtlasDashboard {
                 $script:AtlasDashboardTimer = $null
             }
             $script:AtlasDashboardBooted = $false
+            $script:AtlasDashboardMonitorEnabled = $false
             $script:AtlasDashboardTick = $null
+            $script:AtlasDashboardStartMonitor = $null
+            $script:AtlasDashboardStopMonitor = $null
         } catch { }
     })
 }

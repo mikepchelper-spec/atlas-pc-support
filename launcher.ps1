@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-05-05 00:34:04
+#  Build:   2026-05-05 02:20:23
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-05-05 00:34:04'
+$script:AtlasBuildDate = '2026-05-05 02:20:23'
 
 $script:AtlasToolsManifest = @'
 {
@@ -663,16 +663,25 @@ $script:AtlasXamlTemplate = @'
                                TextWrapping="Wrap"/>
                 </StackPanel>
 
-                <!-- MANUAL REFRESH -->
-                <Button Grid.Column="4"
-                        x:Name="BtnDashRefresh"
-                        Content="↻"
-                        Style="{StaticResource AtlasSecondaryButton}"
-                        VerticalAlignment="Center"
-                        Margin="12,0,0,0"
-                        Padding="10,6"
-                        FontSize="16"
-                        ToolTip="{{DASH_REFRESH_TOOLTIP}}"/>
+                <!-- RESOURCE MONITOR CONTROLS -->
+                <StackPanel Grid.Column="4"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="12,0,0,0">
+                    <Button x:Name="BtnDashMonitorToggle"
+                            Content="{{DASH_TOGGLE_OFF}}"
+                            Style="{StaticResource AtlasSecondaryButton}"
+                            Padding="10,6"
+                            FontSize="12"
+                            ToolTip="{{DASH_TOGGLE_TOOLTIP}}"/>
+                    <Button x:Name="BtnDashRefresh"
+                            Content="↻"
+                            Style="{StaticResource AtlasSecondaryButton}"
+                            Margin="8,0,0,0"
+                            Padding="10,6"
+                            FontSize="16"
+                            ToolTip="{{DASH_REFRESH_TOOLTIP}}"/>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -1051,6 +1060,10 @@ $script:AtlasStringsDict = @{
         'dash.alerts'             = 'Alertas'
         'dash.alerts.none'        = 'Sin alertas — el equipo está bien.'
         'dash.refreshTooltip'     = 'Actualizar dashboard ahora'
+        'dash.monitor.on'         = 'Monitor ON'
+        'dash.monitor.off'        = 'Monitor OFF'
+        'dash.monitor.tooltip'    = 'Activar/desactivar monitor de recursos en vivo'
+        'dash.monitor.paused'     = 'Monitor de recursos apagado — pulsa Monitor OFF para activarlo.'
         'dash.alert.cpu'          = 'CPU al {0}%'
         'dash.alert.ram'          = 'RAM al {0}%'
         'dash.alert.disk'         = 'Disco {0} al {1}% lleno'
@@ -1109,6 +1122,10 @@ $script:AtlasStringsDict = @{
         'dash.alerts'             = 'Alerts'
         'dash.alerts.none'        = 'No alerts — system looks healthy.'
         'dash.refreshTooltip'     = 'Refresh dashboard now'
+        'dash.monitor.on'         = 'Monitor ON'
+        'dash.monitor.off'        = 'Monitor OFF'
+        'dash.monitor.tooltip'    = 'Turn live resource monitor on/off'
+        'dash.monitor.paused'     = 'Resource monitor is off — click Monitor OFF to enable it.'
         'dash.alert.cpu'          = 'CPU at {0}%'
         'dash.alert.ram'          = 'RAM at {0}%'
         'dash.alert.disk'         = 'Disk {0} at {1}% used'
@@ -1167,6 +1184,10 @@ $script:AtlasStringsDict = @{
         'dash.alerts'             = 'Alerte'
         'dash.alerts.none'        = 'Fără alerte — sistemul e în regulă.'
         'dash.refreshTooltip'     = 'Reîmprospătează dashboard'
+        'dash.monitor.on'         = 'Monitor ON'
+        'dash.monitor.off'        = 'Monitor OFF'
+        'dash.monitor.tooltip'    = 'Pornește/oprește monitorul live de resurse'
+        'dash.monitor.paused'     = 'Monitorul de resurse este oprit — apasă Monitor OFF pentru activare.'
         'dash.alert.cpu'          = 'CPU la {0}%'
         'dash.alert.ram'          = 'RAM la {0}%'
         'dash.alert.disk'         = 'Disc {0} folosit {1}%'
@@ -1225,6 +1246,10 @@ $script:AtlasStringsDict = @{
         'dash.alerts'             = 'Alertas'
         'dash.alerts.none'        = 'Sem alertas — sistema saudável.'
         'dash.refreshTooltip'     = 'Atualizar painel agora'
+        'dash.monitor.on'         = 'Monitor ON'
+        'dash.monitor.off'        = 'Monitor OFF'
+        'dash.monitor.tooltip'    = 'Ativar/desativar monitor de recursos em tempo real'
+        'dash.monitor.paused'     = 'Monitor de recursos desligado — clica Monitor OFF para ativar.'
         'dash.alert.cpu'          = 'CPU em {0}%'
         'dash.alert.ram'          = 'RAM em {0}%'
         'dash.alert.disk'         = 'Disco {0} a {1}% cheio'
@@ -1283,6 +1308,10 @@ $script:AtlasStringsDict = @{
         'dash.alerts'             = 'Alertes'
         'dash.alerts.none'        = 'Aucune alerte — système OK.'
         'dash.refreshTooltip'     = 'Actualiser le tableau de bord'
+        'dash.monitor.on'         = 'Monitor ON'
+        'dash.monitor.off'        = 'Monitor OFF'
+        'dash.monitor.tooltip'    = 'Activer/désactiver le moniteur de ressources'
+        'dash.monitor.paused'     = "Moniteur de ressources désactivé — cliquez sur Monitor OFF pour l'activer."
         'dash.alert.cpu'          = 'CPU à {0}%'
         'dash.alert.ram'          = 'RAM à {0}%'
         'dash.alert.disk'         = 'Disque {0} à {1}% plein'
@@ -1341,6 +1370,10 @@ $script:AtlasStringsDict = @{
         'dash.alerts'             = 'Warnungen'
         'dash.alerts.none'        = 'Keine Warnungen — System OK.'
         'dash.refreshTooltip'     = 'Dashboard jetzt aktualisieren'
+        'dash.monitor.on'         = 'Monitor ON'
+        'dash.monitor.off'        = 'Monitor OFF'
+        'dash.monitor.tooltip'    = 'Live-Ressourcenmonitor ein-/ausschalten'
+        'dash.monitor.paused'     = 'Ressourcenmonitor ist aus — Monitor OFF zum Aktivieren klicken.'
         'dash.alert.cpu'          = 'CPU bei {0}%'
         'dash.alert.ram'          = 'RAM bei {0}%'
         'dash.alert.disk'         = 'Datenträger {0} zu {1}% voll'
@@ -1399,6 +1432,10 @@ $script:AtlasStringsDict = @{
         'dash.alerts'             = 'Avvisi'
         'dash.alerts.none'        = 'Nessun avviso — sistema OK.'
         'dash.refreshTooltip'     = 'Aggiorna dashboard ora'
+        'dash.monitor.on'         = 'Monitor ON'
+        'dash.monitor.off'        = 'Monitor OFF'
+        'dash.monitor.tooltip'    = 'Attiva/disattiva monitor risorse live'
+        'dash.monitor.paused'     = 'Monitor risorse spento — clicca Monitor OFF per attivarlo.'
         'dash.alert.cpu'          = 'CPU al {0}%'
         'dash.alert.ram'          = 'RAM al {0}%'
         'dash.alert.disk'         = 'Disco {0} al {1}% pieno'
@@ -2231,6 +2268,9 @@ function Expand-AtlasXaml {
         'DASH_DISK'          = (Get-AtlasString 'dash.disk')
         'DASH_ALERTS'        = (Get-AtlasString 'dash.alerts')
         'DASH_REFRESH_TOOLTIP' = (Get-AtlasString 'dash.refreshTooltip')
+        'DASH_TOGGLE_ON'     = (Get-AtlasString 'dash.monitor.on')
+        'DASH_TOGGLE_OFF'    = (Get-AtlasString 'dash.monitor.off')
+        'DASH_TOGGLE_TOOLTIP'= (Get-AtlasString 'dash.monitor.tooltip')
         'SIDEBAR_HEADER'     = (Get-AtlasString 'sidebar.header')
         'SIDEBAR_HOST'       = (Get-AtlasString 'sidebar.host')
         'SIDEBAR_USER'       = (Get-AtlasString 'sidebar.user')
@@ -2507,6 +2547,17 @@ function Initialize-AtlasDashboard {
     $dashDiskVal  = $Window.FindName('DashDiskValue')
     $dashDiskBar  = $Window.FindName('DashDiskBar')
     $dashAlerts   = $Window.FindName('DashAlertsText')
+    $btnDashRefresh = $Window.FindName('BtnDashRefresh')
+    $btnDashMonitorToggle = $Window.FindName('BtnDashMonitorToggle')
+
+    $monitorOffText = Get-AtlasString 'dash.monitor.off'
+    $monitorOnText = Get-AtlasString 'dash.monitor.on'
+    $monitorPausedText = Get-AtlasString 'dash.monitor.paused'
+
+    if ($dashAlerts) {
+        $dashAlerts.Text = $monitorPausedText
+        $dashAlerts.Foreground = [System.Windows.Media.Brushes]::Gray
+    }
 
     # ---- Phase 2: deferred CIM/WMI work -----------------------------
     #
@@ -2587,32 +2638,67 @@ function Initialize-AtlasDashboard {
     $tickClosed = $tickAction.GetNewClosure()
     $script:AtlasDashboardTick = $tickClosed
 
+    $startMonitorAction = {
+        try {
+            if (-not $script:AtlasDashboardTimer) {
+                $timer = New-Object System.Windows.Threading.DispatcherTimer
+                $timer.Interval = [TimeSpan]::FromSeconds(2)
+                $timer.Add_Tick($script:AtlasDashboardTick)
+                $script:AtlasDashboardTimer = $timer
+            }
+            & $script:AtlasDashboardTick
+            $script:AtlasDashboardTimer.Start()
+            $script:AtlasDashboardMonitorEnabled = $true
+            if ($btnDashMonitorToggle) { $btnDashMonitorToggle.Content = $monitorOnText }
+        } catch {
+            try { & $logFn "Dashboard monitor start failed: $_" -Level WARN -Tool 'UI' } catch { }
+        }
+    }
+
+    $stopMonitorAction = {
+        try {
+            if ($script:AtlasDashboardTimer) {
+                $script:AtlasDashboardTimer.Stop()
+            }
+            $script:AtlasDashboardMonitorEnabled = $false
+            if ($btnDashMonitorToggle) { $btnDashMonitorToggle.Content = $monitorOffText }
+            if ($dashAlerts) {
+                $dashAlerts.Text = $monitorPausedText
+                $dashAlerts.Foreground = [System.Windows.Media.Brushes]::Gray
+            }
+        } catch {
+            try { & $logFn "Dashboard monitor stop failed: $_" -Level WARN -Tool 'UI' } catch { }
+        }
+    }
+
+    $script:AtlasDashboardStartMonitor = $startMonitorAction.GetNewClosure()
+    $script:AtlasDashboardStopMonitor = $stopMonitorAction.GetNewClosure()
+
     # Wire the manual refresh button (↻ next to the alerts panel).
-    $btnDashRefresh = $Window.FindName('BtnDashRefresh')
     if ($btnDashRefresh) {
         $btnDashRefresh.Add_Click({
             try { & $script:AtlasDashboardTick } catch { }
         })
     }
 
-    # Defer first tick + timer creation until AFTER the window has been
-    # rendered. ContentRendered fires once on the dispatcher thread when
-    # the window is visible, so the user sees the UI instantly and the
-    # CIM round trips happen in the background.
+    if ($btnDashMonitorToggle) {
+        $btnDashMonitorToggle.Add_Click({
+            try {
+                if ($script:AtlasDashboardMonitorEnabled) {
+                    & $script:AtlasDashboardStopMonitor
+                } else {
+                    & $script:AtlasDashboardStartMonitor
+                }
+            } catch { }
+        })
+    }
+
+    # Keep startup cheap. The live monitor stays off until the user enables it.
     $bootstrapAction = {
         try {
             if ($script:AtlasDashboardBooted) { return }
             $script:AtlasDashboardBooted = $true
-
-            # First tick (fills the dashboard with real values).
-            & $script:AtlasDashboardTick
-
-            # Start the periodic timer.
-            $timer = New-Object System.Windows.Threading.DispatcherTimer
-            $timer.Interval = [TimeSpan]::FromSeconds(2)
-            $timer.Add_Tick($script:AtlasDashboardTick)
-            $timer.Start()
-            $script:AtlasDashboardTimer = $timer
+            & $script:AtlasDashboardStopMonitor
         } catch {
             Write-AtlasLog "Dashboard bootstrap failed: $_" -Level WARN -Tool 'UI'
         }
@@ -2627,7 +2713,10 @@ function Initialize-AtlasDashboard {
                 $script:AtlasDashboardTimer = $null
             }
             $script:AtlasDashboardBooted = $false
+            $script:AtlasDashboardMonitorEnabled = $false
             $script:AtlasDashboardTick = $null
+            $script:AtlasDashboardStartMonitor = $null
+            $script:AtlasDashboardStopMonitor = $null
         } catch { }
     })
 }
