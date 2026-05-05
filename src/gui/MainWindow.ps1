@@ -740,7 +740,7 @@ $(Get-AtlasString 'about.description')
     if ($btnRestart) {
         $btnRestart.Add_Click({
             try {
-                $bootstrapUrl = 'https://tools.atlaspcsupport.com/?v=' + [guid]::NewGuid().ToString('N')
+                $bootstrapUrl = 'https://toolspanel.atlaspcsupport.com/?v=' + [guid]::NewGuid().ToString('N')
                 $logPath  = Join-Path $env:TEMP 'atlas-restart.log'
                 $bootPath = Join-Path $env:TEMP 'atlas-restart-bootstrap.ps1'
 
