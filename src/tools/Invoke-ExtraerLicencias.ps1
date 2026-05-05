@@ -61,7 +61,7 @@ function Get-BiosKey {
     Write-Host "`n"
     
     try {
-        $wmiQuery = Get-WmiObject -Query 'select * from SoftwareLicensingService' -ErrorAction Stop
+        $wmiQuery = Get-CimInstance -Query 'SELECT * FROM SoftwareLicensingService' -ErrorAction Stop
         $biosKey = $wmiQuery.OA3xOriginalProductKey
         $biosDesc = $wmiQuery.OA3xOriginalProductKeyDescription
 
@@ -98,7 +98,7 @@ function Get-CurrentKey {
     
     try {
         # 1. Mostrar la Clave de la BIOS como referencia cruzada
-        $sls = Get-WmiObject -Query 'select * from SoftwareLicensingService' -ErrorAction SilentlyContinue
+        $sls = Get-CimInstance -Query 'SELECT * FROM SoftwareLicensingService' -ErrorAction SilentlyContinue
         $biosRefKey = $sls.OA3xOriginalProductKey
         $biosRefDesc = $sls.OA3xOriginalProductKeyDescription
         
@@ -118,7 +118,7 @@ function Get-CurrentKey {
         $hexPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
         
         # Corrección: Leer edición real desde WMI para evitar el falso "Windows 10" del registro de Win 11
-        $currentEdition = (Get-WmiObject -Class Win32_OperatingSystem -ErrorAction SilentlyContinue).Caption -replace '^Microsoft\s+', ''
+        $currentEdition = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue).Caption -replace '^Microsoft\s+', ''
         
         $digitalProductId = (Get-ItemProperty -Path $hexPath -Name DigitalProductId -ErrorAction SilentlyContinue).DigitalProductId
         
@@ -151,7 +151,7 @@ function Get-CurrentKey {
             }
         }
 
-        $activeWmi = Get-WmiObject -Query "SELECT PartialProductKey, Description FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL" -ErrorAction SilentlyContinue
+        $activeWmi = Get-CimInstance -Query "SELECT PartialProductKey, Description FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL" -ErrorAction SilentlyContinue
 
         if ($activeWmi) {
             Write-Centered -Text "[+] ACTIVATION ENGINE EVIDENCE (ONLY REAL DATA):" -Color Cyan
@@ -207,7 +207,7 @@ function Invoke-NativeAudit {
     Write-Host "`n"
     Write-Centered -Text "--- AUTHENTICITY ANALYSIS ---" -Color Cyan
     try {
-        $wmi = Get-WmiObject -Query "SELECT Description, LicenseStatus FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL"
+        $wmi = Get-CimInstance -Query "SELECT Description, LicenseStatus FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL"
         foreach ($item in $wmi) {
             if ($item.Description -match "VOLUME_KMSCLIENT") {
                 Write-Centered -Text "[!] DETECTED: KMS CHANNEL (Possible emulator activation)" -Color Yellow
@@ -237,7 +237,7 @@ function Get-OsInfo {
 
     try {
         # Obtener datos del OS
-        $os = Get-WmiObject -Class Win32_OperatingSystem
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem
         Write-Centered -Text "System: $($os.Caption)" -Color White
         Write-Centered -Text "Version: $($os.Version)" -Color White
         Write-Centered -Text "Architecture: $($os.OSArchitecture)" -Color White
@@ -252,7 +252,7 @@ function Get-OsInfo {
         # Obtener datos de la BIOS (Punto 1 integrado)
         # ---------------------------------------------------------
         Write-Centered -Text "--- FACTORY KEY (BIOS/UEFI) ---" -Color Cyan
-        $sls = Get-WmiObject -Query 'select * from SoftwareLicensingService'
+        $sls = Get-CimInstance -Query 'SELECT * FROM SoftwareLicensingService'
         $biosKey = $sls.OA3xOriginalProductKey
         $biosDesc = $sls.OA3xOriginalProductKeyDescription
         
@@ -287,7 +287,7 @@ function Get-OsInfo {
         $hexPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
         
         # Corrección WMI:
-        $currentEdition = (Get-WmiObject -Class Win32_OperatingSystem -ErrorAction SilentlyContinue).Caption -replace '^Microsoft\s+', ''
+        $currentEdition = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue).Caption -replace '^Microsoft\s+', ''
         
         $digitalProductId = (Get-ItemProperty -Path $hexPath -Name DigitalProductId -ErrorAction SilentlyContinue).DigitalProductId
         
@@ -356,7 +356,7 @@ function Get-OsInfo {
         # Obtener datos de Originalidad Visual (Punto 3 integrado)
         # ---------------------------------------------------------
         Write-Centered -Text "--- AUTHENTICITY ANALYSIS ---" -Color Cyan
-        $wmiLic = Get-WmiObject -Query "SELECT Description, LicenseStatus FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL"
+        $wmiLic = Get-CimInstance -Query "SELECT Description, LicenseStatus FROM SoftwareLicensingProduct WHERE LicenseStatus = 1 AND PartialProductKey IS NOT NULL"
         
         $reportTxt += "--- AUTHENTICITY ANALYSIS ---`r`n"
         $reportHtml += "<h3>AUTHENTICITY ANALYSIS</h3>"
@@ -452,7 +452,7 @@ function Get-OfficeKeys {
 
     # 5.1 Via OSPP / SPP: listar las licencias activas de Office via WMI
     try {
-        $lics = Get-WmiObject -Query "SELECT * FROM SoftwareLicensingProduct WHERE ApplicationID='59A52881-A989-479D-AF46-F275C6370663' AND PartialProductKey IS NOT NULL" -ErrorAction Stop
+        $lics = Get-CimInstance -Query "SELECT * FROM SoftwareLicensingProduct WHERE ApplicationID='59A52881-A989-479D-AF46-F275C6370663' AND PartialProductKey IS NOT NULL" -ErrorAction Stop
         foreach ($l in $lics) {
             $statusMap = @{ 0='Unlicensed'; 1='Licensed'; 2='OOB Grace'; 3='OOT Grace'; 4='Non-Genuine Grace'; 5='Notification'; 6='Extended Grace' }
             $status = if ($statusMap.ContainsKey([int]$l.LicenseStatus)) { $statusMap[[int]$l.LicenseStatus] } else { "Code $($l.LicenseStatus)" }

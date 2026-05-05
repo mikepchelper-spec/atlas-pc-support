@@ -277,7 +277,7 @@ Generado por Atlas PC Support - Preparar USB Offline
     }
 
     # Canonical URLs
-    $LAUNCHER_URL_PRIMARY   = 'https://tools.atlaspcsupport.com/'
+    $LAUNCHER_URL_PRIMARY   = 'https://toolspanel.atlaspcsupport.com/'
     $LAUNCHER_URL_FALLBACK  = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1'
     $FASTCOPY_URL           = 'https://fastcopy.jp/archive/FastCopy5.11.2_installer.exe'
     $PS7_VERSION            = '7.5.0'
@@ -346,7 +346,7 @@ Generado por Atlas PC Support - Preparar USB Offline
         Write-Host ''
         Write-Centered $L.DLLauncher 'Yellow'
 
-        # Cache-bust both URLs. tools.atlaspcsupport.com goes through a
+        # Cache-bust both URLs. toolspanel.atlaspcsupport.com goes through a
         # Cloudflare Worker that has aggressively cached older builds in
         # the past — appending a random ?v= guarantees a fresh fetch from
         # origin (or at least bypasses edge cache for this request).
@@ -600,7 +600,7 @@ if (`$needsDownload) {
     # Cache-bust to defeat any stale Cloudflare/CDN edge cache.
     `$bust = [Guid]::NewGuid().ToString('N')
     `$urls = @(
-        ('https://tools.atlaspcsupport.com/?v=' + `$bust),
+        ('https://toolspanel.atlaspcsupport.com/?v=' + `$bust),
         ('https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1?v=' + `$bust)
     )
     `$noCacheHdr = @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
