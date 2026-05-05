@@ -46,6 +46,17 @@
       "dependencies": []
     },
     {
+      "id": "gpu-slowness-triage",
+      "name": "GPU Slowness Triage",
+      "description": "Safe read-only GPU and display-driver triage to avoid promising maintenance when slowness may come from GPU instability.",
+      "category": "diagnostico",
+      "function": "Invoke-GPUSlownessTriage",
+      "source": "GPUSlownessTriage.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "mantenimiento-pro",
       "name": "Deep Clean & Repair",
       "description": "Full maintenance suite: Defender, cleanup, DISM/SFC, system repair, final report.",

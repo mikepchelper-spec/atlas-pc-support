@@ -43,7 +43,7 @@ Sobre la rejilla de herramientas hay un dashboard en vivo (CPU / RAM / Disco + a
 
 ## 📦 Herramientas incluidas (v1.0)
 
-El panel viene con **19 herramientas** organizadas en 7 categorías. Cada herramienta se ejecuta en su propia ventana de PowerShell para mantener la UX original.
+El panel viene con **20 herramientas** organizadas en 7 categorías. Cada herramienta se ejecuta en su propia ventana de PowerShell para mantener la UX original.
 
 ### 🔍 Diagnóstico
 
@@ -52,6 +52,7 @@ El panel viene con **19 herramientas** organizadas en 7 categorías. Cada herram
 | **Parts Upgrade Advisor** | Analiza RAM, CPU (socket / BGA) y almacenamiento (NVMe / SATA / M.2). Recomendaciones de compra y avisos. |
 | **Full System Report** | Reporte HTML integral: sistema, hardware, CPU, RAM, almacenamiento, red, batería, BSOD y Upgrade Advisor. |
 | **Event Log Analyzer** | Lee el Visor de eventos e interpreta errores: reinicios, hardware (WHEA / disco), crashes, drivers, seguridad. Exporta HTML. |
+| **GPU Slowness Triage** | Triaje seguro de GPU/driver de video para no prometer mantenimiento cuando la lentitud puede venir de inestabilidad gráfica. |
 
 ### 🛠 Mantenimiento
 
