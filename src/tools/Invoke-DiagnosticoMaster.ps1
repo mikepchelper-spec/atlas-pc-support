@@ -29,7 +29,11 @@ function Invoke-DiagnosticoMaster {
             DetectedPC    = 'DETECTED: {0}'
             AskNumPC      = '1. Enter PC number'
             AskAlias      = '2. Enter Alias / Area'
-            ReportType    = '3. SELECT REPORT TYPE:'
+            AskReportLang = '3. Report language / Idioma del reporte:'
+            Lang1         = '[1] Español'
+            Lang2         = '[2] English'
+            LangDefault   = '[Enter] Current panel language'
+            ReportType    = '4. SELECT REPORT TYPE:'
             Mode1         = '[1] Simplified Report (Native Windows - Fast)'
             Mode2         = '[2] Detailed Report   (CPU-Z engine - Technical)'
             FolderExists  = "WARNING: The folder '{0}' already exists."
@@ -72,8 +76,8 @@ function Invoke-DiagnosticoMaster {
             H6Net         = '6. Network profile'
             H7Bsod        = '7. Critical events log'
             H8Battery     = '8. Power analysis'
-            H9Upgrade     = '9. ⚡ UPGRADE RECOMMENDATIONS - ATLAS ADVISOR'
-            H10GpuTriage  = '10. GPU / display-driver slowness triage'
+            H9Upgrade     = '10. ⚡ UPGRADE RECOMMENDATIONS - ATLAS ADVISOR'
+            H10GpuTriage  = '9. GPU / display-driver slowness triage'
             BsodNone      = 'No recent errors.'
             HtmlFooter1   = 'This report was generated automatically by ATLAS PC SUPPORT v82'
             HtmlFooter2   = 'ATLAS PC SUPPORT &copy; {0} - Huanuco, Peru'
@@ -230,7 +234,7 @@ function Invoke-DiagnosticoMaster {
             OsCostObs     = 'Windows license: S/50-150'
             OsImpactObs   = 'Unpatched system = vulnerable to malware and ransomware.'
             GpuStep       = '8B. GPU slowness triage...'
-            GpuVerdictOk  = 'APTO'
+            GpuVerdictOk  = 'PASS'
             GpuVerdictObs = 'OBSERVATION'
             GpuVerdictRisk= 'GPU/DRIVER RISK'
             GpuAdviceOk   = 'No strong GPU/driver failure signal was found. It is reasonable to continue with normal maintenance, while still checking SSD/RAM/CPU/software.'
@@ -246,6 +250,13 @@ function Invoke-DiagnosticoMaster {
             GpuEvidence   = 'Evidence'
             GpuAction     = 'Recommended action'
             GpuPoints     = 'Points'
+            GpuTblDriverDate = 'Driver date'
+            GpuTblStatus = 'Status'
+            GpuTblPnp    = 'PNP code'
+            GpuTblTime   = 'Time'
+            GpuTblProvider = 'Provider'
+            GpuTblLevel  = 'Level'
+            GpuNoEvents  = 'No relevant GPU/display events found.'
             GpuDriverOld  = 'Very old GPU driver'
             GpuDriverOldEv= '{0} driver date {1}'
             GpuDriverAct  = 'Update or clean-install GPU driver, then retest.'
@@ -255,15 +266,15 @@ function Invoke-DiagnosticoMaster {
             GpuDeviceAct  = 'Fix device/driver state before maintenance promises.'
             GpuTdrRep     = 'Repeated TDR/LiveKernelEvent'
             GpuTdrSeen    = 'TDR/LiveKernelEvent seen'
-            GpuTdrEv      = '{0} TDR-like event(s) in last 30 days'
+            GpuTdrEv      = '{0} TDR-like event(s) in last 30 days (display driver reset / GPU watchdog)'
             GpuTdrAct     = 'Treat as GPU/driver instability until proven otherwise.'
             GpuDriverEvt  = 'Repeated display driver events'
-            GpuDriverEvtEv= '{0} vendor/dxg display events'
+            GpuDriverEvtEv= '{0} repeated display-driver events in last 30 days'
             GpuDriverEvtAct = 'Review GPU driver and hardware stability.'
             GpuWheaRep    = 'Repeated WHEA hardware events'
             GpuWheaSeen   = 'WHEA hardware event'
-            GpuWheaEv     = '{0} WHEA event(s)'
-            GpuWheaAct    = 'Do not treat as simple software slowness; validate hardware.'
+            GpuWheaEv     = '{0} WHEA event(s) combined with display/TDR signals'
+            GpuWheaAct    = 'This is a hardware stability warning, not GPU-specific by itself. Validate RAM/CPU/PCIe/GPU before promising maintenance.'
             GpuBugcheck   = 'Video bugcheck signature'
             GpuBugcheckEv = '{0} video bugcheck/TDR signature(s)'
             GpuBugcheckAct= 'Prioritize GPU/driver diagnosis over cleanup/reinstall promises.'
@@ -281,7 +292,11 @@ function Invoke-DiagnosticoMaster {
             DetectedPC    = 'DETECTADO: {0}'
             AskNumPC      = '1. Ingrese Numero de PC'
             AskAlias      = '2. Ingrese Alias/Area'
-            ReportType    = '3. SELECCIONE TIPO DE INFORME:'
+            AskReportLang = '3. Idioma del reporte / Report language:'
+            Lang1         = '[1] Español'
+            Lang2         = '[2] English'
+            LangDefault   = '[Enter] Idioma actual del panel'
+            ReportType    = '4. SELECCIONE TIPO DE INFORME:'
             Mode1         = '[1] Informe Simplificado (Nativo Windows - Rapido)'
             Mode2         = '[2] Informe Detallado    (Motor CPU-Z - Tecnico)'
             FolderExists  = "AVISO: La carpeta '{0}' ya existe."
@@ -324,8 +339,8 @@ function Invoke-DiagnosticoMaster {
             H6Net         = '6. Perfil de Red'
             H7Bsod        = '7. Registro de Eventos Criticos'
             H8Battery     = '8. Analisis de Energia'
-            H9Upgrade     = '9. ⚡ RECOMENDACIONES DE UPGRADE - ATLAS ADVISOR'
-            H10GpuTriage  = '10. Triaje de lentitud por GPU / driver de video'
+            H9Upgrade     = '10. ⚡ RECOMENDACIONES DE UPGRADE - ATLAS ADVISOR'
+            H10GpuTriage  = '9. Triaje de lentitud por GPU / driver de video'
             BsodNone      = 'Sin errores recientes.'
             HtmlFooter1   = 'Este informe fue generado automaticamente por ATLAS PC SUPPORT v82'
             HtmlFooter2   = 'ATLAS PC SUPPORT &copy; {0} - Huanuco, Peru'
@@ -498,6 +513,13 @@ function Invoke-DiagnosticoMaster {
             GpuEvidence   = 'Evidencia'
             GpuAction     = 'Accion recomendada'
             GpuPoints     = 'Puntos'
+            GpuTblDriverDate = 'Fecha driver'
+            GpuTblStatus = 'Estado'
+            GpuTblPnp    = 'Codigo PNP'
+            GpuTblTime   = 'Hora'
+            GpuTblProvider = 'Proveedor'
+            GpuTblLevel  = 'Nivel'
+            GpuNoEvents  = 'No se encontraron eventos relevantes de GPU/video.'
             GpuDriverOld  = 'Driver GPU muy antiguo'
             GpuDriverOldEv= '{0} driver fecha {1}'
             GpuDriverAct  = 'Actualizar o reinstalar limpio el driver GPU, luego repetir prueba.'
@@ -507,15 +529,15 @@ function Invoke-DiagnosticoMaster {
             GpuDeviceAct  = 'Corregir estado de dispositivo/driver antes de prometer mantenimiento.'
             GpuTdrRep     = 'TDR/LiveKernelEvent repetido'
             GpuTdrSeen    = 'TDR/LiveKernelEvent detectado'
-            GpuTdrEv      = '{0} evento(s) tipo TDR en 30 dias'
+            GpuTdrEv      = '{0} evento(s) tipo TDR en 30 dias (reinicio del driver / watchdog GPU)'
             GpuTdrAct     = 'Tratar como inestabilidad GPU/driver hasta demostrar lo contrario.'
             GpuDriverEvt  = 'Eventos repetidos de driver de video'
-            GpuDriverEvtEv= '{0} eventos vendor/dxg de video'
+            GpuDriverEvtEv= '{0} eventos repetidos de driver de video en 30 dias'
             GpuDriverEvtAct = 'Revisar driver GPU y estabilidad de hardware.'
             GpuWheaRep    = 'Eventos WHEA repetidos'
             GpuWheaSeen   = 'Evento WHEA de hardware'
-            GpuWheaEv     = '{0} evento(s) WHEA'
-            GpuWheaAct    = 'No tratar como lentitud simple de software; validar hardware.'
+            GpuWheaEv     = '{0} evento(s) WHEA combinado(s) con senales de video/TDR'
+            GpuWheaAct    = 'Es alerta de estabilidad de hardware, no especifica de GPU por si sola. Validar RAM/CPU/PCIe/GPU antes de prometer mantenimiento.'
             GpuBugcheck   = 'Firma de pantallazo/video bugcheck'
             GpuBugcheckEv = '{0} firma(s) video bugcheck/TDR'
             GpuBugcheckAct= 'Priorizar diagnostico GPU/driver antes que prometer limpieza/reinstalacion.'
@@ -1113,9 +1135,10 @@ function Get-GPUSlownessTriageForReport {
     if ($driverEvents.Count -ge 5) {
         Add-GpuFinding $findings 20 $L.SevMed $L.GpuDriverEvt ($L.GpuDriverEvtEv -f $driverEvents.Count) $L.GpuDriverEvtAct
     }
-    if ($wheaEvents.Count -ge 3) {
+    $hasDisplayInstability = ($tdrEvents.Count -gt 0 -or $driverEvents.Count -ge 5 -or $bugCheckTdr.Count -gt 0)
+    if ($hasDisplayInstability -and $wheaEvents.Count -ge 3) {
         Add-GpuFinding $findings 30 $L.SevHigh $L.GpuWheaRep ($L.GpuWheaEv -f $wheaEvents.Count) $L.GpuWheaAct
-    } elseif ($wheaEvents.Count -gt 0) {
+    } elseif ($hasDisplayInstability -and $wheaEvents.Count -gt 0) {
         Add-GpuFinding $findings 18 $L.SevMed $L.GpuWheaSeen ($L.GpuWheaEv -f $wheaEvents.Count) $L.GpuWheaAct
     }
     if ($bugCheckTdr.Count -gt 0) {
@@ -1136,7 +1159,7 @@ function Get-GPUSlownessTriageForReport {
     }
 
     $html = "<div style='border-left:5px solid ${color};background:#fff;padding:12px;margin:10px 0'><strong style='color:${color};font-size:18px'>${verdict} (${score}/100)</strong><br>${advice}<br><span style='font-size:12px;color:#666'>$($L.GpuLimits)</span></div>"
-    $html += "<h3>$($L.GpuInv)</h3><table class='info-table'><tr><th>GPU</th><th>Driver</th><th>Fecha driver</th><th>VRAM GB</th><th>Status</th><th>PNP code</th></tr>"
+    $html += "<h3>$($L.GpuInv)</h3><table class='info-table'><tr><th>GPU</th><th>Driver</th><th>$($L.GpuTblDriverDate)</th><th>VRAM GB</th><th>$($L.GpuTblStatus)</th><th>$($L.GpuTblPnp)</th></tr>"
     foreach ($gpu in $gpus) {
         $html += "<tr><td>$($gpu.Name)</td><td>$($gpu.DriverVersion)</td><td>$($gpu.DriverDateText)</td><td>$($gpu.AdapterRAMGB)</td><td>$($gpu.Status)</td><td>$($gpu.ConfigManagerErrorCode)</td></tr>"
     }
@@ -1150,13 +1173,13 @@ function Get-GPUSlownessTriageForReport {
         $html += "<tr><td colspan='5'>$($L.GpuNoFindings)</td></tr>"
     }
     $html += "</table>"
-    $html += "<h3>$($L.GpuRecentEv)</h3><table class='info-table'><tr><th>Time</th><th>Provider</th><th>ID</th><th>Level</th></tr>"
+    $html += "<h3>$($L.GpuRecentEv)</h3><table class='info-table'><tr><th>$($L.GpuTblTime)</th><th>$($L.GpuTblProvider)</th><th>ID</th><th>$($L.GpuTblLevel)</th></tr>"
     if ($events.Count -gt 0) {
         foreach ($ev in @($events | Select-Object -First 15)) {
             $html += "<tr><td>$($ev.TimeCreated)</td><td>$($ev.ProviderName)</td><td>$($ev.Id)</td><td>$($ev.LevelDisplayName)</td></tr>"
         }
     } else {
-        $html += "<tr><td colspan='4'>-</td></tr>"
+        $html += "<tr><td colspan='4'>$($L.GpuNoEvents)</td></tr>"
     }
     $html += "</table>"
 
@@ -1183,6 +1206,22 @@ do {
         $aliasPC = Read-Host
         if ([string]::IsNullOrWhiteSpace($aliasPC)) { $aliasPC = "General" }
         $aliasPC = $aliasPC -replace '[\\/:*?"<>|]', ''
+
+        Write-Host "`n"
+        Escribir-Centrado $L.AskReportLang "Cyan"
+        Escribir-Centrado $L.Lang1 "White"
+        Escribir-Centrado $L.Lang2 "White"
+        Escribir-Centrado $L.LangDefault "Gray"
+        Write-Host "`n"
+        Write-Host (" " * $pad) -NoNewline
+        $selLang = Read-Host
+        if ($selLang -eq "1") {
+            $lang = 'es'
+            $L = $T[$lang]
+        } elseif ($selLang -eq "2") {
+            $lang = 'en'
+            $L = $T[$lang]
+        }
 
         Write-Host "`n"
         Escribir-Centrado $L.ReportType "Cyan"
@@ -1391,10 +1430,11 @@ do {
         .info-box{padding:20px;background:#f9f9f9;border-bottom:1px solid #eee;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
         .info-item strong{color:#555}
         .content-area{padding:20px}
-        h2{background:#002147;color:white;padding:8px 15px;border-radius:4px;font-size:16px;margin-top:30px;margin-bottom:10px}
+        h2{background:#0b3a67;color:white;padding:8px 15px;border-radius:4px;font-size:16px;margin-top:30px;margin-bottom:10px}
+        h3{color:#0b3a67;margin:18px 0 6px;font-size:15px}
         pre{background:#fcfcfc;border:1px solid #e0e0e0;border-left:5px solid #FF5500;padding:15px;border-radius:4px;overflow-x:hidden;font-family:Consolas,monospace;font-size:11px;white-space:pre-wrap;word-wrap:break-word;color:#444}
         .info-table{width:100%;border-collapse:collapse;margin-top:10px;background:white;font-size:13px}
-        .info-table th{background:#002147;color:white;text-align:left;padding:10px 15px}
+        .info-table th{background:#e8f1fb;color:#002147;text-align:left;padding:10px 15px;border-bottom:2px solid #9fc5e8}
         .info-table td{border-bottom:1px solid #ddd;padding:10px 15px}
         .info-table tr:nth-child(even){background:#f8f9fa}
         .categoria-resaltada{display:inline-block;font-weight:700;color:#002147;background:#eef6fc;padding:3px 8px;border-radius:4px;margin-bottom:5px;border-left:3px solid #002147}
