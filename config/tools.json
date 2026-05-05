@@ -26,7 +26,7 @@
     {
       "id": "diagnostico-master",
       "name": "Full System Report",
-      "description": "Comprehensive HTML report: system, hardware, CPU, RAM, storage, network, battery, BSOD and Upgrade Advisor.",
+      "description": "Comprehensive HTML report: system, hardware, CPU, RAM, storage, network, battery, BSOD, GPU slowness triage and Upgrade Advisor.",
       "category": "diagnostico",
       "function": "Invoke-DiagnosticoMaster",
       "source": "DiagnosticoMaster.ps1",
@@ -41,17 +41,6 @@
       "category": "diagnostico",
       "function": "Invoke-DiagnosticoEventos",
       "source": "DiagnosticoEventos.ps1",
-      "requiresAdmin": false,
-      "runsInNewWindow": true,
-      "dependencies": []
-    },
-    {
-      "id": "gpu-slowness-triage",
-      "name": "GPU Slowness Triage",
-      "description": "Safe read-only GPU and display-driver triage to avoid promising maintenance when slowness may come from GPU instability.",
-      "category": "diagnostico",
-      "function": "Invoke-GPUSlownessTriage",
-      "source": "GPUSlownessTriage.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
