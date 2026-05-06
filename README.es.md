@@ -43,7 +43,7 @@ Sobre la rejilla de herramientas hay un dashboard en vivo (CPU / RAM / Disco + a
 
 ## 📦 Herramientas incluidas (v1.0)
 
-El panel viene con **20 herramientas** organizadas en 7 categorías. Cada herramienta se ejecuta en su propia ventana de PowerShell para mantener la UX original.
+El panel viene con **21 herramientas** organizadas en 7 categorías. Cada herramienta se ejecuta en su propia ventana de PowerShell para mantener la UX original.
 
 ### 🔍 Diagnóstico
 
@@ -53,6 +53,7 @@ El panel viene con **20 herramientas** organizadas en 7 categorías. Cada herram
 | **Full System Report** | Reporte HTML integral: sistema, hardware, CPU, RAM, almacenamiento, red, batería, BSOD, triaje de lentitud por GPU y Upgrade Advisor. |
 | **Event Log Analyzer** | Lee el Visor de eventos e interpreta errores: reinicios, hardware (WHEA / disco), crashes, drivers, seguridad. Exporta HTML. |
 | **Printer Doctor** | Diagnóstico de impresoras: impresoras instaladas, puertos/IPs, drivers, Print Spooler, colas trabadas, ping de red, eventos de impresión, reparaciones opcionales y reporte HTML/TXT. |
+| **Keyboard Doctor** | Triaje de ghost typing y fallos de teclado: dispositivos teclado/HID, teclas de accesibilidad, riesgo por batería, eventos de driver, pruebas de aislamiento y reporte HTML/TXT. |
 
 ### 🛠 Mantenimiento
 

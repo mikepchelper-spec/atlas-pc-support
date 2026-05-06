@@ -43,7 +43,7 @@ A live dashboard banner (CPU / RAM / Disk + alerts) sits above the tool grid, an
 
 ## 📦 Bundled tools (v1.0)
 
-The panel ships with **20 tools** grouped in 7 categories. Every tool runs in its own PowerShell window so the UX stays the same as running it standalone.
+The panel ships with **21 tools** grouped in 7 categories. Every tool runs in its own PowerShell window so the UX stays the same as running it standalone.
 
 ### 🔍 Diagnostics
 
@@ -53,6 +53,7 @@ The panel ships with **20 tools** grouped in 7 categories. Every tool runs in it
 | **Full System Report** | Comprehensive HTML report: system, hardware, CPU, RAM, storage, network, battery, BSOD, GPU slowness triage and Upgrade Advisor. |
 | **Event Log Analyzer** | Reads Event Viewer and interprets errors: reboots, hardware (WHEA / disk), crashes, drivers, security. Exports HTML. |
 | **Printer Doctor** | Printer diagnostics: installed printers, ports/IPs, drivers, Print Spooler, stuck queues, network ping, print events, optional repairs and HTML/TXT report export. |
+| **Keyboard Doctor** | Ghost typing and keyboard fault triage: keyboard/HID devices, accessibility keys, battery pressure risk, driver events, isolation prompts and HTML/TXT report export. |
 
 ### 🛠 Maintenance
 
