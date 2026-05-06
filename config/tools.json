@@ -57,6 +57,17 @@
       "dependencies": []
     },
     {
+      "id": "keyboard-doctor",
+      "name": "Keyboard Doctor",
+      "description": "Ghost typing and keyboard fault triage: devices, accessibility keys, battery pressure risk, HID events, isolation prompts and report export.",
+      "category": "diagnostico",
+      "function": "Invoke-KeyboardDoctor",
+      "source": "KeyboardDoctor.ps1",
+      "requiresAdmin": false,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "mantenimiento-pro",
       "name": "Deep Clean & Repair",
       "description": "Full maintenance suite: Defender, cleanup, DISM/SFC, system repair, final report.",
