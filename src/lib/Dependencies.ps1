@@ -54,6 +54,45 @@ $script:AtlasDepsRegistry = @{
             '%LOCALAPPDATA%\AtlasPC\bin\GPUCheck\tools\HWiNFO64.exe'
         )
     }
+    'CPUZ' = @{
+        DisplayName    = 'CPUID CPU-Z'
+        ExecutableName = 'cpuz.exe'
+        WingetId       = 'CPUID.CPU-Z'
+        SearchPaths    = @(
+            'C:\Program Files\CPUID\CPU-Z\cpuz_x64.exe',
+            'C:\Program Files\CPUID\CPU-Z\cpuz_x32.exe',
+            'C:\Program Files\CPUID\CPU-Z\cpuz.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x64.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x32.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\cpuz.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\cpuz_x64.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\cpuz_x32.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\cpuz.exe'
+        )
+    }
+    'BlueScreenView' = @{
+        DisplayName    = 'NirSoft BlueScreenView'
+        ExecutableName = 'BlueScreenView.exe'
+        WingetId       = 'NirSoft.BlueScreenView'
+        SearchPaths    = @(
+            'C:\Program Files\NirSoft\BlueScreenView\BlueScreenView.exe',
+            'C:\Program Files (x86)\NirSoft\BlueScreenView\BlueScreenView.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\bluescreenview.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\BlueScreenView.exe'
+        )
+    }
+    'BatteryInfoView' = @{
+        DisplayName    = 'NirSoft BatteryInfoView'
+        ExecutableName = 'BatteryInfoView.exe'
+        WingetId       = 'NirSoft.BatteryInfoView'
+        SearchPaths    = @(
+            'C:\Program Files\NirSoft\BatteryInfoView\BatteryInfoView.exe',
+            'C:\Program Files (x86)\NirSoft\BatteryInfoView\BatteryInfoView.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\batteryinfoview.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\BatteryInfoView.exe'
+        )
+    }
 }
 
 function Resolve-AtlasDependency {

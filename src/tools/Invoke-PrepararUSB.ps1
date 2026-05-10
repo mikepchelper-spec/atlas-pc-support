@@ -73,6 +73,11 @@ function Invoke-PrepararUSB {
             GPUDepsHeader   = '--- Preparing GPU Check offline dependencies ---'
             GPUDepsDone     = '[OK] GPU Check offline dependencies prepared.'
             GPUDepsNone     = '[!] GPU Check dependencies could not be prepared.'
+            AskDiagDeps      = 'Prepare offline Full System Report dependencies on USB? [Y/N] (recommended)'
+            AskDiagDepsNote  = 'Copies CPU-Z / BlueScreenView / BatteryInfoView when available. Missing items are installed when possible.'
+            DiagDepsHeader   = '--- Preparing Full System Report offline dependencies ---'
+            DiagDepsDone     = '[OK] Full System Report offline dependencies prepared.'
+            DiagDepsNone     = '[!] Full System Report dependencies could not be prepared.'
             DLLnchFatal = '[X] Could not download launcher. Aborting.'
             EnterExit   = '  ENTER to exit'
             DoneSep     = '============================================================'
@@ -137,6 +142,11 @@ function Invoke-PrepararUSB {
             GPUDepsHeader   = '--- Preparando dependencias offline de GPU Check ---'
             GPUDepsDone     = '[OK] Dependencias offline de GPU Check preparadas.'
             GPUDepsNone     = '[!] No se pudieron preparar dependencias de GPU Check.'
+            AskDiagDeps      = 'Preparar dependencias offline de Full System Report en la USB? [S/N] (recomendado)'
+            AskDiagDepsNote  = 'Copia CPU-Z / BlueScreenView / BatteryInfoView cuando estan disponibles. Si faltan, intenta instalarlos.'
+            DiagDepsHeader   = '--- Preparando dependencias offline de Full System Report ---'
+            DiagDepsDone     = '[OK] Dependencias offline de Full System Report preparadas.'
+            DiagDepsNone     = '[!] No se pudieron preparar dependencias de Full System Report.'
             DLLnchFatal = '[X] No se pudo descargar el launcher. Cancelando.'
             EnterExit   = '  ENTER para salir'
             DoneSep     = '============================================================'
@@ -187,6 +197,7 @@ LAYOUT
     atlas-offline.log  Transcript of the latest run (errors + stack trace).
     apps\FastCopy\     Portable FastCopy copy (if downloaded).
     deps\GPUCheck\tools\  Optional offline dependencies for GPU Check.
+    deps\DiagnosticoMaster\tools\  Optional offline dependencies for Full System Report.
     README.txt         This file.
 
 TROUBLESHOOTING
@@ -238,6 +249,7 @@ ESTRUCTURA
     atlas-offline.log  Transcript de la ultima ejecucion (errores + stack).
     apps\FastCopy\     Copia portable de FastCopy (si se descargo).
     deps\GPUCheck\tools\  Dependencias offline opcionales para GPU Check.
+    deps\DiagnosticoMaster\tools\  Dependencias offline opcionales para Full System Report.
     README.txt         Este archivo.
 
 SOLUCION DE PROBLEMAS
@@ -538,6 +550,98 @@ Generado por Atlas PC Support - Preparar USB Offline
         }
 
         Write-Centered $L.GPUDepsNone 'Yellow'
+        return $false
+    }
+
+    function Prepare-DiagnosticoMasterDeps {
+        param([string]$DiagToolsDir)
+
+        Write-Host ''
+        Write-Centered $L.DiagDepsHeader 'Yellow'
+
+        if (-not (Test-Path -LiteralPath $DiagToolsDir)) {
+            New-Item -ItemType Directory -Path $DiagToolsDir -Force | Out-Null
+        }
+
+        function Find-FirstExistingPath {
+            param([string[]]$Candidates)
+            foreach ($c in $Candidates) {
+                if ([string]::IsNullOrWhiteSpace($c)) { continue }
+                $p = [Environment]::ExpandEnvironmentVariables($c)
+                if (Test-Path -LiteralPath $p) { return $p }
+            }
+            return $null
+        }
+
+        function Resolve-DepPath {
+            param(
+                [string]$DepName,
+                [string[]]$FallbackPaths
+            )
+            $resolved = $null
+            if (Get-Command Resolve-AtlasDependency -ErrorAction SilentlyContinue) {
+                try { $resolved = Resolve-AtlasDependency -Name $DepName -InstallIfMissing } catch {}
+            }
+            if (-not $resolved) {
+                $resolved = Find-FirstExistingPath -Candidates $FallbackPaths
+            }
+            return $resolved
+        }
+
+        $copiedCount = 0
+
+        $cpuzSrc = Resolve-DepPath -DepName 'CPUZ' -FallbackPaths @(
+            'C:\Program Files\CPUID\CPU-Z\cpuz_x64.exe',
+            'C:\Program Files\CPUID\CPU-Z\cpuz_x32.exe',
+            'C:\Program Files\CPUID\CPU-Z\cpuz.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x64.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x32.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\cpuz.exe'
+        )
+        if ($cpuzSrc -and (Test-Path -LiteralPath $cpuzSrc)) {
+            $cpuzDstName = Split-Path -Leaf $cpuzSrc
+            Copy-Item -LiteralPath $cpuzSrc -Destination (Join-Path $DiagToolsDir $cpuzDstName) -Force
+            $copiedCount++
+        }
+
+        $bsodSrc = Resolve-DepPath -DepName 'BlueScreenView' -FallbackPaths @(
+            'C:\Program Files\NirSoft\BlueScreenView\BlueScreenView.exe',
+            'C:\Program Files (x86)\NirSoft\BlueScreenView\BlueScreenView.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\bluescreenview.exe'
+        )
+        if ($bsodSrc -and (Test-Path -LiteralPath $bsodSrc)) {
+            Copy-Item -LiteralPath $bsodSrc -Destination (Join-Path $DiagToolsDir 'BlueScreenView.exe') -Force
+            $copiedCount++
+        }
+
+        $batSrc = Resolve-DepPath -DepName 'BatteryInfoView' -FallbackPaths @(
+            'C:\Program Files\NirSoft\BatteryInfoView\BatteryInfoView.exe',
+            'C:\Program Files (x86)\NirSoft\BatteryInfoView\BatteryInfoView.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\batteryinfoview.exe'
+        )
+        if ($batSrc -and (Test-Path -LiteralPath $batSrc)) {
+            Copy-Item -LiteralPath $batSrc -Destination (Join-Path $DiagToolsDir 'BatteryInfoView.exe') -Force
+            $copiedCount++
+        }
+
+        $hasCpuZ = (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz_x64.exe')) -or
+            (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz_x32.exe')) -or
+            (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz.exe'))
+        $hasBsod = Test-Path -LiteralPath (Join-Path $DiagToolsDir 'BlueScreenView.exe')
+        $hasBat = Test-Path -LiteralPath (Join-Path $DiagToolsDir 'BatteryInfoView.exe')
+
+        if ($hasCpuZ -and $hasBsod -and $hasBat) {
+            Write-Centered $L.DiagDepsDone 'Green'
+            return $true
+        }
+
+        if ($copiedCount -gt 0) {
+            Write-Centered ($L.DiagDepsDone + ' (partial)') 'Yellow'
+            return $true
+        }
+
+        Write-Centered $L.DiagDepsNone 'Yellow'
         return $false
     }
 
@@ -856,6 +960,15 @@ exit 0
     if ($dgd -match '^[SsYy]$') {
         $gpuToolsDir = Join-Path $targetDir 'deps\GPUCheck\tools'
         Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir | Out-Null
+    }
+
+    Write-Host ''
+    Write-Centered $L.AskDiagDeps 'Yellow'
+    Write-Centered $L.AskDiagDepsNote 'DarkGray'
+    $ddd = Read-Host '  '
+    if ($ddd -match '^[SsYy]$') {
+        $diagToolsDir = Join-Path $targetDir 'deps\DiagnosticoMaster\tools'
+        Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
     }
 
     Write-Host ''
