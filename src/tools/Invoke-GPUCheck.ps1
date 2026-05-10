@@ -201,6 +201,38 @@ function Invoke-GPUCheck {
         return $null
     }
 
+    function Find-FirstExistingPath {
+        param([string[]]$Candidates)
+        foreach ($c in @($Candidates)) {
+            if ([string]::IsNullOrWhiteSpace($c)) { continue }
+            $p = [Environment]::ExpandEnvironmentVariables($c)
+            if (Test-Path -LiteralPath $p) { return $p }
+        }
+        return $null
+    }
+
+    function Resolve-DepPath {
+        param(
+            [Parameter(Mandatory)] [string]$DepName,
+            [Parameter(Mandatory)] [string[]]$InstallPaths,
+            [Parameter(Mandatory)] [string]$WingetId,
+            [string]$ExecutableName
+        )
+
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            try {
+                winget install --id $WingetId --exact --accept-source-agreements --accept-package-agreements --silent | Out-Null
+            } catch {}
+        }
+
+        $resolved = Find-FirstExistingPath -Candidates $InstallPaths
+        if (-not $resolved -and $ExecutableName) {
+            $cmd = Get-Command $ExecutableName -ErrorAction SilentlyContinue
+            if ($cmd) { $resolved = $cmd.Source }
+        }
+        return $resolved
+    }
+
     function Resolve-GpuCheckTools {
         param(
             [Parameter(Mandatory)] [string]$ToolsDir,
@@ -216,7 +248,11 @@ function Invoke-GPUCheck {
             if (Test-Path -LiteralPath $off) { Copy-FileSafe -Source $off -Destination $gpuzLocal; $notes.Add('GPU-Z staged from offline pack.') | Out-Null }
         }
         if (-not (Test-Path -LiteralPath $gpuzLocal)) {
-            $gpuzSrc = Resolve-AtlasDependency -Name 'GPUZ' -InstallIfMissing
+            $gpuzSrc = Resolve-DepPath -DepName 'GPUZ' -WingetId 'TechPowerUp.GPU-Z' -ExecutableName 'GPU-Z.exe' -InstallPaths @(
+                'C:\Program Files (x86)\GPU-Z\GPU-Z.exe',
+                'C:\Program Files\GPU-Z\GPU-Z.exe',
+                '%LOCALAPPDATA%\AtlasPC\bin\GPUCheck\tools\GPU-Z.exe'
+            )
             if ($gpuzSrc) { Copy-FileSafe -Source $gpuzSrc -Destination $gpuzLocal; $notes.Add('GPU-Z staged from system dependency.') | Out-Null }
         }
 
@@ -229,7 +265,11 @@ function Invoke-GPUCheck {
             }
         }
         if ($NeedStress -and -not (Test-Path -LiteralPath $furLocal)) {
-            $furSrc = Resolve-AtlasDependency -Name 'FurMark2' -InstallIfMissing
+            $furSrc = Resolve-DepPath -DepName 'FurMark2' -WingetId 'Geeks3D.FurMark.2' -ExecutableName 'furmark.exe' -InstallPaths @(
+                'C:\Program Files\Geeks3D\FurMark2_x64\furmark.exe',
+                'C:\Program Files (x86)\Geeks3D\FurMark2_x64\furmark.exe',
+                '%LOCALAPPDATA%\AtlasPC\bin\GPUCheck\tools\FurMark2_x64\furmark.exe'
+            )
             if ($furSrc) {
                 $furSrcDir = Split-Path -Parent $furSrc
                 Copy-DirSafe -SourceDir $furSrcDir -DestinationDir (Join-Path $ToolsDir 'FurMark2_x64')
@@ -243,7 +283,11 @@ function Invoke-GPUCheck {
             if (Test-Path -LiteralPath $offHw) { Copy-FileSafe -Source $offHw -Destination $hwLocal }
         }
         if (-not (Test-Path -LiteralPath $hwLocal)) {
-            $hwSrc = Resolve-AtlasDependency -Name 'HWiNFO' -InstallIfMissing
+            $hwSrc = Resolve-DepPath -DepName 'HWiNFO' -WingetId 'REALiX.HWiNFO' -ExecutableName 'HWiNFO64.exe' -InstallPaths @(
+                'C:\Program Files\HWiNFO64\HWiNFO64.exe',
+                'C:\Program Files (x86)\HWiNFO64\HWiNFO64.exe',
+                '%LOCALAPPDATA%\AtlasPC\bin\GPUCheck\tools\HWiNFO64.exe'
+            )
             if ($hwSrc) { Copy-FileSafe -Source $hwSrc -Destination $hwLocal }
         }
 
@@ -602,4 +646,3 @@ table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6p
     Write-Host ''
     Read-Host $L.PressEnter | Out-Null
 }
-
