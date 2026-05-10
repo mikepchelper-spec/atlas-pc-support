@@ -70,7 +70,7 @@
     {
       "id": "ai-readiness",
       "name": "AI Readiness Assessment",
-      "description": "Scans RAM, CPU, GPU/VRAM, disk type and connectivity. Scores AI readiness (0-100), recommends compatible GGUF models with ollama commands, and generates an HTML report per client.",
+      "description": "Self-contained local/cloud AI readiness audit: RAM, CPU, GPU/VRAM, storage, Ollama/cloud connectivity, 0-100 score, suggested models and HTML/JSON report export.",
       "category": "diagnostico",
       "function": "Invoke-AIReadiness",
       "source": "Invoke-AIReadiness.ps1",
@@ -142,7 +142,9 @@
       "source": "FastCopy.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
-      "dependencies": ["FastCopy"]
+      "dependencies": [
+        "FastCopy"
+      ]
     },
     {
       "id": "preparar-usb",
