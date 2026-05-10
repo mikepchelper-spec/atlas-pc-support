@@ -24,6 +24,36 @@ $script:AtlasDepsRegistry = @{
             '%LOCALAPPDATA%\Microsoft\WindowsApps\winget.exe'
         )
     }
+    'GPUZ' = @{
+        DisplayName    = 'TechPowerUp GPU-Z'
+        ExecutableName = 'GPU-Z.exe'
+        WingetId       = 'TechPowerUp.GPU-Z'
+        SearchPaths    = @(
+            'C:\Program Files (x86)\GPU-Z\GPU-Z.exe',
+            'C:\Program Files\GPU-Z\GPU-Z.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\GPUCheck\tools\GPU-Z.exe'
+        )
+    }
+    'FurMark2' = @{
+        DisplayName    = 'Geeks3D FurMark 2'
+        ExecutableName = 'furmark.exe'
+        WingetId       = 'Geeks3D.FurMark.2'
+        SearchPaths    = @(
+            'C:\Program Files\Geeks3D\FurMark2_x64\furmark.exe',
+            'C:\Program Files (x86)\Geeks3D\FurMark2_x64\furmark.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\GPUCheck\tools\FurMark2_x64\furmark.exe'
+        )
+    }
+    'HWiNFO' = @{
+        DisplayName    = 'HWiNFO64'
+        ExecutableName = 'HWiNFO64.exe'
+        WingetId       = 'REALiX.HWiNFO'
+        SearchPaths    = @(
+            'C:\Program Files\HWiNFO64\HWiNFO64.exe',
+            'C:\Program Files (x86)\HWiNFO64\HWiNFO64.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\GPUCheck\tools\HWiNFO64.exe'
+        )
+    }
 }
 
 function Resolve-AtlasDependency {

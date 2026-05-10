@@ -68,6 +68,11 @@ function Invoke-PrepararUSB {
             AskFC       = 'Download portable FastCopy on the USB? [Y/N] (recommended)'
             AskPS7      = 'Download PowerShell 7 MSI on the USB? [Y/N] (~120 MB)'
             AskPS7Note  = 'Lets the client install PS7 without internet via the "Install/Update PowerShell 7" tool.'
+            AskGPUDeps      = 'Prepare offline GPU Check dependencies on USB? [Y/N] (recommended)'
+            AskGPUDepsNote  = 'Copies GPU-Z / FurMark 2 bundle / HWiNFO when available. Missing items are installed when possible.'
+            GPUDepsHeader   = '--- Preparing GPU Check offline dependencies ---'
+            GPUDepsDone     = '[OK] GPU Check offline dependencies prepared.'
+            GPUDepsNone     = '[!] GPU Check dependencies could not be prepared.'
             DLLnchFatal = '[X] Could not download launcher. Aborting.'
             EnterExit   = '  ENTER to exit'
             DoneSep     = '============================================================'
@@ -127,6 +132,11 @@ function Invoke-PrepararUSB {
             AskFC       = 'Descargar FastCopy portable en la USB? [S/N] (recomendado)'
             AskPS7      = 'Descargar PowerShell 7 MSI en la USB? [S/N] (~120 MB)'
             AskPS7Note  = 'Permite al cliente instalar PS7 sin internet con la tool "Actualizar PowerShell".'
+            AskGPUDeps      = 'Preparar dependencias offline de GPU Check en la USB? [S/N] (recomendado)'
+            AskGPUDepsNote  = 'Copia GPU-Z / bundle FurMark 2 / HWiNFO cuando estan disponibles. Si faltan, intenta instalarlos.'
+            GPUDepsHeader   = '--- Preparando dependencias offline de GPU Check ---'
+            GPUDepsDone     = '[OK] Dependencias offline de GPU Check preparadas.'
+            GPUDepsNone     = '[!] No se pudieron preparar dependencias de GPU Check.'
             DLLnchFatal = '[X] No se pudo descargar el launcher. Cancelando.'
             EnterExit   = '  ENTER para salir'
             DoneSep     = '============================================================'
@@ -176,6 +186,7 @@ LAYOUT
     launcher.ps1       Compiled panel (auto-updates).
     atlas-offline.log  Transcript of the latest run (errors + stack trace).
     apps\FastCopy\     Portable FastCopy copy (if downloaded).
+    deps\GPUCheck\tools\  Optional offline dependencies for GPU Check.
     README.txt         This file.
 
 TROUBLESHOOTING
@@ -226,6 +237,7 @@ ESTRUCTURA
     launcher.ps1       Panel compilado (se auto-actualiza).
     atlas-offline.log  Transcript de la ultima ejecucion (errores + stack).
     apps\FastCopy\     Copia portable de FastCopy (si se descargo).
+    deps\GPUCheck\tools\  Dependencias offline opcionales para GPU Check.
     README.txt         Este archivo.
 
 SOLUCION DE PROBLEMAS
@@ -440,6 +452,95 @@ Generado por Atlas PC Support - Preparar USB Offline
         return $false
     }
 
+    function Prepare-GPUCheckDeps {
+        param([string]$GpuToolsDir)
+
+        Write-Host ''
+        Write-Centered $L.GPUDepsHeader 'Yellow'
+
+        if (-not (Test-Path -LiteralPath $GpuToolsDir)) {
+            New-Item -ItemType Directory -Path $GpuToolsDir -Force | Out-Null
+        }
+
+        function Find-FirstExistingPath {
+            param([string[]]$Candidates)
+            foreach ($c in $Candidates) {
+                if ([string]::IsNullOrWhiteSpace($c)) { continue }
+                $p = [Environment]::ExpandEnvironmentVariables($c)
+                if (Test-Path -LiteralPath $p) { return $p }
+            }
+            return $null
+        }
+
+        function Resolve-DepPath {
+            param(
+                [string]$DepName,
+                [string[]]$FallbackPaths
+            )
+            $resolved = $null
+            if (Get-Command Resolve-AtlasDependency -ErrorAction SilentlyContinue) {
+                try { $resolved = Resolve-AtlasDependency -Name $DepName -InstallIfMissing } catch {}
+            }
+            if (-not $resolved) {
+                $resolved = Find-FirstExistingPath -Candidates $FallbackPaths
+            }
+            return $resolved
+        }
+
+        $copiedCount = 0
+
+        $gpuzSrc = Resolve-DepPath -DepName 'GPUZ' -FallbackPaths @(
+            'C:\Program Files (x86)\GPU-Z\GPU-Z.exe',
+            'C:\Program Files\GPU-Z\GPU-Z.exe'
+        )
+        if ($gpuzSrc -and (Test-Path -LiteralPath $gpuzSrc)) {
+            Copy-Item -LiteralPath $gpuzSrc -Destination (Join-Path $GpuToolsDir 'GPU-Z.exe') -Force
+            $copiedCount++
+        }
+
+        $hwSrc = Resolve-DepPath -DepName 'HWiNFO' -FallbackPaths @(
+            'C:\Program Files\HWiNFO64\HWiNFO64.exe',
+            'C:\Program Files (x86)\HWiNFO64\HWiNFO64.exe'
+        )
+        if ($hwSrc -and (Test-Path -LiteralPath $hwSrc)) {
+            Copy-Item -LiteralPath $hwSrc -Destination (Join-Path $GpuToolsDir 'HWiNFO64.exe') -Force
+            $copiedCount++
+        }
+
+        $furExe = Resolve-DepPath -DepName 'FurMark2' -FallbackPaths @(
+            'C:\Program Files\Geeks3D\FurMark2_x64\furmark.exe',
+            'C:\Program Files (x86)\Geeks3D\FurMark2_x64\furmark.exe'
+        )
+        if ($furExe -and (Test-Path -LiteralPath $furExe)) {
+            $furSrcDir = Split-Path -Parent $furExe
+            $furDstDir = Join-Path $GpuToolsDir 'FurMark2_x64'
+            if (-not (Test-Path -LiteralPath $furDstDir)) {
+                New-Item -ItemType Directory -Path $furDstDir -Force | Out-Null
+            }
+            robocopy $furSrcDir $furDstDir /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+            if (Test-Path -LiteralPath (Join-Path $furDstDir 'furmark.exe')) {
+                $copiedCount++
+            }
+        }
+
+        $hasGpuZ = Test-Path -LiteralPath (Join-Path $GpuToolsDir 'GPU-Z.exe')
+        $hasFur = Test-Path -LiteralPath (Join-Path $GpuToolsDir 'FurMark2_x64\furmark.exe')
+        $hasHw = Test-Path -LiteralPath (Join-Path $GpuToolsDir 'HWiNFO64.exe')
+
+        if ($hasGpuZ -and $hasFur) {
+            Write-Centered $L.GPUDepsDone 'Green'
+            return $true
+        }
+
+        if ($copiedCount -gt 0 -or $hasHw) {
+            Write-Centered ($L.GPUDepsDone + ' (partial)') 'Yellow'
+            return $true
+        }
+
+        Write-Centered $L.GPUDepsNone 'Yellow'
+        return $false
+    }
+
     function Write-RunBat {
         param([string]$Path, [string]$FailMsg)
         # run.bat delegates the heavy lifting to run-launcher.ps1 (which
@@ -504,6 +605,7 @@ Generado por Atlas PC Support - Preparar USB Offline
 $here        = Split-Path -Parent $MyInvocation.MyCommand.Path
 $launcher    = Join-Path $here 'launcher.ps1'
 $transcript  = Join-Path $here 'atlas-offline.log'
+$env:ATLAS_OFFLINE_ROOT = $here
 
 if (-not (Test-Path -LiteralPath $launcher)) {
     Write-Host ''
@@ -745,6 +847,15 @@ exit 0
     if ($dps -match '^[SsYy]$') {
         $depsDir = Join-Path $targetDir 'deps'
         Download-PS7 -DepsDir $depsDir | Out-Null
+    }
+
+    Write-Host ''
+    Write-Centered $L.AskGPUDeps 'Yellow'
+    Write-Centered $L.AskGPUDepsNote 'DarkGray'
+    $dgd = Read-Host '  '
+    if ($dgd -match '^[SsYy]$') {
+        $gpuToolsDir = Join-Path $targetDir 'deps\GPUCheck\tools'
+        Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir | Out-Null
     }
 
     Write-Host ''
