@@ -32,7 +32,7 @@
       "source": "DiagnosticoMaster.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
-      "dependencies": []
+      "dependencies": ["CPUZ", "BlueScreenView", "BatteryInfoView"]
     },
     {
       "id": "diagnostico-eventos",

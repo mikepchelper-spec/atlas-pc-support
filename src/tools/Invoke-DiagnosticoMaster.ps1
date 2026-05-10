@@ -1186,6 +1186,148 @@ function Get-GPUSlownessTriageForReport {
     return @{ HtmlSection = $html; Score = $score; Verdict = $verdict; Color = $color; Findings = @($findings) }
 }
 
+function Ensure-Dir {
+    param([Parameter(Mandatory)] [string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) {
+        New-Item -ItemType Directory -Path $Path -Force | Out-Null
+    }
+}
+
+function Find-FirstExistingPath {
+    param([string[]]$Candidates)
+    foreach ($c in @($Candidates)) {
+        if ([string]::IsNullOrWhiteSpace($c)) { continue }
+        $p = [Environment]::ExpandEnvironmentVariables($c)
+        if (Test-Path -LiteralPath $p) { return $p }
+    }
+    return $null
+}
+
+function Find-ToolFileInRoots {
+    param(
+        [string[]]$Roots,
+        [string[]]$Names
+    )
+    foreach ($root in @($Roots)) {
+        if ([string]::IsNullOrWhiteSpace($root) -or -not (Test-Path -LiteralPath $root)) { continue }
+        foreach ($name in @($Names)) {
+            $hit = Get-ChildItem -Path $root -Filter $name -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($hit) { return $hit.FullName }
+        }
+    }
+    return $null
+}
+
+function Get-OfflineDiagToolsRoot {
+    if ([string]::IsNullOrWhiteSpace($env:ATLAS_OFFLINE_ROOT)) { return $null }
+    $root = Join-Path $env:ATLAS_OFFLINE_ROOT 'deps\DiagnosticoMaster\tools'
+    if (Test-Path -LiteralPath $root) { return $root }
+    return $null
+}
+
+function Resolve-DiagDep {
+    param(
+        [Parameter(Mandatory)] [string]$WingetId,
+        [Parameter(Mandatory)] [string[]]$InstallPaths,
+        [string[]]$CommandNames
+    )
+
+    $resolved = Find-FirstExistingPath -Candidates $InstallPaths
+    if (-not $resolved -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+        try {
+            winget install --id $WingetId --exact --accept-source-agreements --accept-package-agreements --silent | Out-Null
+        } catch {}
+        if ($CommandNames) {
+            foreach ($cmdName in $CommandNames) {
+                $cmd = Get-Command $cmdName -ErrorAction SilentlyContinue
+                if ($cmd) { $resolved = $cmd.Source; break }
+            }
+        }
+        if (-not $resolved) {
+            $resolved = Find-FirstExistingPath -Candidates $InstallPaths
+        }
+    }
+    return $resolved
+}
+
+function Stage-DiagDep {
+    param(
+        [Parameter(Mandatory)] [string]$Source,
+        [Parameter(Mandatory)] [string]$ToolsDir,
+        [string]$TargetName
+    )
+    if (-not (Test-Path -LiteralPath $Source)) { return $null }
+    Ensure-Dir -Path $ToolsDir
+    $name = if ($TargetName) { $TargetName } else { Split-Path -Leaf $Source }
+    $dst = Join-Path $ToolsDir $name
+    Copy-Item -LiteralPath $Source -Destination $dst -Force
+    return $dst
+}
+
+function Resolve-DiagnosticoMasterTools {
+    param(
+        [Parameter(Mandatory)] [string]$ToolsDir,
+        [string]$LegacyAppsDir
+    )
+
+    Ensure-Dir -Path $ToolsDir
+    $offlineRoot = Get-OfflineDiagToolsRoot
+    if ($offlineRoot) {
+        foreach ($name in @('cpuz_x64.exe', 'cpuz_x32.exe', 'cpuz.exe', 'BlueScreenView.exe', 'BatteryInfoView.exe')) {
+            $src = Join-Path $offlineRoot $name
+            if (Test-Path -LiteralPath $src) {
+                Copy-Item -LiteralPath $src -Destination (Join-Path $ToolsDir $name) -Force
+            }
+        }
+    }
+
+    $cpuz = Find-ToolFileInRoots -Roots @($ToolsDir) -Names @('cpuz_x64.exe', 'cpuz_x32.exe', 'cpuz.exe')
+    if (-not $cpuz) {
+        $cpuzSrc = Resolve-DiagDep -WingetId 'CPUID.CPU-Z' -CommandNames @('cpuz.exe', 'cpuz_x64.exe', 'cpuz_x32.exe') -InstallPaths @(
+            'C:\Program Files\CPUID\CPU-Z\cpuz_x64.exe',
+            'C:\Program Files\CPUID\CPU-Z\cpuz_x32.exe',
+            'C:\Program Files\CPUID\CPU-Z\cpuz.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x64.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x32.exe',
+            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\cpuz.exe'
+        )
+        if ($cpuzSrc) { $cpuz = Stage-DiagDep -Source $cpuzSrc -ToolsDir $ToolsDir }
+    }
+
+    $bsod = Find-FirstExistingPath -Candidates @(
+        (Join-Path $ToolsDir 'BlueScreenView.exe')
+    )
+    if (-not $bsod) {
+        $bsodSrc = Resolve-DiagDep -WingetId 'NirSoft.BlueScreenView' -CommandNames @('bluescreenview.exe', 'BlueScreenView.exe') -InstallPaths @(
+            'C:\Program Files\NirSoft\BlueScreenView\BlueScreenView.exe',
+            'C:\Program Files (x86)\NirSoft\BlueScreenView\BlueScreenView.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\bluescreenview.exe'
+        )
+        if ($bsodSrc) { $bsod = Stage-DiagDep -Source $bsodSrc -ToolsDir $ToolsDir -TargetName 'BlueScreenView.exe' }
+    }
+
+    $battery = Find-FirstExistingPath -Candidates @(
+        (Join-Path $ToolsDir 'BatteryInfoView.exe')
+    )
+    if (-not $battery) {
+        $batterySrc = Resolve-DiagDep -WingetId 'NirSoft.BatteryInfoView' -CommandNames @('batteryinfoview.exe', 'BatteryInfoView.exe') -InstallPaths @(
+            'C:\Program Files\NirSoft\BatteryInfoView\BatteryInfoView.exe',
+            'C:\Program Files (x86)\NirSoft\BatteryInfoView\BatteryInfoView.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\batteryinfoview.exe'
+        )
+        if ($batterySrc) { $battery = Stage-DiagDep -Source $batterySrc -ToolsDir $ToolsDir -TargetName 'BatteryInfoView.exe' }
+    }
+
+    return [pscustomobject]@{
+        CPUZ = $cpuz
+        BlueScreenView = $bsod
+        BatteryInfoView = $battery
+        ToolsDir = $ToolsDir
+        LegacyAppsDir = $LegacyAppsDir
+    }
+}
+
 do {
     $continuar = $false
     try {
@@ -1232,7 +1374,10 @@ do {
         $selMode = Read-Host
         if ([string]::IsNullOrWhiteSpace($selMode)) { $selMode = "1" }
 
-        $root = [Environment]::GetFolderPath("Desktop"); $apps = Join-Path $root "Apps"
+        $root = [Environment]::GetFolderPath("Desktop")
+        $appsLegacy = Join-Path $root "Apps"
+        $diagToolsDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\bin\DiagnosticoMaster\tools'
+        $diagDeps = Resolve-DiagnosticoMasterTools -ToolsDir $diagToolsDir -LegacyAppsDir $appsLegacy
         $repoRoot = Join-Path $root "REPORTES_PC"
         if (!(Test-Path $repoRoot)) { New-Item -ItemType Directory -Path $repoRoot | Out-Null }
 
@@ -1266,8 +1411,14 @@ do {
         $htmlHardware = ""
         if ($selMode -eq "2") {
             Escribir-Centrado $L.FindingCpuz "Magenta"
-            $exeCpuz = Get-ChildItem -Path $apps -Filter "cpuz_x64.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if (!$exeCpuz) { $exeCpuz = Get-ChildItem -Path $apps -Filter "cpuz_x32.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+            $exeCpuz = $null
+            if ($diagDeps.CPUZ -and (Test-Path -LiteralPath $diagDeps.CPUZ)) {
+                $exeCpuz = Get-Item -LiteralPath $diagDeps.CPUZ -ErrorAction SilentlyContinue
+            }
+            if (-not $exeCpuz) {
+                $cpuzLegacy = Find-ToolFileInRoots -Roots @($appsLegacy) -Names @('cpuz_x64.exe', 'cpuz_x32.exe', 'cpuz.exe')
+                if ($cpuzLegacy) { $exeCpuz = Get-Item -LiteralPath $cpuzLegacy -ErrorAction SilentlyContinue }
+            }
             if ($exeCpuz) {
                 Escribir-Centrado ($L.CpuzFound -f $exeCpuz.Name) "Green"
                 Escribir-Centrado $L.Step2Detail "Cyan"
@@ -1358,14 +1509,18 @@ do {
 
         Escribir-Centrado $L.Step7 "Cyan"
         $htmlBsod = "<h2>$($L.H7Bsod)</h2><pre>$($L.BsodNone)</pre>"
-        $exeBsod = Join-Path $apps "BlueScreenView.exe"; $tmpBsod = Join-Path $root "temp_bsod.txt"
+        $exeBsod = $diagDeps.BlueScreenView
+        if (-not $exeBsod) { $exeBsod = Join-Path $appsLegacy "BlueScreenView.exe" }
+        $tmpBsod = Join-Path $root "temp_bsod.txt"
         if (Test-Path $exeBsod) {
             $bsodOk = Start-ProcessWithTimeout -FilePath $exeBsod -Arguments "/stext `"${tmpBsod}`"" -TimeoutSeconds 15
             if ($bsodOk -and (Test-Path $tmpBsod)) { $c=Get-Content $tmpBsod -Raw -ErrorAction SilentlyContinue; if($c -and $c.Length -gt 10){$safeC=[System.Net.WebUtility]::HtmlEncode($c);$htmlBsod="<h2>$($L.H7Bsod)</h2><pre>${safeC}</pre>"}; Remove-Item $tmpBsod -ErrorAction SilentlyContinue }
         }
 
         Escribir-Centrado $L.Step8 "Cyan"
-        $htmlBat=""; $exeBatView=Join-Path $apps "BatteryInfoView.exe"
+        $htmlBat=""
+        $exeBatView = $diagDeps.BatteryInfoView
+        if (-not $exeBatView) { $exeBatView = Join-Path $appsLegacy "BatteryInfoView.exe" }
         $designCap=0;$fullCap=0;$cycleCount=0;$chemistry="N/A";$voltage="N/A";$manufactureName="N/A"
         if (Test-Path $exeBatView) {
             $tmpBatInfo=Join-Path $root "temp_bat_info.txt"
