@@ -79,6 +79,17 @@
       "dependencies": []
     },
     {
+      "id": "gpu-check",
+      "name": "GPU Check",
+      "description": "GPU diagnostics with optional stress test, GPU-Z and events analysis, NVIDIA telemetry when available, and JSON/HTML report export.",
+      "category": "diagnostico",
+      "function": "Invoke-GPUCheck",
+      "source": "GPUCheck.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": ["GPUZ", "FurMark2", "HWiNFO"]
+    },
+    {
       "id": "mantenimiento-pro",
       "name": "Deep Clean & Repair",
       "description": "Full maintenance suite: Defender, cleanup, DISM/SFC, system repair, final report.",
