@@ -241,7 +241,7 @@ function Invoke-InstalarPaquetes {
             @{ Id='Discord.Discord';                     Name='Discord' },
             @{ Id='OpenWhisperSystems.Signal';           Name='Signal' },
             @{ Id='Telegram.TelegramDesktop';            Name='Telegram Desktop' },
-            @{ Id='WhatsApp.WhatsApp';                   Name='WhatsApp Desktop' },
+            @{ Id='9NKSQGP7F2NH';                        Name='WhatsApp Desktop'; Source='msstore' },
             @{ Id='9NFHQRDFLG40';                        Name='JW Library'; Source='msstore' }
         )
         ($L.CategoryUtilities) = @(
