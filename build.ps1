@@ -79,7 +79,7 @@ $banner = (@"
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
-#      irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/get.ps1 | iex
+#      Save get.ps1 locally and run: pwsh -ExecutionPolicy Bypass -File get.ps1
 #
 #  Este archivo es AUTOGENERADO por build.ps1. NO lo edites a mano.
 #  Las fuentes están en src/.
