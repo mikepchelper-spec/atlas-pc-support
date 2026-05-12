@@ -98,4 +98,46 @@ function Invoke-InstalarMicrosoftStore {
     $lang = _Atlas-DetectLang
     if (-not $T.ContainsKey($lang)) { $lang = 'en' }
     $L = $T[$lang]
+
+    # --- Console setup ---
+    try { $Host.UI.RawUI.WindowTitle = $L.Title } catch {}
+    try { $Host.UI.RawUI.BackgroundColor = 'Black'; $Host.UI.RawUI.ForegroundColor = 'Gray' } catch {}
+    try { $Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(80, 35) } catch {}
+    Clear-Host
+
+    # --- Admin check ---
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        Write-Host $L.NeedAdmin -ForegroundColor Red
+        Read-Host $L.EnterExit
+        return
+    }
+
+    # --- OS / build detection ---
+    $osInfo   = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+    $build    = [int]$osInfo.BuildNumber
+    $caption  = $osInfo.Caption
+    $isW11    = $build -ge 22000
+    $isLTSC   = $caption -match 'LTSC|IoT'
+
+    # --- Header ---
+    Write-Host ''
+    Write-Host $L.Separator -ForegroundColor DarkGray
+    Write-Host "   $($L.Title)" -ForegroundColor Yellow
+    Write-Host "   $caption (Build $build)" -ForegroundColor Gray
+    Write-Host $L.Separator -ForegroundColor DarkGray
+    Write-Host ''
+
+    # --- Step 1: Detect ---
+    Write-Host $L.CheckingStore -ForegroundColor Cyan
+    $storeApp = Get-AppxPackage -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue
+    if ($storeApp) {
+        Write-Host ($L.AlreadyInstalled -f $storeApp.Version) -ForegroundColor Green
+        Write-Host ''
+        Read-Host $L.EnterExit
+        return
+    }
+    Write-Host $L.NotFound -ForegroundColor Yellow
+    Write-Host ''
 }
