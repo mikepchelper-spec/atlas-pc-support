@@ -18,18 +18,13 @@ Atlas PC Support es un launcher WPF (tema Fluent / Windows 11) que agrupa herram
 Abre **PowerShell como Administrador** y pega:
 
 ```powershell
-irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1 | iex
+irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/get.ps1 | iex
 ```
 
-Eso es todo — no hay que instalar nada más. El launcher se descarga, se ejecuta en memoria y abre el panel.
+Eso es todo - no hay que instalar nada mas. `get.ps1` descarga el launcher a un archivo temporal y lo lanza con `-File`, evitando el patron `irm | iex` que Windows Defender AMSI bloquea en muchos equipos.
 
 > 💡 **Actualizaciones automáticas**: cada vez que ejecutas ese comando, se baja la versión más reciente desde GitHub. No hay que "instalar updates".
 
-Si tu sesión de PowerShell muestra un error `﻿#: The term '﻿#' …` al inicio (un BOM UTF-8 que mete algún proxy local o antivirus), usa esta variante tolerante al BOM:
-
-```powershell
-iex ((irm "https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1?v=$(Get-Random)") -replace '^\uFEFF','')
-```
 
 ---
 
