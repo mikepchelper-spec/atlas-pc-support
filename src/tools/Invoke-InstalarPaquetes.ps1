@@ -14,7 +14,7 @@ function Invoke-InstalarPaquetes {
     param()
 
     $ErrorActionPreference = 'Continue'
-    $Host.UI.RawUI.WindowTitle = 'ATLAS PC SUPPORT - Bulk App Installer'
+    $Host.UI.RawUI.WindowTitle = 'Bulk App Installer - Atlas PC Support'
     try { $Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(115, 44) } catch {}
 
     # --- Language detection (env var -> config.json -> system culture -> en) ---
@@ -107,6 +107,11 @@ function Invoke-InstalarPaquetes {
             CategoryNetwork    = 'Network'
             CategoryGaming     = 'Gaming'
             CategoryNotes      = 'Notes & Productivity'
+            WingetBootstrapOffer    = '[!] winget not found. Auto-install App Installer? [Y/n]'
+            WingetBootstrapping     = '[>] Downloading App Installer (winget)...'
+            WingetBootstrapOK       = '[OK] winget installed successfully. Continuing...'
+            WingetBootstrapFailed   = '[X] Auto-install failed. Install "App Installer" manually from the Microsoft Store.'
+            WingetBootstrapRestart  = '[!] winget may need a session restart to appear. Close and re-open the tool if it fails.'
         }
         es = @{
             Title              = 'ATLAS PC SUPPORT - INSTALADOR DE PAQUETES (winget)'
@@ -181,6 +186,11 @@ function Invoke-InstalarPaquetes {
             CategoryNetwork    = 'Redes'
             CategoryGaming     = 'Gaming'
             CategoryNotes      = 'Notas y Productividad'
+            WingetBootstrapOffer    = '[!] winget no encontrado. Instalar App Installer automaticamente? [S/n]'
+            WingetBootstrapping     = '[>] Descargando App Installer (winget)...'
+            WingetBootstrapOK       = '[OK] winget instalado correctamente. Continuando...'
+            WingetBootstrapFailed   = '[X] Instalacion automatica fallida. Instala "App Installer" manualmente desde Microsoft Store.'
+            WingetBootstrapRestart  = '[!] Es posible que winget necesite reiniciar la sesion. Cierra y reabre la tool si falla.'
         }
     }
 
@@ -280,18 +290,47 @@ function Invoke-InstalarPaquetes {
     # Helpers
     # ============================================================
 
+    function Write-Centered-Pkg {
+        param([string]$Text, [string]$Color = 'White')
+        $w = try { $Host.UI.RawUI.WindowSize.Width } catch { 80 }
+        $pad = [Math]::Max(0, [Math]::Floor(($w - $Text.Length) / 2))
+        Write-Host ((' ' * $pad) + $Text) -ForegroundColor $Color
+    }
+
     function Write-Header {
         Clear-Host
         Write-Host ''
-        Write-Host '  ================================================================' -ForegroundColor Cyan
-        Write-Host ('  ' + $L.Title) -ForegroundColor Yellow
-        Write-Host '  ================================================================' -ForegroundColor Cyan
+        Write-Centered-Pkg '============================================================' 'DarkGray'
+        Write-Centered-Pkg '        BULK APP INSTALLER' 'Yellow'
+        Write-Centered-Pkg '  Catalog · Profiles · Search · Install via winget' 'DarkGray'
+        Write-Centered-Pkg '============================================================' 'DarkGray'
         Write-Host ''
     }
 
     function Test-WingetAvailable {
         $cmd = Get-Command winget.exe -ErrorAction SilentlyContinue
         return ($null -ne $cmd)
+    }
+
+    function Install-WingetBootstrap {
+        # Downloads and installs the App Installer MSIX bundle from GitHub to get winget on Win10
+        $msixUrl = 'https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'
+        $cacheDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\bootstrap'
+        if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+        $msixPath = Join-Path $cacheDir 'AppInstaller.msixbundle'
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri $msixUrl -OutFile $msixPath -UseBasicParsing -TimeoutSec 180 -ErrorAction Stop
+            if (-not (Test-Path $msixPath) -or (Get-Item $msixPath).Length -lt 1MB) {
+                return $false
+            }
+            Add-AppxPackage -Path $msixPath -ErrorAction Stop
+            Remove-Item $msixPath -ErrorAction SilentlyContinue
+            return $true
+        } catch {
+            Remove-Item $msixPath -ErrorAction SilentlyContinue
+            return $false
+        }
     }
 
     function Format-Pkg {
@@ -845,11 +884,30 @@ function Invoke-InstalarPaquetes {
     Write-Header
     if (-not (Test-WingetAvailable)) {
         Write-Host ('  ' + $L.WingetUnavailable) -ForegroundColor Red
-        Write-Host ('  ' + $L.WingetHintWin10) -ForegroundColor DarkGray
-        Write-Host ('  ' + $L.WingetHintWin11) -ForegroundColor DarkGray
         Write-Host ''
-        Read-Host $L.EnterToExit
-        return
+        $ans = Read-Host ('  ' + $L.WingetBootstrapOffer)
+        if ($ans -match '^[YySs]?$') {
+            Write-Host ('  ' + $L.WingetBootstrapping) -ForegroundColor Cyan
+            $ok = Install-WingetBootstrap
+            if ($ok -and (Test-WingetAvailable)) {
+                Write-Host ('  ' + $L.WingetBootstrapOK) -ForegroundColor Green
+                Write-Host ('  ' + $L.WingetBootstrapRestart) -ForegroundColor DarkYellow
+                Start-Sleep -Seconds 2
+            } else {
+                Write-Host ('  ' + $L.WingetBootstrapFailed) -ForegroundColor Red
+                Write-Host ('  ' + $L.WingetHintWin10) -ForegroundColor DarkGray
+                Write-Host ('  ' + $L.WingetHintWin11) -ForegroundColor DarkGray
+                Write-Host ''
+                Read-Host $L.EnterToExit
+                return
+            }
+        } else {
+            Write-Host ('  ' + $L.WingetHintWin10) -ForegroundColor DarkGray
+            Write-Host ('  ' + $L.WingetHintWin11) -ForegroundColor DarkGray
+            Write-Host ''
+            Read-Host $L.EnterToExit
+            return
+        }
     }
 
     $wingetVer = try { (& winget.exe --version 2>$null).Trim() } catch { 'unknown' }

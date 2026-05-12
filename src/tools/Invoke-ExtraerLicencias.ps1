@@ -46,7 +46,8 @@ function Show-Header {
     Clear-Host
     Write-Host "`n"
     Write-Centered -Text "========================================" -Color Yellow
-    Write-Centered -Text "ATLAS PC SUPPORT" -Color Yellow
+    Write-Centered -Text "  EXTRACT PRODUCT KEYS" -Color Yellow
+    Write-Centered -Text "  Windows · Office · BIOS/UEFI" -Color DarkGray
     Write-Centered -Text "========================================" -Color Yellow
     Write-Host "`n"
 }

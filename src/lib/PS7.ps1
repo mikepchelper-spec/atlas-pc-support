@@ -51,6 +51,10 @@ function Find-AtlasPS7OfflineMsi {
     param()
 
     $searchDirs = @()
+    # USB offline root set by run-launcher.ps1 (highest priority — covers USB scenario)
+    if ($env:ATLAS_OFFLINE_ROOT) {
+        $searchDirs += (Join-Path $env:ATLAS_OFFLINE_ROOT 'deps')
+    }
     # USB: si el launcher.ps1 esta en E:\ATLAS_PC_SUPPORT\, mirar deps\
     if ($script:AtlasRoot) {
         $searchDirs += (Join-Path $script:AtlasRoot 'deps')

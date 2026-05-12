@@ -22,16 +22,16 @@ if (-not (Test-Path $LauncherPath)) {
 
 $launcherText = Get-Content -Raw -Path $LauncherPath
 $pattern = "(?m)^\`$script:AtlasToolSources\['([^']+)'\] = '([^']+)'$"
-$matches = [regex]::Matches($launcherText, $pattern)
+$toolMatches = [regex]::Matches($launcherText, $pattern)
 
-if ($matches.Count -eq 0) {
+if ($toolMatches.Count -eq 0) {
     throw "No se encontraron entradas de `$script:AtlasToolSources en el launcher."
 }
 
-Write-Host "Encontradas $($matches.Count) tool sources en launcher" -ForegroundColor Cyan
+Write-Host "Encontradas $($toolMatches.Count) tool sources en launcher" -ForegroundColor Cyan
 
 $fail = 0
-foreach ($m in $matches) {
+foreach ($m in $toolMatches) {
     $fn  = $m.Groups[1].Value
     $b64 = $m.Groups[2].Value
 

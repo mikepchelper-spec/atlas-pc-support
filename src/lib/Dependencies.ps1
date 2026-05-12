@@ -9,7 +9,7 @@ $script:AtlasDepsRegistry = @{
         DisplayName    = 'FastCopy'
         ExecutableName = 'FastCopy.exe'
         WingetId       = 'FastCopy.FastCopy'
-        DownloadUrl    = 'https://fastcopy.jp/archive/FastCopy5.7.21_installer.exe'
+        DownloadUrl    = 'https://fastcopy.jp/archive/FastCopy5.11.2_installer.exe'
         SearchPaths    = @(
             'C:\Program Files\FastCopy\FastCopy.exe',
             'C:\Program Files (x86)\FastCopy\FastCopy.exe',
@@ -138,6 +138,36 @@ function Resolve-AtlasDependency {
         foreach ($p in $dep.SearchPaths) {
             $expanded = Expand-AtlasPath $p
             if (Test-Path $expanded) { return $expanded }
+        }
+    }
+
+    # Fallback: direct download via DownloadUrl when winget is unavailable or failed
+    if ($dep.DownloadUrl) {
+        Write-AtlasLog "Intentando descarga directa de $Name ($($dep.DownloadUrl))" -Tool 'Deps'
+        $cacheDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\bin'
+        if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+        $installerFile = Join-Path $cacheDir ("$Name-installer-" + [guid]::NewGuid().ToString('N').Substring(0,8) + '.exe')
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri $dep.DownloadUrl -OutFile $installerFile -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+            if ((Get-Item $installerFile).Length -gt 100KB) {
+                $targetDir = Join-Path $env:LOCALAPPDATA "AtlasPC\bin\$Name"
+                if (-not (Test-Path $targetDir)) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }
+                $p = Start-Process -FilePath $installerFile -ArgumentList @('/EXTRACT64', '/NOSUBDIR', '/AGREE_LICENSE', "/DIR=`"$targetDir`"") -Wait -PassThru -ErrorAction SilentlyContinue
+                if (-not ($p -and $p.ExitCode -eq 0)) {
+                    Start-Process -FilePath $installerFile -ArgumentList @('/SILENT', '/AGREE_LICENSE', "/DIR=`"$targetDir`"") -Wait -ErrorAction SilentlyContinue
+                }
+                Remove-Item $installerFile -ErrorAction SilentlyContinue
+                foreach ($sp in $dep.SearchPaths) {
+                    $expanded = Expand-AtlasPath $sp
+                    if (Test-Path $expanded) { return $expanded }
+                }
+                $found = Get-ChildItem -Path $targetDir -Filter $dep.ExecutableName -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($found) { return $found.FullName }
+            }
+        } catch {
+            Write-AtlasLog "Descarga directa falló: $_" -Level WARN -Tool 'Deps'
+            Remove-Item $installerFile -ErrorAction SilentlyContinue
         }
     }
 

@@ -20,7 +20,7 @@ jobs:
       - name: Build launcher.ps1
         shell: pwsh
         run: |
-          pwsh -NoProfile -File build.ps1
+          . ./build.ps1
 
       - name: Syntax check
         shell: pwsh
@@ -58,7 +58,7 @@ jobs:
       - name: Validate embedded tool sources (roundtrip parse)
         shell: pwsh
         run: |
-          pwsh -NoProfile -File tests/Test-ToolSources.ps1
+          . ./tests/Test-ToolSources.ps1
 
       - name: Upload built launcher
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

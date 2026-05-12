@@ -7,7 +7,7 @@
       "description": "Initial hardening: disables Teredo, 6to4 and ISATAP. Includes exportable technical log.",
       "category": "seguridad",
       "function": "Invoke-Fase0",
-      "source": "Fase0.ps1",
+      "source": "Invoke-Fase0.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -18,7 +18,7 @@
       "description": "Analyzes RAM, CPU (socket/BGA) and storage (NVMe/SATA/M.2). Buying recommendations and warnings.",
       "category": "diagnostico",
       "function": "Invoke-PartsUpgrade",
-      "source": "PartsUpgrade.ps1",
+      "source": "Invoke-PartsUpgrade.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
@@ -29,7 +29,7 @@
       "description": "Comprehensive HTML report: system, hardware, CPU, RAM, storage, network, battery, BSOD, GPU slowness triage and Upgrade Advisor.",
       "category": "diagnostico",
       "function": "Invoke-DiagnosticoMaster",
-      "source": "DiagnosticoMaster.ps1",
+      "source": "Invoke-DiagnosticoMaster.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": ["CPUZ", "BlueScreenView", "BatteryInfoView"]
@@ -40,7 +40,7 @@
       "description": "Reads Event Viewer and interprets errors: reboots, hardware (WHEA/disk), crashes, drivers, security. Exports HTML.",
       "category": "diagnostico",
       "function": "Invoke-DiagnosticoEventos",
-      "source": "DiagnosticoEventos.ps1",
+      "source": "Invoke-DiagnosticoEventos.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
@@ -51,7 +51,7 @@
       "description": "Printer diagnostics: printers, ports, drivers, spooler, queues, network test, print events, optional repairs and report export.",
       "category": "diagnostico",
       "function": "Invoke-PrinterDoctor",
-      "source": "PrinterDoctor.ps1",
+      "source": "Invoke-PrinterDoctor.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
@@ -62,7 +62,7 @@
       "description": "Ghost typing and keyboard fault triage: devices, accessibility keys, battery pressure risk, HID events, isolation prompts and report export.",
       "category": "diagnostico",
       "function": "Invoke-KeyboardDoctor",
-      "source": "KeyboardDoctor.ps1",
+      "source": "Invoke-KeyboardDoctor.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
@@ -84,7 +84,7 @@
       "description": "GPU diagnostics with optional stress test, GPU-Z and events analysis, NVIDIA telemetry when available, and JSON/HTML report export.",
       "category": "diagnostico",
       "function": "Invoke-GPUCheck",
-      "source": "GPUCheck.ps1",
+      "source": "Invoke-GPUCheck.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": ["GPUZ", "FurMark2", "HWiNFO"]
@@ -95,7 +95,7 @@
       "description": "Full maintenance suite: Defender, cleanup, DISM/SFC, system repair, final report.",
       "category": "mantenimiento",
       "function": "Invoke-MantenimientoPRO",
-      "source": "MantenimientoPRO.ps1",
+      "source": "Invoke-MantenimientoPRO.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -106,7 +106,7 @@
       "description": "Install software in bulk via winget. Curated catalog by category, JSON profiles per client, built-in winget search, and a Cleanup section (clear temp files).",
       "category": "software",
       "function": "Invoke-InstalarPaquetes",
-      "source": "InstalarPaquetes.ps1",
+      "source": "Invoke-InstalarPaquetes.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -117,7 +117,7 @@
       "description": "Installs or updates PowerShell 7 (modern runtime). Better encoding, modern enums and fewer bugs than Windows PowerShell 5.1.",
       "category": "mantenimiento",
       "function": "Invoke-ActualizarPowerShell",
-      "source": "ActualizarPowerShell.ps1",
+      "source": "Invoke-ActualizarPowerShell.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -128,7 +128,7 @@
       "description": "Wallpaper via Win32 API, dark theme, accent color, taskbar tweaks and watermark.",
       "category": "mantenimiento",
       "function": "Invoke-Personalizacion",
-      "source": "Personalizacion.ps1",
+      "source": "Invoke-Personalizacion.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
@@ -139,7 +139,7 @@
       "description": "Stops and sets to Manual non-essential services: telemetry, Xbox, sensors, fax, etc.",
       "category": "mantenimiento",
       "function": "Invoke-StopServices",
-      "source": "StopServices.ps1",
+      "source": "Invoke-StopServices.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -150,7 +150,7 @@
       "description": "Multi-source copy with profiles, comparison, MD5 and exportable summary. Replaces Robocopy with better UX.",
       "category": "copia",
       "function": "Invoke-FastCopy",
-      "source": "FastCopy.ps1",
+      "source": "Invoke-FastCopy.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": [
@@ -163,7 +163,7 @@
       "description": "Copies the panel and its dependencies to a USB drive for offline use. Auto-updates launcher when connected to the internet.",
       "category": "copia",
       "function": "Invoke-PrepararUSB",
-      "source": "PrepararUSB.ps1",
+      "source": "Invoke-PrepararUSB.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
@@ -174,7 +174,7 @@
       "description": "Optimized robocopy-based copy: mirror mode, retries, centralized logging.",
       "category": "copia",
       "function": "Invoke-Robocopy",
-      "source": "Robocopy.ps1",
+      "source": "Invoke-Robocopy.ps1",
       "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
@@ -185,7 +185,7 @@
       "description": "Switches DNS server between profiles (Cloudflare, Google, OpenDNS, custom) with one click.",
       "category": "redes",
       "function": "Invoke-SelectorDNS",
-      "source": "SelectorDNS.ps1",
+      "source": "Invoke-SelectorDNS.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -196,7 +196,7 @@
       "description": "Windows HOSTS file editor with automatic backup.",
       "category": "redes",
       "function": "Invoke-HostsManager",
-      "source": "HostsManager.ps1",
+      "source": "Invoke-HostsManager.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -207,7 +207,7 @@
       "description": "Local network router scan and security audit.",
       "category": "redes",
       "function": "Invoke-AuditoriaRouter",
-      "source": "AuditoriaRouter.ps1",
+      "source": "Invoke-AuditoriaRouter.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -218,7 +218,7 @@
       "description": "BitLocker status, activation, suspension and recovery key export.",
       "category": "seguridad",
       "function": "Invoke-GestorBitLocker",
-      "source": "GestorBitLocker.ps1",
+      "source": "Invoke-GestorBitLocker.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -229,7 +229,7 @@
       "description": "Audit and apply principle-of-least-privilege to local user accounts.",
       "category": "seguridad",
       "function": "Invoke-MenorPrivilegio",
-      "source": "MenorPrivilegio.ps1",
+      "source": "Invoke-MenorPrivilegio.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -240,7 +240,7 @@
       "description": "Extract Windows and Office product keys (read-only, safe).",
       "category": "seguridad",
       "function": "Invoke-ExtraerLicencias",
-      "source": "ExtraerLicencias.ps1",
+      "source": "Invoke-ExtraerLicencias.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -251,7 +251,7 @@
       "description": "Closeout protocol: final cleanup, summary, log and client handover preparation.",
       "category": "entrega",
       "function": "Invoke-EntregaPC",
-      "source": "EntregaPC.ps1",
+      "source": "Invoke-EntregaPC.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
