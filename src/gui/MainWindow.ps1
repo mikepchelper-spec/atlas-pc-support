@@ -784,61 +784,13 @@ $(Get-AtlasString 'about.description')
         })
     }
 
-    # Boton Reiniciar:
-    # Estrategia: escribir un .ps1 wrapper a %TEMP% (sin escapes anidados) y
-    # lanzarlo con powershell.exe -Sta -File. Asi evitamos romper el parser de
-    # -Command con quoting complejo. Captura todo en %TEMP%\atlas-restart.log
-    # para diagnostico.
     if ($btnRestart) {
         $btnRestart.Add_Click({
-            try {
-                $bootstrapUrl = 'https://toolspanel.atlaspcsupport.com/?v=' + [guid]::NewGuid().ToString('N')
-                $logPath  = Join-Path $env:TEMP 'atlas-restart.log'
-                $bootPath = Join-Path $env:TEMP 'atlas-restart-bootstrap.ps1'
-
-                # Wrapper limpio: descarga el launcher a disco y lo lanza con -File
-                # (nunca Invoke-Expression — evita falsos positivos de AV).
-                $launcherPath = Join-Path $env:TEMP 'atlas-restart-launcher.ps1'
-                $bootContent = @"
-# Atlas PC Support - restart bootstrap (auto-generado)
-`$ErrorActionPreference = 'Continue'
-`$logPath        = '$logPath'
-`$bootstrapUrl   = '$bootstrapUrl'
-`$launcherPath   = '$launcherPath'
-function _Atlas-Log { param([string]`$Msg) "{0}  {1}" -f (Get-Date -Format u), `$Msg | Out-File -FilePath `$logPath -Append -Encoding UTF8 }
-_Atlas-Log "child START (PSVersion=`$(`$PSVersionTable.PSVersion), PID=`$PID)"
-try {
-    _Atlas-Log "downloading launcher to disk: `$bootstrapUrl"
-    `$ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri `$bootstrapUrl -OutFile `$launcherPath -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
-    _Atlas-Log ("launcher size = {0} bytes" -f (Get-Item `$launcherPath).Length)
-    _Atlas-Log "launching via -File (no IEX)"
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "`$launcherPath"
-    _Atlas-Log "child END (panel cerrado normal)"
-} catch {
-    _Atlas-Log ("child ERR: " + (`$_ | Out-String))
-} finally {
-    Remove-Item `$launcherPath -ErrorAction SilentlyContinue
-}
-"@
-                Set-Content -Path $bootPath -Value $bootContent -Encoding UTF8
-
-                # Inicializar log con marca de inicio (desde el padre, antes de spawn).
-                $stamp = (Get-Date).ToString('u')
-                "$stamp  parent: requesting restart, bootPath=$bootPath, url=$bootstrapUrl" |
-                    Out-File -FilePath $logPath -Append -Encoding UTF8
-
-                Write-AtlasLog "Reinicio: bootstrap ps1 escrito en $bootPath, log=$logPath" -Tool 'UI'
-                Start-Process -FilePath 'powershell.exe' `
-                              -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-File',$bootPath `
-                              -WindowStyle Hidden | Out-Null
-                Start-Sleep -Milliseconds 800
-                Write-AtlasLog "Reinicio: cerrando ventana actual" -Tool 'UI'
-                if ($script:MainWindow) { $script:MainWindow.Close() }
-            } catch {
-                Write-AtlasLog "Error al preparar reinicio: $_" -Level WARN -Tool 'UI'
-                [System.Windows.MessageBox]::Show("No se pudo reiniciar: $_", 'Atlas', 'OK', 'Error') | Out-Null
-            }
+            $msg = Get-AtlasString 'restart.instructions'
+            $brand = if ($script:Branding -and $script:Branding.brand) { $script:Branding.brand.shortName } else { 'Atlas PC Support' }
+            [System.Windows.MessageBox]::Show($msg, $brand, 'OK', 'Information') | Out-Null
+            Write-AtlasLog "Reinicio solicitado por usuario — cerrando panel." -Tool 'UI'
+            if ($script:MainWindow) { $script:MainWindow.Close() }
         })
     }
 
