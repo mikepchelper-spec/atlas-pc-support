@@ -140,4 +140,164 @@ function Invoke-InstalarMicrosoftStore {
     }
     Write-Host $L.NotFound -ForegroundColor Yellow
     Write-Host ''
+
+    # --- Step 2: wsreset -i ---
+    $installedViaWsreset = $false
+    if ($isW11 -and -not $isLTSC) {
+        Write-Host $L.TryWsreset -ForegroundColor Cyan
+        Write-Host $L.WsresetWait -ForegroundColor Gray
+        try {
+            Start-Process 'wsreset.exe' -ArgumentList '-i' -WindowStyle Hidden -ErrorAction Stop
+            $deadline = (Get-Date).AddSeconds(90)
+            while ((Get-Date) -lt $deadline) {
+                Start-Sleep -Seconds 5
+                $check = Get-AppxPackage -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue
+                if ($check) {
+                    Write-Host $L.WsresetOk -ForegroundColor Green
+                    $installedViaWsreset = $true
+                    break
+                }
+            }
+        } catch {}
+        if (-not $installedViaWsreset) {
+            Write-Host $L.WsresetFail -ForegroundColor Yellow
+        }
+        Write-Host ''
+    } else {
+        Write-Host $L.SkipWsreset -ForegroundColor Gray
+        Write-Host ''
+    }
+
+    if ($installedViaWsreset) {
+        Read-Host $L.EnterExit
+        return
+    }
+
+    # --- Step 3: Bundle install ---
+    # Package definitions: Name, URL, approx size in MB, destination filename
+    $packages = @(
+        @{
+            Name    = 'VCLibs.x64.14.00.Desktop.appx'
+            Url     = 'https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx'
+            SizeMB  = 6
+        },
+        @{
+            Name    = 'Microsoft.UI.Xaml.2.8.x64.appx'
+            Url     = 'https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx'
+            SizeMB  = 17
+        },
+        @{
+            Name    = 'Microsoft.WindowsStore.appxbundle'
+            Url     = 'https://storeedgefd.dsx.mp.microsoft.com/v9.0/packageManifests/9WZDNCRFJBMP'
+            SizeMB  = 28
+        }
+    )
+
+    # Determine cache source in priority order:
+    # 1. USB offline: $env:ATLAS_OFFLINE_ROOT\deps\MicrosoftStore\
+    # 2. Local cache: $env:LOCALAPPDATA\AtlasPC\bin\MicrosoftStore\
+    # 3. Download -> save to local cache
+    $usbStoreDir   = if ($env:ATLAS_OFFLINE_ROOT) { Join-Path $env:ATLAS_OFFLINE_ROOT 'deps\MicrosoftStore' } else { $null }
+    $localStoreDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\bin\MicrosoftStore'
+
+    # Choose header label based on source availability
+    $usbHasAll = $usbStoreDir -and (Test-Path $usbStoreDir) -and (
+        $packages | ForEach-Object { Test-Path (Join-Path $usbStoreDir $_.Name) } | Where-Object { -not $_ } | Measure-Object
+    ).Count -eq 0
+    $localHasAll = (Test-Path $localStoreDir) -and (
+        $packages | ForEach-Object { Test-Path (Join-Path $localStoreDir $_.Name) } | Where-Object { -not $_ } | Measure-Object
+    ).Count -eq 0
+
+    if ($usbHasAll) {
+        Write-Host $L.BundleOffline -ForegroundColor Cyan
+    } elseif ($localHasAll) {
+        Write-Host $L.BundleLocal -ForegroundColor Cyan
+    } else {
+        Write-Host $L.BundleHeader -ForegroundColor Cyan
+    }
+
+    if (-not (Test-Path $localStoreDir)) {
+        New-Item -ItemType Directory -Path $localStoreDir -Force | Out-Null
+    }
+
+    # Resolve each package file path (USB -> local cache -> download)
+    $resolvedPaths = @()
+    $downloadFailed = $false
+    $ProgressPreference = 'SilentlyContinue'
+
+    foreach ($pkg in $packages) {
+        $usbFile   = if ($usbStoreDir) { Join-Path $usbStoreDir   $pkg.Name } else { $null }
+        $localFile = Join-Path $localStoreDir $pkg.Name
+
+        if ($usbFile -and (Test-Path -LiteralPath $usbFile)) {
+            $resolvedPaths += $usbFile
+            continue
+        }
+        if (Test-Path -LiteralPath $localFile) {
+            $resolvedPaths += $localFile
+            continue
+        }
+        # Download
+        Write-Host ($L.Downloading -f $pkg.Name, $pkg.SizeMB) -ForegroundColor Gray -NoNewline
+        try {
+            Invoke-WebRequest -Uri $pkg.Url -OutFile $localFile -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+            Write-Host $L.DownloadOk -ForegroundColor Green
+            $resolvedPaths += $localFile
+        } catch {
+            Write-Host ($L.DownloadFail -f $_.Exception.Message) -ForegroundColor Red
+            $downloadFailed = $true
+            break
+        }
+    }
+
+    if ($downloadFailed) {
+        Write-Host ''
+        Write-Host $L.ManualSteps -ForegroundColor Yellow
+        Write-Host $L.ManualStep1 -ForegroundColor Gray
+        Write-Host $L.ManualStep2 -ForegroundColor Gray
+        Write-Host ''
+        Read-Host $L.EnterExit
+        return
+    }
+
+    # Install packages in order
+    Write-Host $L.Installing -ForegroundColor Cyan
+    $installFailed = $false
+    foreach ($pkgIdx in 0..($resolvedPaths.Count - 1)) {
+        $pkgPath = $resolvedPaths[$pkgIdx]
+        $pkgName = $packages[$pkgIdx].Name
+        Write-Host ($L.DepsInstalling -f $pkgName) -ForegroundColor Gray
+        try {
+            Add-AppxPackage -Path $pkgPath -ForceApplicationShutdown -ErrorAction Stop
+            Write-Host ($L.DepsOk -f $pkgName) -ForegroundColor Green
+        } catch {
+            # VCLibs and UI.Xaml often report "already installed" as an error -- ignore those
+            if ($_.Exception.Message -match 'already installed|0x80073CFB|0x80073D0A') {
+                Write-Host ($L.DepsOk -f "$pkgName (already present)") -ForegroundColor DarkGray
+            } else {
+                Write-Host ($L.DepsFail -f $pkgName, $_.Exception.Message) -ForegroundColor Red
+                $installFailed = $true
+                break
+            }
+        }
+    }
+
+    Write-Host ''
+    if (-not $installFailed) {
+        $storeCheck = Get-AppxPackage -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue
+        if ($storeCheck) {
+            Write-Host $L.InstallOk -ForegroundColor Green
+        } else {
+            Write-Host ($L.InstallFail -f 'Store package not found after install.') -ForegroundColor Red
+            Write-Host $L.ManualSteps -ForegroundColor Yellow
+            Write-Host $L.ManualStep1 -ForegroundColor Gray
+            Write-Host $L.ManualStep2 -ForegroundColor Gray
+        }
+    } else {
+        Write-Host $L.ManualSteps -ForegroundColor Yellow
+        Write-Host $L.ManualStep1 -ForegroundColor Gray
+        Write-Host $L.ManualStep2 -ForegroundColor Gray
+    }
+    Write-Host ''
+    Read-Host $L.EnterExit
 }
