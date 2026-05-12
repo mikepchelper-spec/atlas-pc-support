@@ -1,12 +1,11 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Valida que cada tool embebida en launcher.ps1 parsea sin errores.
+    Valida que cada tool en el launcher parsea correctamente via AST.
 
 .DESCRIPTION
-    Recupera los sources crudos (base64) del launcher compilado,
-    los embebe en el template que usa ToolRunner y valida sintaxis
-    con [System.Management.Automation.Language.Parser]::ParseFile.
+    Usa el parser de PS para encontrar cada funcion Invoke-* en launcher.ps1
+    y verifica que el AST puede extraerla correctamente.
 
     Exit code 0 = todo OK, 1 = hubo errores.
 #>
@@ -20,63 +19,54 @@ if (-not (Test-Path $LauncherPath)) {
     throw "No existe launcher en: $LauncherPath"
 }
 
-$launcherText = Get-Content -Raw -Path $LauncherPath
-$pattern = "(?m)^\`$script:AtlasToolSources\['([^']+)'\] = '([^']+)'\r?$"
-$toolMatches = [regex]::Matches($launcherText, $pattern)
-
-if ($toolMatches.Count -eq 0) {
-    throw "No se encontraron entradas de `$script:AtlasToolSources en el launcher."
+$errs = $null
+$ast = [System.Management.Automation.Language.Parser]::ParseFile($LauncherPath, [ref]$null, [ref]$errs)
+if ($errs -and $errs.Count -gt 0) {
+    Write-Host "FAIL: launcher.ps1 tiene $($errs.Count) errores de parse:" -ForegroundColor Red
+    foreach ($e in ($errs | Select-Object -First 10)) {
+        Write-Host ("  line {0} col {1}: {2}" -f $e.Extent.StartLineNumber, $e.Extent.StartColumnNumber, $e.Message) -ForegroundColor Red
+    }
+    exit 1
 }
 
-Write-Host "Encontradas $($toolMatches.Count) tool sources en launcher" -ForegroundColor Cyan
+$funcDefs = $ast.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+    $node.Name -like 'Invoke-*'
+}, $false)
 
+if ($funcDefs.Count -eq 0) {
+    Write-Host "FAIL: No se encontraron funciones Invoke-* en el launcher." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Encontradas $($funcDefs.Count) funciones Invoke-* en launcher" -ForegroundColor Cyan
+
+$allText = [System.IO.File]::ReadAllText($LauncherPath, [System.Text.UTF8Encoding]::new($false))
 $fail = 0
-foreach ($m in $toolMatches) {
-    $fn  = $m.Groups[1].Value
-    $b64 = $m.Groups[2].Value
 
+foreach ($fn in ($funcDefs | Sort-Object { $_.Name })) {
+    $name = $fn.Name
     try {
-        $bytes = [Convert]::FromBase64String($b64)
-        $raw   = [System.Text.Encoding]::UTF8.GetString($bytes)
-    } catch {
-        Write-Host "[FAIL] $fn : base64 no decodifica ($($_.Exception.Message))" -ForegroundColor Red
-        $fail++; continue
-    }
-
-    $temp = [System.IO.Path]::GetTempFileName() + '.ps1'
-    $sb = [System.Text.StringBuilder]::new()
-    [void]$sb.AppendLine('$ErrorActionPreference = ''Continue''')
-    [void]$sb.AppendLine($raw)
-    [void]$sb.AppendLine('')
-    [void]$sb.AppendLine('try {')
-    [void]$sb.AppendLine("    $fn")
-    [void]$sb.AppendLine('} catch {')
-    [void]$sb.AppendLine("    Write-Host ('[!] Error en $fn : ' + `$_.Exception.Message) -ForegroundColor Red")
-    [void]$sb.AppendLine('    Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray')
-    [void]$sb.AppendLine('}')
-    [System.IO.File]::WriteAllText($temp, $sb.ToString(), [System.Text.UTF8Encoding]::new($false))
-
-    $errs = $null
-    [void][System.Management.Automation.Language.Parser]::ParseFile($temp, [ref]$null, [ref]$errs)
-    if ($errs -and $errs.Count -gt 0) {
-        Write-Host "[FAIL] $fn ($($errs.Count) parse errors):" -ForegroundColor Red
-        foreach ($e in ($errs | Select-Object -First 5)) {
-            Write-Host ("  line {0} col {1}: {2}" -f $e.Extent.StartLineNumber, $e.Extent.StartColumnNumber, $e.Message) -ForegroundColor Red
+        $src = $allText.Substring($fn.Extent.StartOffset, $fn.Extent.EndOffset - $fn.Extent.StartOffset)
+        if ($src.Length -lt 10) {
+            Write-Host "[FAIL] $name : source demasiado corta ($($src.Length) chars)" -ForegroundColor Red
+            $fail++
+        } else {
+            Write-Host "[OK]   $name ($($src.Length) chars)" -ForegroundColor Green
         }
-        Write-Host "  [temp: $temp]" -ForegroundColor DarkGray
+    } catch {
+        Write-Host "[FAIL] $name : $_" -ForegroundColor Red
         $fail++
-    } else {
-        Write-Host "[OK]   $fn ($($raw.Length) chars)" -ForegroundColor Green
-        Remove-Item $temp -ErrorAction SilentlyContinue
     }
 }
 
 if ($fail -gt 0) {
     Write-Host ""
-    Write-Host "=== $fail tools con errores de parse ===" -ForegroundColor Red
+    Write-Host "=== $fail tools con errores ===" -ForegroundColor Red
     exit 1
 }
 
 Write-Host ""
-Write-Host "TODAS las tools pasan parse check." -ForegroundColor Green
+Write-Host "TODAS las tools pasan el check AST." -ForegroundColor Green
 exit 0
