@@ -78,6 +78,9 @@ function Invoke-PrepararUSB {
             DiagDepsHeader   = '--- Preparing Full System Report offline dependencies ---'
             DiagDepsDone     = '[OK] Full System Report offline dependencies prepared.'
             DiagDepsNone     = '[!] Full System Report dependencies could not be prepared.'
+            UpdAll      = '[1] Update all  — re-download launcher + all dependencies'
+            UpdMissing  = '[2] Fill missing  — launcher + only download what is absent'
+            DepSkipped  = '[=] Already on USB, skipped: {0}'
             DLLnchFatal = '[X] Could not download launcher. Aborting.'
             EnterExit   = '  ENTER to exit'
             DoneSep     = '============================================================'
@@ -147,6 +150,9 @@ function Invoke-PrepararUSB {
             DiagDepsHeader   = '--- Preparando dependencias offline de Full System Report ---'
             DiagDepsDone     = '[OK] Dependencias offline de Full System Report preparadas.'
             DiagDepsNone     = '[!] No se pudieron preparar dependencias de Full System Report.'
+            UpdAll      = '[1] Actualizar todo  — re-descargar launcher + todas las dependencias'
+            UpdMissing  = '[2] Completar lo que falta  — launcher + solo descargar lo ausente'
+            DepSkipped  = '[=] Ya existe en la USB, omitido: {0}'
             DLLnchFatal = '[X] No se pudo descargar el launcher. Cancelando.'
             EnterExit   = '  ENTER para salir'
             DoneSep     = '============================================================'
@@ -902,14 +908,22 @@ exit 0
     Write-Centered ($L.TargetDir -f $targetDir) 'Cyan'
     Write-Host ''
 
-    if (Test-Path $targetDir) {
+    # ---- Determine mode (fresh install vs. update) ----
+    $isUpdate  = Test-Path $targetDir
+    $updateAll = $false   # only relevant when $isUpdate
+
+    if ($isUpdate) {
         Write-Centered ($L.ExistsHdr -f $targetDir) 'Yellow'
-        Write-Centered $L.UpdOpt 'White'
-        Write-Centered $L.CancelOpt 'White'
+        Write-Host ''
+        Write-Centered $L.UpdAll     'White'
+        Write-Centered $L.UpdMissing 'White'
+        Write-Centered $L.CancelOpt  'White'
+        Write-Host ''
         $o = Read-Host '  '
-        if ($o -notmatch '^[Aa]$') {
-            Write-Centered $L.Cancelled 'DarkGray'
-            return
+        switch -Regex ($o.Trim()) {
+            '^1$'       { $updateAll = $true }
+            '^2$'       { $updateAll = $false }
+            default     { Write-Centered $L.Cancelled 'DarkGray'; return }
         }
     } else {
         New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
@@ -920,6 +934,14 @@ exit 0
         New-Item -ItemType Directory -Path $appsDir -Force | Out-Null
     }
 
+    # Helper: skip a dep unless updating all or the file is absent
+    function Test-NeedsDownload {
+        param([string]$PresencePath)
+        if ($updateAll) { return $true }
+        return (-not (Test-Path $PresencePath))
+    }
+
+    # ---- Launcher + bootstrap scripts (always refreshed) ----
     $launcherDest = Join-Path $targetDir 'launcher.ps1'
     $ok = Download-Launcher -TargetFile $launcherDest
     if (-not $ok) {
@@ -944,39 +966,82 @@ exit 0
     Write-Readme -Path $readmeDest -DriveLetter $drive
     Write-Centered $L.ReadmeOk 'Green'
 
-    Write-Host ''
-    Write-Centered $L.AskFC 'Yellow'
-    $dfc = Read-Host '  '
-    if ($dfc -match '^[SsYy]$') {
-        $fcDir = Join-Path $appsDir 'FastCopy'
-        Download-FastCopy -AppsDir $fcDir | Out-Null
+    # ---- Dependencies ----
+    # On fresh install: ask per-dep. On update: honour the chosen mode silently.
+    $fcDir       = Join-Path $appsDir 'FastCopy'
+    $fcExe       = Join-Path $fcDir 'FastCopy.exe'
+    $depsDir     = Join-Path $targetDir 'deps'
+    $ps7Msi      = Join-Path $depsDir "PowerShell-$PS7_VERSION-win-x64.msi"
+    $gpuToolsDir = Join-Path $targetDir 'deps\GPUCheck\tools'
+    $gpuPresence = Join-Path $gpuToolsDir 'GPU-Z.exe'
+    $diagToolsDir= Join-Path $targetDir 'deps\DiagnosticoMaster\tools'
+    $diagPresence= Join-Path $diagToolsDir 'BlueScreenView.exe'
+
+    # FastCopy
+    if ($isUpdate) {
+        if (Test-NeedsDownload $fcExe) {
+            Download-FastCopy -AppsDir $fcDir | Out-Null
+        } else {
+            Write-Centered ($L.DepSkipped -f 'FastCopy') 'DarkGray'
+        }
+    } else {
+        Write-Host ''
+        Write-Centered $L.AskFC 'Yellow'
+        $dfc = Read-Host '  '
+        if ($dfc -match '^[SsYy]$') {
+            Download-FastCopy -AppsDir $fcDir | Out-Null
+        }
     }
 
-    Write-Host ''
-    Write-Centered $L.AskPS7 'Yellow'
-    Write-Centered $L.AskPS7Note 'DarkGray'
-    $dps = Read-Host '  '
-    if ($dps -match '^[SsYy]$') {
-        $depsDir = Join-Path $targetDir 'deps'
-        Download-PS7 -DepsDir $depsDir | Out-Null
+    # PowerShell 7 MSI
+    if ($isUpdate) {
+        if (Test-NeedsDownload $ps7Msi) {
+            Download-PS7 -DepsDir $depsDir | Out-Null
+        } else {
+            Write-Centered ($L.DepSkipped -f 'PowerShell 7 MSI') 'DarkGray'
+        }
+    } else {
+        Write-Host ''
+        Write-Centered $L.AskPS7 'Yellow'
+        Write-Centered $L.AskPS7Note 'DarkGray'
+        $dps = Read-Host '  '
+        if ($dps -match '^[SsYy]$') {
+            Download-PS7 -DepsDir $depsDir | Out-Null
+        }
     }
 
-    Write-Host ''
-    Write-Centered $L.AskGPUDeps 'Yellow'
-    Write-Centered $L.AskGPUDepsNote 'DarkGray'
-    $dgd = Read-Host '  '
-    if ($dgd -match '^[SsYy]$') {
-        $gpuToolsDir = Join-Path $targetDir 'deps\GPUCheck\tools'
-        Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir | Out-Null
+    # GPU Check deps
+    if ($isUpdate) {
+        if (Test-NeedsDownload $gpuPresence) {
+            Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir | Out-Null
+        } else {
+            Write-Centered ($L.DepSkipped -f 'GPU Check deps') 'DarkGray'
+        }
+    } else {
+        Write-Host ''
+        Write-Centered $L.AskGPUDeps 'Yellow'
+        Write-Centered $L.AskGPUDepsNote 'DarkGray'
+        $dgd = Read-Host '  '
+        if ($dgd -match '^[SsYy]$') {
+            Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir | Out-Null
+        }
     }
 
-    Write-Host ''
-    Write-Centered $L.AskDiagDeps 'Yellow'
-    Write-Centered $L.AskDiagDepsNote 'DarkGray'
-    $ddd = Read-Host '  '
-    if ($ddd -match '^[SsYy]$') {
-        $diagToolsDir = Join-Path $targetDir 'deps\DiagnosticoMaster\tools'
-        Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
+    # Full System Report deps
+    if ($isUpdate) {
+        if (Test-NeedsDownload $diagPresence) {
+            Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
+        } else {
+            Write-Centered ($L.DepSkipped -f 'Full System Report deps') 'DarkGray'
+        }
+    } else {
+        Write-Host ''
+        Write-Centered $L.AskDiagDeps 'Yellow'
+        Write-Centered $L.AskDiagDepsNote 'DarkGray'
+        $ddd = Read-Host '  '
+        if ($ddd -match '^[SsYy]$') {
+            Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
+        }
     }
 
     Write-Host ''

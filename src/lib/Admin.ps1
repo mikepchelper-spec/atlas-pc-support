@@ -52,14 +52,20 @@ function Invoke-AsAdmin {
         [switch]$Wait
     )
 
-    $encoded = [Convert]::ToBase64String(
-        [System.Text.Encoding]::Unicode.GetBytes($ScriptBlock.ToString())
-    )
+    # Write the block to a temp file and run with -File instead of -EncodedCommand.
+    # -EncodedCommand triggers AV heuristics on many endpoints.
+    $tmp = Join-Path $env:TEMP ("atlas-admin-" + [guid]::NewGuid().ToString('N').Substring(0,8) + ".ps1")
+    try {
+        [System.IO.File]::WriteAllText($tmp, $ScriptBlock.ToString(), [System.Text.UTF8Encoding]::new($false))
+    } catch {
+        Write-Warning "No se pudo escribir script temporal: $_"
+        return $false
+    }
 
     $psArgs = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
-        "-EncodedCommand", $encoded
+        "-File", $tmp
     )
 
     $startArgs = @{
@@ -71,8 +77,11 @@ function Invoke-AsAdmin {
 
     try {
         Start-Process @startArgs | Out-Null
+        # Cleanup is best-effort; the elevated process may still be running if -Wait was not set.
+        if ($Wait) { Remove-Item $tmp -ErrorAction SilentlyContinue }
         return $true
     } catch {
+        Remove-Item $tmp -ErrorAction SilentlyContinue
         Write-Warning "No se pudo lanzar ventana elevada: $_"
         return $false
     }
