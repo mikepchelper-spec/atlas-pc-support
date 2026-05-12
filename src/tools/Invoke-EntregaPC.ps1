@@ -784,7 +784,7 @@ while ($true) {
         '2' { Mostrar-Encabezado; Crear-NuevoUsuario }
         '3' { Mostrar-Encabezado; Renombrar-Equipo }
         '4' { Mostrar-Encabezado; Generar-ChecklistEntrega }
-        '5' { Clear-Host; exit }
+        '5' { Clear-Host; return }
         default { Escribir-Centrado $L.BadOption "Red"; Start-Sleep -s 1 }
     }
 }

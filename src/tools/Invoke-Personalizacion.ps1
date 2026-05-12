@@ -36,7 +36,7 @@ function _Atlas-DetectLang {
 $T = @{
     en = @{
         WindowTitle    = 'ATLAS PC SUPPORT - WINDOWS TWEAKS'
-        Brand          = '          ATLAS PC SUPPORT                '
+        Brand          = 'PERSONALIZACION - Windows Tweaks'
         Sep            = '=========================================='
         MenuTitle      = 'WINDOWS TWEAKS MENU'
         Wallpaper1     = 'Wallpaper applied (Win32 API).'
@@ -84,7 +84,7 @@ $T = @{
     }
     es = @{
         WindowTitle    = 'ATLAS PC SUPPORT - PERSONALIZACION AVANZADA'
-        Brand          = '          ATLAS PC SUPPORT                '
+        Brand          = 'PERSONALIZACION - Windows Tweaks'
         Sep            = '=========================================='
         MenuTitle      = 'MENU AVANZADO DE PERSONALIZACION'
         Wallpaper1     = 'Fondo aplicado correctamente (API Win32).'

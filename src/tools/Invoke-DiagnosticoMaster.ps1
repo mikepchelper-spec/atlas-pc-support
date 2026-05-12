@@ -24,7 +24,7 @@ function Invoke-DiagnosticoMaster {
 
     $T = @{
         en = @{
-            HdrTitle      = 'A T L A S   P C   S U P P O R T'
+            HdrTitle      = 'DIAGNOSTICO MASTER - Full System Report'
             HdrSub        = 'Full System Diagnostic Protocol v82'
             DetectedPC    = 'DETECTED: {0}'
             AskNumPC      = '1. Enter PC number'
@@ -287,7 +287,7 @@ function Invoke-DiagnosticoMaster {
             SevLow        = 'Low'
         }
         es = @{
-            HdrTitle      = 'A T L A S   P C   S U P P O R T'
+            HdrTitle      = 'DIAGNOSTICO MASTER - Full System Report'
             HdrSub        = 'Protocolo de Diagnostico Integral v82'
             DetectedPC    = 'DETECTADO: {0}'
             AskNumPC      = '1. Ingrese Numero de PC'

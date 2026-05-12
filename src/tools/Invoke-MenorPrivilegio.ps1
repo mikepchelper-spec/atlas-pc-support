@@ -36,7 +36,7 @@ function Invoke-MenorPrivilegio {
             RoleStd            = 'Standard'
             RoleUnk            = 'Unknown'
             Bar                = '=========================================================='
-            HeaderApp          = 'A T L A S   P C   S U P P O R T'
+            HeaderApp          = 'MENOR PRIVILEGIO - Security Suite'
             HeaderSub          = 'Security Suite v3.0'
             UserRoleLine       = 'User: {0}  |  Role: {1}'
             ErrPwdLen          = 'Password must be at least 8 characters.'
@@ -160,7 +160,7 @@ function Invoke-MenorPrivilegio {
             RoleStd            = 'Estandar'
             RoleUnk            = 'Desconocido'
             Bar                = '=========================================================='
-            HeaderApp          = 'A T L A S   P C   S U P P O R T'
+            HeaderApp          = 'MENOR PRIVILEGIO - Security Suite'
             HeaderSub          = 'Security Suite v3.0'
             UserRoleLine       = 'Usuario: {0}  |  Rol: {1}'
             ErrPwdLen          = 'La contrasena debe tener al menos 8 caracteres.'
@@ -758,7 +758,7 @@ do {
             Read-Host $L.EnterContinue
         }
 
-        "8" { Exit }
+        "8" { return }
     }
 
 } while ($true)
