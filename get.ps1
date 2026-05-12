@@ -15,9 +15,15 @@ try {
     Invoke-WebRequest -Uri ($launcherUrl + '?v=' + [guid]::NewGuid().ToString('N')) `
         -OutFile $launcherPath -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
 
+    # PS 5.1 reads BOM-less .ps1 files as ANSI when invoked with -File,
+    # which mojibakes UTF-8 accents and emojis. Prepend BOM if absent.
     $bytes = [System.IO.File]::ReadAllBytes($launcherPath)
-    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
-        [System.IO.File]::WriteAllBytes($launcherPath, $bytes[3..($bytes.Length - 1)])
+    if ($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF) {
+        $bom = [byte[]](0xEF, 0xBB, 0xBF)
+        $withBom = New-Object byte[] ($bom.Length + $bytes.Length)
+        [System.Buffer]::BlockCopy($bom, 0, $withBom, 0, $bom.Length)
+        [System.Buffer]::BlockCopy($bytes, 0, $withBom, $bom.Length, $bytes.Length)
+        [System.IO.File]::WriteAllBytes($launcherPath, $withBom)
     }
 
     Write-Host '  [OK] Launching...' -ForegroundColor Green
