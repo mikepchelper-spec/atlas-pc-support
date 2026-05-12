@@ -6,8 +6,7 @@
 # Uses a 3-method cascade:
 #   1. Detect (already installed -> done)
 #   2. wsreset -i  (official method, W11 22000+ non-LTSC only)
-#   3. Appx bundle from Microsoft CDN (VCLibs + UI.Xaml + Store)
-#      -> checks USB offline cache first, then local cache, then download
+#   3. winget install --source msstore (works on all builds, needs internet)
 #
 # i18n: Option A (en default + full es secondary).
 # Atlas PC Support
@@ -45,25 +44,19 @@ function Invoke-InstalarMicrosoftStore {
             TryWsreset      = '[2/3] Trying wsreset -i (official Microsoft method)...'
             WsresetWait     = '  [i] Waiting up to 90 s for Store to appear...'
             WsresetOk       = '  [OK] Microsoft Store installed via wsreset.'
-            WsresetFail     = '  [!] wsreset did not install the Store. Trying bundle method.'
-            BundleHeader    = '[3/3] Downloading Store bundle from Microsoft CDN...'
-            BundleOffline   = '[3/3] Installing Store bundle from USB offline cache...'
-            BundleLocal     = '[3/3] Installing Store bundle from local cache...'
-            Downloading     = '  [>] {0} (~{1} MB)...'
-            DownloadOk      = ' [OK]'
-            DownloadFail    = ' [FAIL]: {0}'
-            Installing      = '  Installing packages...'
+            WsresetFail     = '  [!] wsreset did not install the Store. Trying winget method.'
+            WingetHeader    = '[3/3] Installing Microsoft Store via winget (msstore source)...'
+            WingetInstalling= '  [>] Running: winget install 9WZDNCRFJBMP --source msstore'
+            WingetOk        = '  [OK] Microsoft Store installed successfully.'
+            WingetFail      = '  [X] winget install failed (exit code {0}).'
+            WingetNotFound  = '[3/3] winget not found on this system.'
             InstallOk       = '  [OK] Microsoft Store installed successfully.'
-            InstallFail     = '  [X] Installation failed: {0}'
             ManualSteps     = '  Manual alternative:'
-            ManualStep1     = '    Settings > Apps > Optional features > Add a feature > Search "Microsoft Store"'
-            ManualStep2     = '    Or run: wsreset -i   (on supported Windows 11 builds)'
-            ManualStep3     = '    Or use PrepararUSB to pre-download the bundle to a USB drive, then re-run this tool with the USB connected.'
+            ManualStep1     = '    Run as admin: winget install 9WZDNCRFJBMP --source msstore --accept-package-agreements'
+            ManualStep2     = '    Or: wsreset -i  (on supported Windows 11 non-LTSC builds)'
+            ManualStep3     = '    Or: Settings > Apps > Optional features > Add a feature > "Microsoft Store"'
             NeedAdmin       = '[!] Administrator privileges are required. Relaunch as admin.'
             EnterExit       = 'Press Enter to exit...'
-            DepsInstalling  = '  Installing dependency: {0}'
-            DepsOk          = '  [OK] Dependency installed: {0}'
-            DepsFail        = '  [!] Dependency failed ({0}): {1}'
         }
         es = @{
             Title           = 'INSTALAR MICROSOFT STORE'
@@ -75,25 +68,19 @@ function Invoke-InstalarMicrosoftStore {
             TryWsreset      = '[2/3] Intentando wsreset -i (metodo oficial de Microsoft)...'
             WsresetWait     = '  [i] Esperando hasta 90 s para que aparezca la Store...'
             WsresetOk       = '  [OK] Microsoft Store instalada via wsreset.'
-            WsresetFail     = '  [!] wsreset no instalo la Store. Intentando metodo bundle.'
-            BundleHeader    = '[3/3] Descargando bundle de la Store desde CDN de Microsoft...'
-            BundleOffline   = '[3/3] Instalando bundle de la Store desde cache USB...'
-            BundleLocal     = '[3/3] Instalando bundle de la Store desde cache local...'
-            Downloading     = '  [>] {0} (~{1} MB)...'
-            DownloadOk      = ' [OK]'
-            DownloadFail    = ' [FAIL]: {0}'
-            Installing      = '  Instalando paquetes...'
+            WsresetFail     = '  [!] wsreset no instalo la Store. Intentando metodo winget.'
+            WingetHeader    = '[3/3] Instalando Microsoft Store via winget (fuente msstore)...'
+            WingetInstalling= '  [>] Ejecutando: winget install 9WZDNCRFJBMP --source msstore'
+            WingetOk        = '  [OK] Microsoft Store instalada correctamente.'
+            WingetFail      = '  [X] winget install fallo (codigo de salida {0}).'
+            WingetNotFound  = '[3/3] winget no encontrado en este sistema.'
             InstallOk       = '  [OK] Microsoft Store instalada correctamente.'
-            InstallFail     = '  [X] Error de instalacion: {0}'
             ManualSteps     = '  Alternativa manual:'
-            ManualStep1     = '    Configuracion > Aplicaciones > Caracteristicas opcionales > Agregar > "Microsoft Store"'
-            ManualStep2     = '    O ejecuta: wsreset -i   (en builds compatibles de Windows 11)'
-            ManualStep3     = '    O usa PrepararUSB para descargar el bundle a un USB, luego vuelve a ejecutar esta herramienta con el USB conectado.'
+            ManualStep1     = '    Ejecutar como admin: winget install 9WZDNCRFJBMP --source msstore --accept-package-agreements'
+            ManualStep2     = '    O: wsreset -i  (en builds Windows 11 no-LTSC compatibles)'
+            ManualStep3     = '    O: Configuracion > Aplicaciones > Caracteristicas opcionales > "Microsoft Store"'
             NeedAdmin       = '[!] Se requieren privilegios de administrador. Relanza como admin.'
             EnterExit       = 'Presiona Enter para salir...'
-            DepsInstalling  = '  Instalando dependencia: {0}'
-            DepsOk          = '  [OK] Dependencia instalada: {0}'
-            DepsFail        = '  [!] Dependencia fallo ({0}): {1}'
         }
     }
 
@@ -117,11 +104,11 @@ function Invoke-InstalarMicrosoftStore {
     }
 
     # --- OS / build detection ---
-    $osInfo   = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
-    $build    = [int]$osInfo.BuildNumber
-    $caption  = $osInfo.Caption
-    $isW11    = $build -ge 22000
-    $isLTSC   = $caption -match 'LTSC|IoT'
+    $osInfo  = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+    $build   = [int]$osInfo.BuildNumber
+    $caption = $osInfo.Caption
+    $isW11   = $build -ge 22000
+    $isLTSC  = $caption -match 'LTSC|IoT'
 
     # --- Header ---
     Write-Host ''
@@ -143,7 +130,7 @@ function Invoke-InstalarMicrosoftStore {
     Write-Host $L.NotFound -ForegroundColor Yellow
     Write-Host ''
 
-    # --- Step 2: wsreset -i ---
+    # --- Step 2: wsreset -i (W11 non-LTSC only) ---
     $installedViaWsreset = $false
     if ($isW11 -and -not $isLTSC) {
         Write-Host $L.TryWsreset -ForegroundColor Cyan
@@ -175,84 +162,10 @@ function Invoke-InstalarMicrosoftStore {
         return
     }
 
-    # --- Step 3: Bundle install ---
-    # Package definitions: Name, URL, approx size in MB, destination filename
-    $packages = @(
-        @{
-            Name    = 'VCLibs.x64.14.00.Desktop.appx'
-            Url     = 'https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx'
-            SizeMB  = 6
-        },
-        @{
-            Name    = 'Microsoft.UI.Xaml.2.8.x64.appx'
-            Url     = 'https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx'
-            SizeMB  = 17
-        },
-        @{
-            Name    = 'Microsoft.WindowsStore.appxbundle'
-            Url     = 'https://storeedgefd.dsx.mp.microsoft.com/v9.0/packageManifests/9WZDNCRFJBMP'
-            SizeMB  = 28
-        }
-    )
-
-    # Determine cache source in priority order:
-    # 1. USB offline: $env:ATLAS_OFFLINE_ROOT\deps\MicrosoftStore\
-    # 2. Local cache: $env:LOCALAPPDATA\AtlasPC\bin\MicrosoftStore\
-    # 3. Download -> save to local cache
-    $usbStoreDir   = if ($env:ATLAS_OFFLINE_ROOT) { Join-Path $env:ATLAS_OFFLINE_ROOT 'deps\MicrosoftStore' } else { $null }
-    $localStoreDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\bin\MicrosoftStore'
-
-    # Choose header label based on source availability
-    $usbHasAll = $usbStoreDir -and (Test-Path $usbStoreDir) -and (
-        $packages | ForEach-Object { Test-Path (Join-Path $usbStoreDir $_.Name) } | Where-Object { -not $_ } | Measure-Object
-    ).Count -eq 0
-    $localHasAll = (Test-Path $localStoreDir) -and (
-        $packages | ForEach-Object { Test-Path (Join-Path $localStoreDir $_.Name) } | Where-Object { -not $_ } | Measure-Object
-    ).Count -eq 0
-
-    if ($usbHasAll) {
-        Write-Host $L.BundleOffline -ForegroundColor Cyan
-    } elseif ($localHasAll) {
-        Write-Host $L.BundleLocal -ForegroundColor Cyan
-    } else {
-        Write-Host $L.BundleHeader -ForegroundColor Cyan
-    }
-
-    if (-not (Test-Path $localStoreDir)) {
-        New-Item -ItemType Directory -Path $localStoreDir -Force | Out-Null
-    }
-
-    # Resolve each package file path (USB -> local cache -> download)
-    $resolvedPaths = @()
-    $downloadFailed = $false
-    $ProgressPreference = 'SilentlyContinue'
-
-    foreach ($pkg in $packages) {
-        $usbFile   = if ($usbStoreDir) { Join-Path $usbStoreDir   $pkg.Name } else { $null }
-        $localFile = Join-Path $localStoreDir $pkg.Name
-
-        if ($usbFile -and (Test-Path -LiteralPath $usbFile)) {
-            $resolvedPaths += $usbFile
-            continue
-        }
-        if (Test-Path -LiteralPath $localFile) {
-            $resolvedPaths += $localFile
-            continue
-        }
-        # Download
-        Write-Host ($L.Downloading -f $pkg.Name, $pkg.SizeMB) -ForegroundColor Gray -NoNewline
-        try {
-            Invoke-WebRequest -Uri $pkg.Url -OutFile $localFile -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
-            Write-Host $L.DownloadOk -ForegroundColor Green
-            $resolvedPaths += $localFile
-        } catch {
-            Write-Host ($L.DownloadFail -f $_.Exception.Message) -ForegroundColor Red
-            $downloadFailed = $true
-            break
-        }
-    }
-
-    if ($downloadFailed) {
+    # --- Step 3: winget install --source msstore ---
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        Write-Host $L.WingetNotFound -ForegroundColor Red
         Write-Host ''
         Write-Host $L.ManualSteps -ForegroundColor Yellow
         Write-Host $L.ManualStep1 -ForegroundColor Gray
@@ -263,46 +176,38 @@ function Invoke-InstalarMicrosoftStore {
         return
     }
 
-    # Install packages in order
-    Write-Host $L.Installing -ForegroundColor Cyan
-    $installFailed = $false
-    foreach ($pkgIdx in 0..($resolvedPaths.Count - 1)) {
-        $pkgPath = $resolvedPaths[$pkgIdx]
-        $pkgName = $packages[$pkgIdx].Name
-        Write-Host ($L.DepsInstalling -f $pkgName) -ForegroundColor Gray
-        try {
-            Add-AppxPackage -Path $pkgPath -ForceApplicationShutdown -ErrorAction Stop
-            Write-Host ($L.DepsOk -f $pkgName) -ForegroundColor Green
-        } catch {
-            # VCLibs and UI.Xaml often report "already installed" as an error -- ignore those
-            if ($_.Exception.Message -match 'already installed|0x80073CFB|0x80073D0A') {
-                Write-Host ($L.DepsOk -f "$pkgName (already present)") -ForegroundColor DarkGray
-            } else {
-                Write-Host ($L.DepsFail -f $pkgName, $_.Exception.Message) -ForegroundColor Red
-                $installFailed = $true
-                break
-            }
-        }
-    }
+    Write-Host $L.WingetHeader -ForegroundColor Cyan
+    Write-Host $L.WingetInstalling -ForegroundColor Gray
+    Write-Host ''
+
+    $proc = Start-Process -FilePath $winget.Source `
+        -ArgumentList 'install', '--id', '9WZDNCRFJBMP', '--source', 'msstore',
+                      '--accept-package-agreements', '--accept-source-agreements' `
+        -Wait -PassThru -NoNewWindow
 
     Write-Host ''
-    if (-not $installFailed) {
+    if ($proc.ExitCode -eq 0) {
         $storeCheck = Get-AppxPackage -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue
         if ($storeCheck) {
             Write-Host $L.InstallOk -ForegroundColor Green
         } else {
-            Write-Host ($L.InstallFail -f 'Store package not found after install.') -ForegroundColor Red
-            Write-Host $L.ManualSteps -ForegroundColor Yellow
-            Write-Host $L.ManualStep1 -ForegroundColor Gray
-            Write-Host $L.ManualStep2 -ForegroundColor Gray
-            Write-Host $L.ManualStep3 -ForegroundColor Gray
+            Start-Sleep -Seconds 5
+            $storeCheck = Get-AppxPackage -Name 'Microsoft.WindowsStore' -ErrorAction SilentlyContinue
+            if ($storeCheck) {
+                Write-Host $L.InstallOk -ForegroundColor Green
+            } else {
+                Write-Host $L.WingetOk -ForegroundColor DarkGray
+            }
         }
     } else {
+        Write-Host ($L.WingetFail -f $proc.ExitCode) -ForegroundColor Red
+        Write-Host ''
         Write-Host $L.ManualSteps -ForegroundColor Yellow
         Write-Host $L.ManualStep1 -ForegroundColor Gray
         Write-Host $L.ManualStep2 -ForegroundColor Gray
         Write-Host $L.ManualStep3 -ForegroundColor Gray
     }
+
     Write-Host ''
     Read-Host $L.EnterExit
 }
