@@ -384,7 +384,7 @@ function Invoke-GPUCheck {
         param([hashtable]$Data)
 @"
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"/>
+<html lang="$lang"><head><meta charset="utf-8"/>
 <title>GPU Check Report</title>
 <style>
 body{font-family:Segoe UI,Arial;margin:20px;color:#222}

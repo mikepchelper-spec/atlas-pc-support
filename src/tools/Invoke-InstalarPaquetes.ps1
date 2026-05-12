@@ -313,24 +313,60 @@ function Invoke-InstalarPaquetes {
     }
 
     function Install-WingetBootstrap {
-        # Downloads and installs the App Installer MSIX bundle from GitHub to get winget on Win10
-        $msixUrl = 'https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'
+        # On Windows 10, Add-AppxPackage for winget requires two dependencies:
+        # VCLibs (x64) and Microsoft.UI.Xaml 2.8. We install them first, then
+        # install the winget msixbundle. On Win11 the deps are already present.
+        $ProgressPreference = 'SilentlyContinue'
         $cacheDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\bootstrap'
         if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+
+        $deps = @(
+            @{
+                Url  = 'https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx'
+                File = 'VCLibs.x64.appx'
+            },
+            @{
+                Url  = 'https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx'
+                File = 'UIXaml.2.8.x64.appx'
+            }
+        )
+
+        foreach ($dep in $deps) {
+            $depPath = Join-Path $cacheDir $dep.File
+            try {
+                Invoke-WebRequest -Uri $dep.Url -OutFile $depPath -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+                if ((Test-Path $depPath) -and (Get-Item $depPath).Length -gt 100KB) {
+                    Add-AppxPackage -Path $depPath -ErrorAction SilentlyContinue
+                }
+            } catch {}
+            Remove-Item $depPath -ErrorAction SilentlyContinue
+        }
+
+        # Now install winget itself
+        $msixUrl  = 'https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'
         $msixPath = Join-Path $cacheDir 'AppInstaller.msixbundle'
         try {
-            $ProgressPreference = 'SilentlyContinue'
             Invoke-WebRequest -Uri $msixUrl -OutFile $msixPath -UseBasicParsing -TimeoutSec 180 -ErrorAction Stop
             if (-not (Test-Path $msixPath) -or (Get-Item $msixPath).Length -lt 1MB) {
                 return $false
             }
             Add-AppxPackage -Path $msixPath -ErrorAction Stop
             Remove-Item $msixPath -ErrorAction SilentlyContinue
-            return $true
         } catch {
             Remove-Item $msixPath -ErrorAction SilentlyContinue
             return $false
         }
+
+        # winget.exe may not be in PATH yet in the current session —
+        # locate it directly in WindowsApps and add to session PATH
+        if (-not (Test-WingetAvailable)) {
+            $wingetExe = Get-ChildItem "$env:ProgramFiles\WindowsApps" -Filter 'winget.exe' -Recurse -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($wingetExe) {
+                $env:PATH = $wingetExe.DirectoryName + ';' + $env:PATH
+            }
+        }
+        return $true
     }
 
     function Format-Pkg {

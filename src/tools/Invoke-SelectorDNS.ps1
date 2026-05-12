@@ -38,39 +38,9 @@ function _Atlas-DetectLang {
 $lang = _Atlas-DetectLang
 $es   = ($lang -eq 'es')
 
-$logFile    = Join-Path $PSScriptRoot "dns_log.txt"
-$backupFile = Join-Path $PSScriptRoot "dns_backup.json"
-
-#region agent log
-$script:AgentDebugLogPaths = @(
-    (Join-Path $env:USERPROFILE "debug-aea107.log")
-    (Join-Path $PSScriptRoot   "debug-aea107.log")
-) | Select-Object -Unique
-function Write-AgentDbg {
-    param([string]$hypothesisId, [string]$location, [string]$message, [hashtable]$data = @{})
-    try {
-        $payload = [ordered]@{
-            sessionId    = "aea107"
-            hypothesisId = $hypothesisId
-            location     = $location
-            message      = $message
-            data         = $data
-            timestamp    = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-        }
-        $line = $payload | ConvertTo-Json -Compress -Depth 8
-        foreach ($p in $script:AgentDebugLogPaths) {
-            try { Add-Content -Path $p -Value $line -Encoding UTF8 -ErrorAction Stop } catch { }
-        }
-    } catch { }
-}
-Write-AgentDbg -hypothesisId "INIT" -location "SelectorDNS.ps1:post-vars" -message "script_start" -data @{
-    HostName = $Host.Name
-    PSVer    = $PSVersionTable.PSVersion.ToString()
-    PSEd     = $PSVersionTable.PSEdition
-    Root     = $PSScriptRoot
-    LogPaths = @($script:AgentDebugLogPaths)
-}
-#endregion
+$logFile    = Join-Path $env:LOCALAPPDATA 'AtlasPC\logs\dns_log.txt'
+$backupFile = Join-Path $env:LOCALAPPDATA 'AtlasPC\logs\dns_backup.json'
+$null = New-Item -ItemType Directory -Path (Split-Path $logFile) -Force -ErrorAction SilentlyContinue
 #endregion
 
 #region ── Diccionario Bilingue ───────────────────────────────────────────────
@@ -240,12 +210,6 @@ $latencyTargets = [ordered]@{
 
 function Write-Centered {
     param([string]$Text, [ConsoleColor]$Color = "White")
-    $wProbe = $null
-    $probeErr = $null
-    try { $wProbe = $Host.UI.RawUI.WindowSize.Width } catch { $probeErr = $_.Exception.Message }
-    #region agent log
-    Write-AgentDbg -hypothesisId "B" -location "Write-Centered" -message "layout" -data @{ wProbe = $wProbe; textLen = $Text.Length; probeErr = $probeErr }
-    #endregion
     $w   = $Host.UI.RawUI.WindowSize.Width
     $pad = [math]::Max(0, [math]::Floor(($w - $Text.Length) / 2))
     Write-Host ((" " * $pad) + $Text) -ForegroundColor $Color
@@ -254,15 +218,11 @@ function Write-Centered {
 function Press-AnyKey {
     Write-Host ""
     Write-Host $txt.Next -ForegroundColor DarkGray
-    #region agent log
     try {
         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-        Write-AgentDbg -hypothesisId "A" -location "Press-AnyKey" -message "readkey_ok" -data @{ host = $Host.Name }
     } catch {
-        Write-AgentDbg -hypothesisId "A" -location "Press-AnyKey" -message "readkey_fail" -data @{ host = $Host.Name; ex = $_.Exception.Message; type = $_.Exception.GetType().FullName }
-        throw
+        try { $null = Read-Host } catch {}
     }
-    #endregion
 }
 
 function Write-Log {
@@ -400,9 +360,6 @@ function Apply-DNS {
                 Set-InterfaceDoH -AdapterName $n -Addresses $Addresses
             }
         } catch {
-            #region agent log
-            Write-AgentDbg -hypothesisId "E" -location "Apply-DNS:catch" -message "set_dns_fail" -data @{ adapter = $n; label = $Label; ex = $_.Exception.Message }
-            #endregion
             Write-Host "  [FAIL] $n -> $_" -ForegroundColor Red
             Write-Log "FAIL | $n | $Label | $_"
         }
@@ -432,11 +389,6 @@ function Select-AdapterNames {
     Write-Host ""
     Write-Host -NoNewline $txt.AdapPrompt -ForegroundColor Yellow
     $sel = (Read-Host).Trim()
-    #region agent log
-    $idxTry = 0
-    $tpOk = [int]::TryParse($sel, [ref]$idxTry)
-    Write-AgentDbg -hypothesisId "D" -location "Select-AdapterNames" -message "adapter_pick" -data @{ sel = $sel; tryParse = $tpOk; idx = $idxTry; adapterCount = $all.Count }
-    #endregion
     if ($sel -match "^[TtAa]$") {
         return $all.Name
     }
@@ -626,19 +578,22 @@ function Invoke-StartupTask {
             Write-Log "STARTUP TASK REMOVED"
         }
     } else {
-        $scriptPath = $PSCommandPath
-        $action     = New-ScheduledTaskAction -Execute "powershell.exe" `
-                          -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptPath`""
-        $trigger    = New-ScheduledTaskTrigger -AtLogOn
-        $settings   = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -MultipleInstances IgnoreNew
-        $principal  = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Interactive
-
-        Register-ScheduledTask -TaskName $taskName `
-            -Action $action -Trigger $trigger -Settings $settings -Principal $principal `
-            -Description "Atlas PC Support - DNS Selector auto-apply on logon" | Out-Null
-
-        Write-Host "  $($txt.TaskCreated)" -ForegroundColor Green
-        Write-Log "STARTUP TASK CREATED | $scriptPath"
+        if ([string]::IsNullOrWhiteSpace($PSCommandPath)) {
+            Write-Host "  [!] Startup task requires running the tool as a standalone .ps1 file." -ForegroundColor Yellow
+            Write-Host "  [i] Launch directly via: pwsh -File Invoke-SelectorDNS.ps1" -ForegroundColor DarkGray
+        } else {
+            $scriptPath = $PSCommandPath
+            $action     = New-ScheduledTaskAction -Execute "powershell.exe" `
+                              -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptPath`""
+            $trigger    = New-ScheduledTaskTrigger -AtLogOn
+            $settings   = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -MultipleInstances IgnoreNew
+            $principal  = New-ScheduledTaskPrincipal -RunLevel Highest -LogonType Interactive
+            Register-ScheduledTask -TaskName $taskName `
+                -Action $action -Trigger $trigger -Settings $settings -Principal $principal `
+                -Description "Atlas PC Support - DNS Selector auto-apply on logon" | Out-Null
+            Write-Host "  $($txt.TaskCreated)" -ForegroundColor Green
+            Write-Log "STARTUP TASK CREATED"
+        }
     }
 }
 
@@ -719,12 +674,6 @@ function Invoke-PerAdapterDNS {
 #region ── Loop Principal ────────────────────────────────────────��───────────
 do {
     Clear-Host
-    $swProbe = $null
-    $swErr = $null
-    try { $swProbe = $Host.UI.RawUI.WindowSize.Width } catch { $swErr = $_.Exception.Message }
-    #region agent log
-    Write-AgentDbg -hypothesisId "B" -location "main:loop" -message "menu_windowsize" -data @{ swProbe = $swProbe; swErr = $swErr; host = $Host.Name }
-    #endregion
     $screenW  = $Host.UI.RawUI.WindowSize.Width
     $menuW    = 64
     $lm       = " " * [math]::Max(0, [math]::Floor(($screenW - $menuW) / 2))
@@ -789,25 +738,8 @@ do {
     $rawMenu = Read-Host
     if ($null -eq $rawMenu) { $rawMenu = "" }
     $opcion = $rawMenu.Trim()
-    $parsed = 0
-    $isNum  = [int]::TryParse($opcion, [ref]$parsed)
-    #region agent log
-    $inProfile = $dnsProfiles.Keys -contains $opcion
-    $opcLen = if ($null -ne $opcion) { $opcion.Length } else { -1 }
-    Write-AgentDbg -hypothesisId "C" -location "main:menu" -message "option_read" -data @{
-        opcion     = $(if ($null -eq $opcion) { "<null>" } elseif ($opcion -eq "") { "<empty>" } else { $opcion })
-        opcLen     = $opcLen
-        isNum      = $isNum
-        parsed     = $parsed
-        inProfile  = $inProfile
-        runId      = "post-fix"
-    }
-    #endregion
     if ($opcion -eq '0') { break }
     if ([string]::IsNullOrWhiteSpace($opcion)) {
-        #region agent log
-        Write-AgentDbg -hypothesisId "C" -location "main:menu" -message "blank_input_show_err" -data @{ runId = "post-fix" }
-        #endregion
         Write-Host "`n  $($txt.ErrBlank)" -ForegroundColor Red
         Press-AnyKey
         continue

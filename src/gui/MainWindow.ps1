@@ -796,23 +796,29 @@ $(Get-AtlasString 'about.description')
                 $logPath  = Join-Path $env:TEMP 'atlas-restart.log'
                 $bootPath = Join-Path $env:TEMP 'atlas-restart-bootstrap.ps1'
 
-                # Wrapper limpio: log paso a paso para que cualquier fallo deje rastro.
+                # Wrapper limpio: descarga el launcher a disco y lo lanza con -File
+                # (nunca Invoke-Expression — evita falsos positivos de AV).
+                $launcherPath = Join-Path $env:TEMP 'atlas-restart-launcher.ps1'
                 $bootContent = @"
 # Atlas PC Support - restart bootstrap (auto-generado)
 `$ErrorActionPreference = 'Continue'
-`$logPath = '$logPath'
-`$bootstrapUrl = '$bootstrapUrl'
+`$logPath        = '$logPath'
+`$bootstrapUrl   = '$bootstrapUrl'
+`$launcherPath   = '$launcherPath'
 function _Atlas-Log { param([string]`$Msg) "{0}  {1}" -f (Get-Date -Format u), `$Msg | Out-File -FilePath `$logPath -Append -Encoding UTF8 }
-_Atlas-Log "child START (PSVersion=`$(`$PSVersionTable.PSVersion), PID=`$PID, Apartment=`$([System.Threading.Thread]::CurrentThread.GetApartmentState()))"
+_Atlas-Log "child START (PSVersion=`$(`$PSVersionTable.PSVersion), PID=`$PID)"
 try {
-    _Atlas-Log "downloading: `$bootstrapUrl"
-    `$payload = Invoke-RestMethod -Uri `$bootstrapUrl -UseBasicParsing
-    _Atlas-Log ("payload size = {0} bytes" -f `$payload.Length)
-    _Atlas-Log "executing payload (Invoke-Expression)"
-    Invoke-Expression `$payload
+    _Atlas-Log "downloading launcher to disk: `$bootstrapUrl"
+    `$ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest -Uri `$bootstrapUrl -OutFile `$launcherPath -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+    _Atlas-Log ("launcher size = {0} bytes" -f (Get-Item `$launcherPath).Length)
+    _Atlas-Log "launching via -File (no IEX)"
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "`$launcherPath"
     _Atlas-Log "child END (panel cerrado normal)"
 } catch {
     _Atlas-Log ("child ERR: " + (`$_ | Out-String))
+} finally {
+    Remove-Item `$launcherPath -ErrorAction SilentlyContinue
 }
 "@
                 Set-Content -Path $bootPath -Value $bootContent -Encoding UTF8

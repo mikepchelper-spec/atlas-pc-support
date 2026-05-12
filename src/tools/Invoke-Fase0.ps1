@@ -33,7 +33,7 @@ function _Atlas-DetectLang {
 
 $T = @{
     en = @{
-        Brand          = 'ATLAS PC SUPPORT'
+        Brand          = 'FASE 0 - PC Intake & Hardening'
         Subtitle       = 'DISABLE LEGACY IPv6 TUNNELS'
         Sep            = '================================'
         LogActive      = '[ REC ] LOG ACTIVE'
@@ -75,7 +75,7 @@ $T = @{
         ReportFilePrefix = 'Report_LegacyIPv6_'
     }
     es = @{
-        Brand          = 'ATLAS PC SUPPORT'
+        Brand          = 'FASE 0 - PC Intake & Hardening'
         Subtitle       = 'SEGURIDAD FASE 0'
         Sep            = '================================'
         LogActive      = '[ REC ] BITACORA ACTIVA'
@@ -309,8 +309,8 @@ do {
         '3' { Check-Status }
         '4' { Restore-Defaults }
         '5' { Stop-AtlasLog }
-        'q' { Stop-AtlasLog; exit }
-        'Q' { Stop-AtlasLog; exit }
+        'q' { Stop-AtlasLog; return }
+        'Q' { Stop-AtlasLog; return }
     }
 } while ($true)
 }

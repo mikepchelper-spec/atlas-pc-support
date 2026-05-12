@@ -561,7 +561,7 @@ do {
 
         $pathResult = Get-PathFromUser -Prompt $L.Step1Prompt -Mode "any"
 
-        if ($pathResult -eq "EXIT") { exit }
+        if ($pathResult -eq "EXIT") { return }
         if ($pathResult -eq "BACK") { break }
 
         if (-not (Test-Path $pathResult)) {
@@ -598,7 +598,7 @@ do {
 
         $pathResult = Get-PathFromUser -Prompt $L.Step2Prompt -Mode "folder"
 
-        if ($pathResult -eq "EXIT") { exit }
+        if ($pathResult -eq "EXIT") { return }
         if ($pathResult -eq "BACK") { break }
 
         $destBase = $pathResult
@@ -816,7 +816,7 @@ do {
                 if (Test-Path $result.LogFile) { Start-Process notepad $result.LogFile }
                 else { Write-Host $L.LogNotFnd -ForegroundColor Red }
             }
-            "S" { exit }
+            "S" { return }
         }
 
         if ($postOp -eq "N" -or $postOp -eq "n") { break }

@@ -21,7 +21,7 @@ if (-not (Test-Path $LauncherPath)) {
 }
 
 $launcherText = Get-Content -Raw -Path $LauncherPath
-$pattern = "(?m)^\`$script:AtlasToolSources\['([^']+)'\] = '([^']+)'$"
+$pattern = "(?m)^\`$script:AtlasToolSources\['([^']+)'\] = '([^']+)'\r?$"
 $toolMatches = [regex]::Matches($launcherText, $pattern)
 
 if ($toolMatches.Count -eq 0) {

@@ -61,17 +61,17 @@ $toolsContent = $toolsContent -join "`n`n"
 # (Get-Command).Definition, que en Windows PS 5.1 puede corromper
 # here-strings y HTML embebido. Base64 evita todo problema de escape.
 $toolSourcesBuilder = [System.Text.StringBuilder]::new()
-[void]$toolSourcesBuilder.AppendLine('$script:AtlasToolSources = @{}')
+[void]$toolSourcesBuilder.Append('$script:AtlasToolSources = @{}').Append("`n")
 foreach ($t in $toolFiles) {
     $raw = Get-EmbeddedContent $t.FullName
     $fnName = [System.IO.Path]::GetFileNameWithoutExtension($t.Name)
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($raw)
     $b64   = [Convert]::ToBase64String($bytes)
-    [void]$toolSourcesBuilder.AppendLine(("`$script:AtlasToolSources['{0}'] = '{1}'" -f $fnName, $b64))
+    [void]$toolSourcesBuilder.Append(("`$script:AtlasToolSources['{0}'] = '{1}'" -f $fnName, $b64)).Append("`n")
 }
 $toolSourcesMap = $toolSourcesBuilder.ToString()
 
-$banner = @"
+$banner = (@"
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: $version
@@ -79,12 +79,12 @@ $banner = @"
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
-#      irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1 | iex
+#      irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/get.ps1 | iex
 #
 #  Este archivo es AUTOGENERADO por build.ps1. NO lo edites a mano.
 #  Las fuentes están en src/.
 # ============================================================
-"@
+"@) -replace "`r`n", "`n"
 
 $epilog = @'
 
@@ -122,11 +122,12 @@ try {
 
 Show-AtlasWindow -Branding $branding -Tools $tools -XamlTemplate $script:AtlasXamlTemplate
 '@
+$epilog = $epilog -replace "`r`n", "`n"
 
 $manifestEscaped = $manifest.Replace("'", "''")
 $xamlEscaped     = $xamlTemplate.Replace("'", "''")
 
-$embeddedData = @"
+$embeddedData = (@"
 
 # ============================================================
 #  DATOS EMBEBIDOS
@@ -142,7 +143,7 @@ $manifestEscaped
 `$script:AtlasXamlTemplate = @'
 $xamlEscaped
 '@
-"@
+"@) -replace "`r`n", "`n"
 
 $output = @(
     $banner
