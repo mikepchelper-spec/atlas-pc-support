@@ -112,6 +112,17 @@
       "dependencies": []
     },
     {
+      "id": "instalar-ms-store",
+      "name": "Install Microsoft Store",
+      "description": "Installs the Microsoft Store on systems where it is absent (LTSC, IoT Enterprise, corporate images). Uses wsreset -i on W11 or downloads the Appx bundle from Microsoft CDN.",
+      "category": "software",
+      "function": "Invoke-InstalarMicrosoftStore",
+      "source": "Invoke-InstalarMicrosoftStore.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "actualizar-powershell",
       "name": "Install/Update PowerShell 7",
       "description": "Installs or updates PowerShell 7 (modern runtime). Better encoding, modern enums and fewer bugs than Windows PowerShell 5.1.",

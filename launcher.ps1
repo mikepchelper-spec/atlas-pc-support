@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-05-12 10:48:31
+#  Build:   2026-05-12 12:33:23
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-05-12 10:48:31'
+$script:AtlasBuildDate = '2026-05-12 12:33:23'
 $script:AtlasToolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 $script:AtlasToolsManifest = @'
@@ -132,6 +132,17 @@ $script:AtlasToolsManifest = @'
       "category": "software",
       "function": "Invoke-InstalarPaquetes",
       "source": "Invoke-InstalarPaquetes.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "instalar-ms-store",
+      "name": "Install Microsoft Store",
+      "description": "Installs the Microsoft Store on systems where it is absent (LTSC, IoT Enterprise, corporate images). Uses wsreset -i on W11 or downloads the Appx bundle from Microsoft CDN.",
+      "category": "software",
+      "function": "Invoke-InstalarMicrosoftStore",
+      "source": "Invoke-InstalarMicrosoftStore.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
