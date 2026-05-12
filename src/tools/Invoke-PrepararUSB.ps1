@@ -83,11 +83,6 @@ function Invoke-PrepararUSB {
             ToolsHeader      = '--- Downloading tool scripts (deps\tools\) ---'
             ToolsDone        = '[OK] Tool scripts on USB: {0} downloaded, {1} already present.'
             ToolsPartial     = '[!] Tool scripts: {0} ok, {1} failed (check internet).'
-            AskStore         = 'Download Microsoft Store bundle to USB for offline install? [Y/N] (recommended for LTSC/IoT)'
-            AskStoreNote     = 'Allows installing the Store without internet (~55 MB: VCLibs + UI.Xaml + Store bundle).'
-            StoreHeader      = '--- Downloading Microsoft Store bundle (deps\MicrosoftStore\) ---'
-            StoreDone        = '[OK] Store bundle on USB: {0} downloaded, {1} already present.'
-            StorePartial     = '[!] Store bundle: {0} ok, {1} failed (check internet).'
             UpdAll      = '[1] Update all  — re-download launcher + all dependencies'
             UpdMissing  = '[2] Fill missing  — launcher + only download what is absent'
             DepSkipped  = '[=] Already on USB, skipped: {0}'
@@ -165,11 +160,6 @@ function Invoke-PrepararUSB {
             ToolsHeader      = '--- Descargando scripts de tools (deps\tools\) ---'
             ToolsDone        = '[OK] Scripts de tools en USB: {0} descargados, {1} ya estaban.'
             ToolsPartial     = '[!] Scripts de tools: {0} ok, {1} fallaron (verifica internet).'
-            AskStore         = 'Descargar bundle de Microsoft Store en USB para instalar offline? [S/N] (recomendado para LTSC/IoT)'
-            AskStoreNote     = 'Permite instalar la Store sin internet (~55 MB: VCLibs + UI.Xaml + bundle Store).'
-            StoreHeader      = '--- Descargando bundle de Microsoft Store (deps\MicrosoftStore\) ---'
-            StoreDone        = '[OK] Bundle Store en USB: {0} descargados, {1} ya estaban.'
-            StorePartial     = '[!] Bundle Store: {0} ok, {1} fallaron (verifica internet).'
             UpdAll      = '[1] Actualizar todo  — re-descargar launcher + todas las dependencias'
             UpdMissing  = '[2] Completar lo que falta  — launcher + solo descargar lo ausente'
             DepSkipped  = '[=] Ya existe en la USB, omitido: {0}'
@@ -337,11 +327,6 @@ Generado por Atlas PC Support - Preparar USB Offline
     $PS7_URL                = "https://github.com/PowerShell/PowerShell/releases/download/v$PS7_VERSION/PowerShell-$PS7_VERSION-win-x64.msi"
     $USB_ROOT_NAME          = 'ATLAS_PC_SUPPORT'
     $MAX_LAUNCHER_AGE_DAYS  = 7
-    $STORE_PACKAGES = @(
-        @{ Name = 'VCLibs.x64.14.00.Desktop.appx';     Url = 'https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx'; SizeMB = 6 },
-        @{ Name = 'Microsoft.UI.Xaml.2.8.x64.appx';    Url = 'https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx'; SizeMB = 17 },
-        @{ Name = 'Microsoft.WindowsStore.appxbundle'; Url = 'https://storeedgefd.dsx.mp.microsoft.com/v9.0/packageManifests/9WZDNCRFJBMP'; SizeMB = 28 }
-    )
 
     function Show-Header {
         Clear-Host
@@ -757,48 +742,6 @@ Generado por Atlas PC Support - Preparar USB Offline
         return ($failed -eq 0)
     }
 
-    function Save-MicrosoftStoreBundle {
-        param([string]$BundleDir)
-
-        Write-Host ''
-        Write-Centered $L.StoreHeader 'Yellow'
-
-        if (-not (Test-Path -LiteralPath $BundleDir)) {
-            New-Item -ItemType Directory -Path $BundleDir -Force | Out-Null
-        }
-
-        $ok = 0; $skipped = 0; $failed = 0
-        $ProgressPreference = 'SilentlyContinue'
-
-        foreach ($pkg in $STORE_PACKAGES) {
-            $dest = Join-Path $BundleDir $pkg.Name
-            if (Test-Path -LiteralPath $dest) {
-                $skipped++
-                continue
-            }
-            Write-Centered ("  [>] $($pkg.Name) (~$($pkg.SizeMB) MB)...") 'Gray'
-            try {
-                Invoke-WebRequest -Uri $pkg.Url -OutFile $dest -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
-                if ((Get-Item $dest).Length -gt 10KB) {
-                    $ok++
-                } else {
-                    Remove-Item $dest -ErrorAction SilentlyContinue
-                    $failed++
-                }
-            } catch {
-                $failed++
-                Write-Centered "  [!] $($pkg.Name): $($_.Exception.Message)" 'Yellow'
-            }
-        }
-
-        if ($failed -eq 0) {
-            Write-Centered ($L.StoreDone -f $ok, $skipped) 'Green'
-        } else {
-            Write-Centered ($L.StorePartial -f ($ok + $skipped), $failed) 'Yellow'
-        }
-        return ($failed -eq 0)
-    }
-
     function Write-RunBat {
         param([string]$Path, [string]$FailMsg)
         # run.bat delegates the heavy lifting to run-launcher.ps1 (which
@@ -1200,25 +1143,6 @@ exit 0
         $dtl = Read-Host '  '
         if ($dtl -match '^[SsYy]$') {
             Save-AtlasTools -ToolsDir $usbToolsDir | Out-Null
-        }
-    }
-
-    # Microsoft Store bundle (deps\MicrosoftStore\) — for Invoke-InstalarMicrosoftStore offline mode
-    $storeBundleDir  = Join-Path $targetDir 'deps\MicrosoftStore'
-    $storePresence   = Join-Path $storeBundleDir 'Microsoft.WindowsStore.appxbundle'
-    if ($isUpdate) {
-        if (Test-NeedsDownload $storePresence) {
-            Save-MicrosoftStoreBundle -BundleDir $storeBundleDir | Out-Null
-        } else {
-            Write-Centered ($L.DepSkipped -f 'Microsoft Store bundle') 'DarkGray'
-        }
-    } else {
-        Write-Host ''
-        Write-Centered $L.AskStore 'Yellow'
-        Write-Centered $L.AskStoreNote 'DarkGray'
-        $dms = Read-Host '  '
-        if ($dms -match '^[SsYy]$') {
-            Save-MicrosoftStoreBundle -BundleDir $storeBundleDir | Out-Null
         }
     }
 
