@@ -123,6 +123,17 @@
       "dependencies": []
     },
     {
+      "id": "instalar-runtimes",
+      "name": "Install Runtime Dependencies",
+      "description": "Installs common Windows runtime packages in bulk: VC++ 2015+ and 2013 (x64/x86), .NET Framework 3.5, DirectX, and optionally XNA and OpenAL for gaming. Two modes: Minimum and Full/Gaming.",
+      "category": "software",
+      "function": "Invoke-InstalarRuntimes",
+      "source": "Invoke-InstalarRuntimes.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
       "id": "actualizar-powershell",
       "name": "Install/Update PowerShell 7",
       "description": "Installs or updates PowerShell 7 (modern runtime). Better encoding, modern enums and fewer bugs than Windows PowerShell 5.1.",
