@@ -58,6 +58,7 @@ function Invoke-InstalarMicrosoftStore {
             ManualSteps     = '  Manual alternative:'
             ManualStep1     = '    Settings > Apps > Optional features > Add a feature > Search "Microsoft Store"'
             ManualStep2     = '    Or run: wsreset -i   (on supported Windows 11 builds)'
+            ManualStep3     = '    Or use PrepararUSB to pre-download the bundle to a USB drive, then re-run this tool with the USB connected.'
             NeedAdmin       = '[!] Administrator privileges are required. Relaunch as admin.'
             EnterExit       = 'Press Enter to exit...'
             DepsInstalling  = '  Installing dependency: {0}'
@@ -87,6 +88,7 @@ function Invoke-InstalarMicrosoftStore {
             ManualSteps     = '  Alternativa manual:'
             ManualStep1     = '    Configuracion > Aplicaciones > Caracteristicas opcionales > Agregar > "Microsoft Store"'
             ManualStep2     = '    O ejecuta: wsreset -i   (en builds compatibles de Windows 11)'
+            ManualStep3     = '    O usa PrepararUSB para descargar el bundle a un USB, luego vuelve a ejecutar esta herramienta con el USB conectado.'
             NeedAdmin       = '[!] Se requieren privilegios de administrador. Relanza como admin.'
             EnterExit       = 'Presiona Enter para salir...'
             DepsInstalling  = '  Instalando dependencia: {0}'
@@ -255,6 +257,7 @@ function Invoke-InstalarMicrosoftStore {
         Write-Host $L.ManualSteps -ForegroundColor Yellow
         Write-Host $L.ManualStep1 -ForegroundColor Gray
         Write-Host $L.ManualStep2 -ForegroundColor Gray
+        Write-Host $L.ManualStep3 -ForegroundColor Gray
         Write-Host ''
         Read-Host $L.EnterExit
         return
@@ -292,11 +295,13 @@ function Invoke-InstalarMicrosoftStore {
             Write-Host $L.ManualSteps -ForegroundColor Yellow
             Write-Host $L.ManualStep1 -ForegroundColor Gray
             Write-Host $L.ManualStep2 -ForegroundColor Gray
+            Write-Host $L.ManualStep3 -ForegroundColor Gray
         }
     } else {
         Write-Host $L.ManualSteps -ForegroundColor Yellow
         Write-Host $L.ManualStep1 -ForegroundColor Gray
         Write-Host $L.ManualStep2 -ForegroundColor Gray
+        Write-Host $L.ManualStep3 -ForegroundColor Gray
     }
     Write-Host ''
     Read-Host $L.EnterExit
