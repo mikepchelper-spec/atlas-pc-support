@@ -321,47 +321,48 @@ Generado por Atlas PC Support - Preparar USB Offline
     }
 
     function Select-USB {
-        $usbs = @(Get-Volume -ErrorAction SilentlyContinue | Where-Object {
-            $_.DriveType -eq 'Removable' -and $_.DriveLetter -and $_.Size -gt 0
-        })
+        while ($true) {
+            $usbs = @(Get-Volume -ErrorAction SilentlyContinue | Where-Object {
+                $_.DriveType -eq 'Removable' -and $_.DriveLetter -and $_.Size -gt 0
+            })
 
-        if (-not $usbs -or $usbs.Count -eq 0) {
+            if (-not $usbs -or $usbs.Count -eq 0) {
+                Write-Host ''
+                Write-Centered $L.NoUSB 'Red'
+                Write-Host ''
+                Write-Centered $L.ConnectUSB 'DarkGray'
+                $r = Read-Host '  '
+                if ($r -match '^[Qq]$') { return $null }
+                continue
+            }
+
             Write-Host ''
-            Write-Centered $L.NoUSB 'Red'
+            Write-Centered $L.DetectedHdr 'Yellow'
             Write-Host ''
-            Write-Centered $L.ConnectUSB 'DarkGray'
-            $r = Read-Host '  '
-            if ($r -match '^[Qq]$') { return $null }
-            return (Select-USB)
-        }
 
-        Write-Host ''
-        Write-Centered $L.DetectedHdr 'Yellow'
-        Write-Host ''
+            $map = @{}
+            $i = 1
+            foreach ($u in $usbs) {
+                $label   = if ($u.FileSystemLabel) { $u.FileSystemLabel } else { $L.UnnamedLbl }
+                $sizeTxt = Format-Size $u.Size
+                $freeTxt = Format-Size $u.SizeRemaining
+                $line    = ($L.DriveLine -f $i, $u.DriveLetter, $label, $sizeTxt, $freeTxt)
+                Write-Centered $line 'Cyan'
+                $map[$i] = $u
+                $i++
+            }
 
-        $map = @{}
-        $i = 1
-        foreach ($u in $usbs) {
-            $label   = if ($u.FileSystemLabel) { $u.FileSystemLabel } else { $L.UnnamedLbl }
-            $sizeTxt = Format-Size $u.Size
-            $freeTxt = Format-Size $u.SizeRemaining
-            $line    = ($L.DriveLine -f $i, $u.DriveLetter, $label, $sizeTxt, $freeTxt)
-            Write-Centered $line 'Cyan'
-            $map[$i] = $u
-            $i++
+            Write-Host ''
+            Write-Centered $L.QuitOpt 'DarkGray'
+            Write-Host ''
+            $sel = Read-Host $L.USBNumber
+            if ($sel -match '^[Qq]$') { return $null }
+            if ($sel -as [int] -and $map.ContainsKey([int]$sel)) {
+                return $map[[int]$sel]
+            }
+            Write-Centered $L.BadSel 'Red'
+            Start-Sleep 1
         }
-
-        Write-Host ''
-        Write-Centered $L.QuitOpt 'DarkGray'
-        Write-Host ''
-        $sel = Read-Host $L.USBNumber
-        if ($sel -match '^[Qq]$') { return $null }
-        if ($sel -as [int] -and $map.ContainsKey([int]$sel)) {
-            return $map[[int]$sel]
-        }
-        Write-Centered $L.BadSel 'Red'
-        Start-Sleep 1
-        return (Select-USB)
     }
 
     function Download-Launcher {
@@ -418,11 +419,19 @@ Generado por Atlas PC Support - Preparar USB Offline
                 $p = Start-Process -FilePath $installer -ArgumentList @(
                     '/EXTRACT64', '/NOSUBDIR', '/AGREE_LICENSE', ("/DIR=`"$AppsDir`"")
                 ) -Wait -PassThru -ErrorAction SilentlyContinue
-                if ($p.ExitCode -eq 0 -and (Test-Path (Join-Path $AppsDir 'FastCopy.exe'))) {
+                if ($p -and $p.ExitCode -eq 0 -and (Test-Path (Join-Path $AppsDir 'FastCopy.exe'))) {
                     Write-Centered $L.FCExtractOk 'Green'
                     Remove-Item $installer -ErrorAction SilentlyContinue
                 } else {
+                    # /EXTRACT64 failed or not supported — retry with /SILENT install
                     Write-Centered $L.FCExtractF 'Yellow'
+                    $p2 = Start-Process -FilePath $installer -ArgumentList @(
+                        '/SILENT', '/AGREE_LICENSE', ("/DIR=`"$AppsDir`"")
+                    ) -Wait -PassThru -ErrorAction SilentlyContinue
+                    if ($p2 -and $p2.ExitCode -eq 0) {
+                        Write-Centered $L.FCExtractOk 'Green'
+                    }
+                    Remove-Item $installer -ErrorAction SilentlyContinue
                 }
                 return $true
             }

@@ -15,33 +15,28 @@ function Invoke-FastCopy {
 
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "Gray"
-$Host.UI.RawUI.WindowTitle = "ATLAS PC SUPPORT - FastCopy v3"
+$Host.UI.RawUI.WindowTitle = "FastCopy Edition v3 - Atlas PC Support"
 try { $Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(110, 48) } catch {}
 $ErrorActionPreference = "Continue"
 
 # ==================== BUSCAR FASTCOPY ====================
 
 function Find-FastCopy {
-    $atlasApps = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'AtlasPC\apps\FastCopy' } else { $null }
     $searchPaths = @(
-        (Join-Path $PSScriptRoot "FastCopy.exe"),
-        (Join-Path $PSScriptRoot "fastcopy\FastCopy.exe"),
-        (Join-Path $PSScriptRoot "..\Apps\FastCopy\FastCopy.exe"),
-        (Join-Path $PSScriptRoot "Apps\FastCopy\FastCopy.exe"),
         "C:\Program Files\FastCopy\FastCopy.exe",
         "C:\Program Files (x86)\FastCopy\FastCopy.exe",
-        (Join-Path $env:LOCALAPPDATA "FastCopy\FastCopy.exe")
+        (Join-Path $env:LOCALAPPDATA "FastCopy\FastCopy.exe"),
+        (Join-Path $env:LOCALAPPDATA 'AtlasPC\apps\FastCopy\FastCopy.exe')
     )
-    if ($atlasApps) { $searchPaths += (Join-Path $atlasApps 'FastCopy.exe') }
+    # USB offline root (set by run-launcher.ps1 on USB launch)
+    if ($env:ATLAS_OFFLINE_ROOT) {
+        $searchPaths += (Join-Path $env:ATLAS_OFFLINE_ROOT 'apps\FastCopy\FastCopy.exe')
+    }
     foreach ($path in $searchPaths) {
         if ($path -and (Test-Path $path)) { return (Resolve-Path $path).Path }
     }
     $inPath = Get-Command "FastCopy.exe" -ErrorAction SilentlyContinue
     if ($inPath) { return $inPath.Source }
-    if ($PSScriptRoot) {
-        $found = Get-ChildItem -Path $PSScriptRoot -Filter "FastCopy.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($found) { return $found.FullName }
-    }
     return $null
 }
 
@@ -784,7 +779,8 @@ do {
     Clear-Host
     Write-Host "`n"
     Write-Centered "==========================================================" "Cyan"
-    Write-Centered "|       ATLAS PC SUPPORT - FASTCOPY EDITION v3           |" "Yellow"
+    Write-Centered "           FASTCOPY EDITION v3" "Yellow"
+    Write-Centered "     Multi-source Copy · Profiles · MD5 Verify" "DarkGray"
     Write-Centered "==========================================================" "Cyan"
     Write-Host ""
     Write-Host "    Motor: $(Split-Path $fastCopyExe -Leaf)" -ForegroundColor DarkGray

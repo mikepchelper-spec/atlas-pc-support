@@ -14,10 +14,17 @@ $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 Clear-Host
 
-Write-Host "`n" 
-Write-Host "  ==========================================================" -ForegroundColor DarkGray
-Write-Host "           ATLAS PC SUPPORT - Maintenance Suite v8.3" -ForegroundColor Yellow
-Write-Host "  ==========================================================" -ForegroundColor DarkGray
+function Write-Centered-PRO {
+    param([string]$Text, [string]$Color = 'White')
+    $w = try { $Host.UI.RawUI.WindowSize.Width } catch { 80 }
+    $pad = [Math]::Max(0, [Math]::Floor(($w - $Text.Length) / 2))
+    Write-Host ((' ' * $pad) + $Text) -ForegroundColor $Color
+}
+Write-Host "`n"
+Write-Centered-PRO "============================================================" 'DarkGray'
+Write-Centered-PRO "        DEEP CLEAN & REPAIR  v8.3" 'Yellow'
+Write-Centered-PRO "  Defender · Cleanup · DISM/SFC · Repair · Report" 'DarkGray'
+Write-Centered-PRO "============================================================" 'DarkGray'
 Write-Host "`n"
 Write-Host "  Client name (Enter to use hostname): " -NoNewline -ForegroundColor Cyan
 $inputName = Read-Host

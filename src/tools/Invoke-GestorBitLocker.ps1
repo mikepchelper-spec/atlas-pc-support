@@ -524,10 +524,8 @@ while ($true) {
     Clear-Host
     Write-Host "`n"
     Escribir-Centrado "===================================================" "DarkGray"
-    Escribir-Centrado "|                                                 |" "DarkYellow"
-    Escribir-Centrado "|               ATLAS PC SUPPORT                  |" "DarkYellow"
-    Escribir-Centrado "|             GESTOR BITLOCKER v3                  |" "DarkYellow"
-    Escribir-Centrado "|                                                 |" "DarkYellow"
+    Escribir-Centrado "         BITLOCKER MANAGER v3" "Yellow"
+    Escribir-Centrado "  Encrypt · Backup Keys · Health Check · AD Sync" "DarkGray"
     Escribir-Centrado "===================================================" "DarkGray"
     
     # TPM status
