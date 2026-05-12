@@ -78,6 +78,11 @@ function Invoke-PrepararUSB {
             DiagDepsHeader   = '--- Preparing Full System Report offline dependencies ---'
             DiagDepsDone     = '[OK] Full System Report offline dependencies prepared.'
             DiagDepsNone     = '[!] Full System Report dependencies could not be prepared.'
+            AskTools         = 'Download tool scripts to USB for offline use? [Y/N] (recommended)'
+            AskToolsNote     = 'Lets all tools run without internet. ToolRunner checks this folder first.'
+            ToolsHeader      = '--- Downloading tool scripts (deps\tools\) ---'
+            ToolsDone        = '[OK] Tool scripts on USB: {0} downloaded, {1} already present.'
+            ToolsPartial     = '[!] Tool scripts: {0} ok, {1} failed (check internet).'
             UpdAll      = '[1] Update all  — re-download launcher + all dependencies'
             UpdMissing  = '[2] Fill missing  — launcher + only download what is absent'
             DepSkipped  = '[=] Already on USB, skipped: {0}'
@@ -150,6 +155,11 @@ function Invoke-PrepararUSB {
             DiagDepsHeader   = '--- Preparando dependencias offline de Full System Report ---'
             DiagDepsDone     = '[OK] Dependencias offline de Full System Report preparadas.'
             DiagDepsNone     = '[!] No se pudieron preparar dependencias de Full System Report.'
+            AskTools         = 'Descargar scripts de tools en la USB para uso offline? [S/N] (recomendado)'
+            AskToolsNote     = 'Permite que todas las tools funcionen sin internet. ToolRunner busca primero en esta carpeta.'
+            ToolsHeader      = '--- Descargando scripts de tools (deps\tools\) ---'
+            ToolsDone        = '[OK] Scripts de tools en USB: {0} descargados, {1} ya estaban.'
+            ToolsPartial     = '[!] Scripts de tools: {0} ok, {1} fallaron (verifica internet).'
             UpdAll      = '[1] Actualizar todo  — re-descargar launcher + todas las dependencias'
             UpdMissing  = '[2] Completar lo que falta  — launcher + solo descargar lo ausente'
             DepSkipped  = '[=] Ya existe en la USB, omitido: {0}'
@@ -202,6 +212,7 @@ LAYOUT
     launcher.ps1       Compiled panel (auto-updates).
     atlas-offline.log  Transcript of the latest run (errors + stack trace).
     apps\FastCopy\     Portable FastCopy copy (if downloaded).
+    deps\tools\        Tool scripts for offline use (Invoke-*.ps1).
     deps\GPUCheck\tools\  Optional offline dependencies for GPU Check.
     deps\DiagnosticoMaster\tools\  Optional offline dependencies for Full System Report.
     README.txt         This file.
@@ -254,6 +265,7 @@ ESTRUCTURA
     launcher.ps1       Panel compilado (se auto-actualiza).
     atlas-offline.log  Transcript de la ultima ejecucion (errores + stack).
     apps\FastCopy\     Copia portable de FastCopy (si se descargo).
+    deps\tools\        Scripts de tools para uso offline (Invoke-*.ps1).
     deps\GPUCheck\tools\  Dependencias offline opcionales para GPU Check.
     deps\DiagnosticoMaster\tools\  Dependencias offline opcionales para Full System Report.
     README.txt         Este archivo.
@@ -309,6 +321,7 @@ Generado por Atlas PC Support - Preparar USB Offline
     # Canonical URLs
     $LAUNCHER_URL_PRIMARY   = 'https://toolspanel.atlaspcsupport.com/'
     $LAUNCHER_URL_FALLBACK  = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1'
+    $TOOLS_BASE_URL         = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
     $FASTCOPY_URL           = 'https://fastcopy.jp/archive/FastCopy5.11.2_installer.exe'
     $PS7_VERSION            = '7.5.0'
     $PS7_URL                = "https://github.com/PowerShell/PowerShell/releases/download/v$PS7_VERSION/PowerShell-$PS7_VERSION-win-x64.msi"
@@ -659,6 +672,75 @@ Generado por Atlas PC Support - Preparar USB Offline
         return $false
     }
 
+    function Save-AtlasTools {
+        param([string]$ToolsDir)
+
+        Write-Host ''
+        Write-Centered $L.ToolsHeader 'Yellow'
+
+        if (-not (Test-Path -LiteralPath $ToolsDir)) {
+            New-Item -ItemType Directory -Path $ToolsDir -Force | Out-Null
+        }
+
+        $toolNames = @(
+            'Invoke-ActualizarPowerShell',
+            'Invoke-AIReadiness',
+            'Invoke-AuditoriaRouter',
+            'Invoke-DiagnosticoEventos',
+            'Invoke-DiagnosticoMaster',
+            'Invoke-EntregaPC',
+            'Invoke-ExtraerLicencias',
+            'Invoke-FastCopy',
+            'Invoke-Fase0',
+            'Invoke-GestorBitLocker',
+            'Invoke-GPUCheck',
+            'Invoke-HostsManager',
+            'Invoke-InstalarPaquetes',
+            'Invoke-KeyboardDoctor',
+            'Invoke-MantenimientoPRO',
+            'Invoke-MenorPrivilegio',
+            'Invoke-PartsUpgrade',
+            'Invoke-Personalizacion',
+            'Invoke-PrepararUSB',
+            'Invoke-PrinterDoctor',
+            'Invoke-Robocopy',
+            'Invoke-SelectorDNS',
+            'Invoke-StopServices'
+        )
+
+        $ok = 0; $skipped = 0; $failed = 0
+        $bust = [Guid]::NewGuid().ToString('N')
+        $ProgressPreference = 'SilentlyContinue'
+
+        foreach ($name in $toolNames) {
+            $dest = Join-Path $ToolsDir "$name.ps1"
+            if (Test-Path -LiteralPath $dest) {
+                $skipped++
+                continue
+            }
+            $url = "$TOOLS_BASE_URL/$name.ps1?v=$bust"
+            try {
+                Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+                if ((Get-Item $dest).Length -gt 100) {
+                    $ok++
+                } else {
+                    Remove-Item $dest -ErrorAction SilentlyContinue
+                    $failed++
+                }
+            } catch {
+                $failed++
+                Write-Centered "  [!] $name : $($_.Exception.Message)" 'Yellow'
+            }
+        }
+
+        if ($failed -eq 0) {
+            Write-Centered ($L.ToolsDone -f $ok, $skipped) 'Green'
+        } else {
+            Write-Centered ($L.ToolsPartial -f ($ok + $skipped), $failed) 'Yellow'
+        }
+        return ($failed -eq 0)
+    }
+
     function Write-RunBat {
         param([string]$Path, [string]$FailMsg)
         # run.bat delegates the heavy lifting to run-launcher.ps1 (which
@@ -968,14 +1050,15 @@ exit 0
 
     # ---- Dependencies ----
     # On fresh install: ask per-dep. On update: honour the chosen mode silently.
-    $fcDir       = Join-Path $appsDir 'FastCopy'
-    $fcExe       = Join-Path $fcDir 'FastCopy.exe'
-    $depsDir     = Join-Path $targetDir 'deps'
-    $ps7Msi      = Join-Path $depsDir "PowerShell-$PS7_VERSION-win-x64.msi"
-    $gpuToolsDir = Join-Path $targetDir 'deps\GPUCheck\tools'
-    $gpuPresence = Join-Path $gpuToolsDir 'GPU-Z.exe'
-    $diagToolsDir= Join-Path $targetDir 'deps\DiagnosticoMaster\tools'
-    $diagPresence= Join-Path $diagToolsDir 'BlueScreenView.exe'
+    $fcDir        = Join-Path $appsDir 'FastCopy'
+    $fcExe        = Join-Path $fcDir 'FastCopy.exe'
+    $depsDir      = Join-Path $targetDir 'deps'
+    $ps7Msi       = Join-Path $depsDir "PowerShell-$PS7_VERSION-win-x64.msi"
+    $gpuToolsDir  = Join-Path $targetDir 'deps\GPUCheck\tools'
+    $gpuPresence  = Join-Path $gpuToolsDir 'GPU-Z.exe'
+    $diagToolsDir = Join-Path $targetDir 'deps\DiagnosticoMaster\tools'
+    $diagPresence = Join-Path $diagToolsDir 'BlueScreenView.exe'
+    $usbToolsDir  = Join-Path $targetDir 'deps\tools'
 
     # FastCopy
     if ($isUpdate) {
@@ -1041,6 +1124,24 @@ exit 0
         $ddd = Read-Host '  '
         if ($ddd -match '^[SsYy]$') {
             Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
+        }
+    }
+
+    # Tool scripts (deps\tools\) — for ToolRunner USB offline mode
+    $toolsPresence = Join-Path $usbToolsDir 'Invoke-MantenimientoPRO.ps1'
+    if ($isUpdate) {
+        if (Test-NeedsDownload $toolsPresence) {
+            Save-AtlasTools -ToolsDir $usbToolsDir | Out-Null
+        } else {
+            Write-Centered ($L.DepSkipped -f 'tool scripts') 'DarkGray'
+        }
+    } else {
+        Write-Host ''
+        Write-Centered $L.AskTools 'Yellow'
+        Write-Centered $L.AskToolsNote 'DarkGray'
+        $dtl = Read-Host '  '
+        if ($dtl -match '^[SsYy]$') {
+            Save-AtlasTools -ToolsDir $usbToolsDir | Out-Null
         }
     }
 
