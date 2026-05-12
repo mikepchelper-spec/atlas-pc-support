@@ -2,12 +2,10 @@
 <#
 .SYNOPSIS
   Compila el launcher distribuible `launcher.ps1` (raíz del repo) a partir
-  de los módulos en src/. Embebe: lib, gui, tools, manifiesto y XAML.
+  de los módulos en src/. Embebe: lib, gui, manifiesto y XAML.
+  Las tools (Invoke-*.ps1) NO se embeben — se descargan bajo demanda.
 
 .DESCRIPTION
-  El archivo resultante es auto-contenido y puede ser invocado con:
-      irm https://raw.githubusercontent.com/<owner>/<repo>/main/launcher.ps1 | iex
-
   Ejecuta este script con:
       pwsh -File build.ps1
 #>
@@ -32,6 +30,7 @@ $version      = '1.0.0'
 $buildDate    = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 $manifest     = Get-EmbeddedContent (Join-Path $PSScriptRoot 'config\tools.json')
 $xamlTemplate = Get-EmbeddedContent (Join-Path $src 'gui\MainWindow.xaml')
+$toolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 $libFiles = @(
     'lib\Branding.ps1'
@@ -49,12 +48,6 @@ $libContent = foreach ($f in $libFiles) {
 $libContent = $libContent -join "`n`n"
 
 $guiContent = Get-EmbeddedContent (Join-Path $src 'gui\MainWindow.ps1')
-
-$toolFiles = Get-ChildItem -Path (Join-Path $src 'tools') -Filter 'Invoke-*.ps1' | Sort-Object Name
-$toolsContent = foreach ($t in $toolFiles) {
-    "# ---- tools\$($t.Name) ----`n" + (Get-EmbeddedContent $t.FullName)
-}
-$toolsContent = $toolsContent -join "`n`n"
 
 
 $banner = (@"
@@ -121,6 +114,7 @@ $embeddedData = (@"
 
 `$script:AtlasVersion = '$version'
 `$script:AtlasBuildDate = '$buildDate'
+`$script:AtlasToolsBaseUrl = '$toolsBaseUrl'
 
 `$script:AtlasToolsManifest = @'
 $manifestEscaped
@@ -149,12 +143,6 @@ $output = @(
     "# ============================================================"
     ""
     $guiContent
-    ""
-    "# ============================================================"
-    "#  HERRAMIENTAS (tools/)"
-    "# ============================================================"
-    ""
-    $toolsContent
     ""
     $epilog
 ) -join "`n"
