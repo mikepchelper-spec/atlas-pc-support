@@ -602,7 +602,7 @@ function Get-RAMDiagnostic {
     }
 
     try {
-        $placa = Get-CimInstance Win32_PhysicalMemoryArray -ErrorAction Stop
+        $placa = Get-CimInstance Win32_PhysicalMemoryArray -ErrorAction Stop | Select-Object -First 1
         $modulos = Get-CimInstance Win32_PhysicalMemory -ErrorAction Stop
     } catch {
         $result.HtmlSection = "<h2>$($L.H4Ram)</h2><pre>$($L.NoMemHw)</pre>"
@@ -618,7 +618,8 @@ function Get-RAMDiagnostic {
     $result.SlotsLibres = [math]::Max(0, $result.SlotsTotal - $result.SlotsUsed)
     $result.HasFreeSlots = ($result.SlotsLibres -gt 0)
     $result.TotalGB = [math]::Round(($modulos | Measure-Object Capacity -Sum).Sum / 1GB, 0)
-    $result.IsDualChannel = ($result.SlotsUsed -ge 2)
+    $allSameCap = ($modulos | Select-Object -ExpandProperty Capacity -Unique | Measure-Object).Count -eq 1
+    $result.IsDualChannel = ($result.SlotsUsed -ge 2 -and $allSameCap)
 
     $maxCapDisplay = if ($result.MaxCapGB -gt 0) { "$($result.MaxCapGB) GB" } else { $L.UnreportedMax }
 
@@ -1070,7 +1071,7 @@ function Get-GpuTargetedEvents {
         })
         foreach ($ev in $wer) { [void]$events.Add($ev) }
     } catch {}
-    return @($events | Sort-Object LogName, ProviderName, Id, TimeCreated, RecordId -Unique | Sort-Object TimeCreated -Descending)
+    return @($events | Sort-Object RecordId -Unique | Sort-Object TimeCreated -Descending)
 }
 
 function Get-GpuLiveKernelFiles {
@@ -1389,7 +1390,7 @@ do {
             Write-Host (" " * $pad) -NoNewline; $opDup = Read-Host
             switch ($opDup.ToUpper()) {
                 "R" { $ts=Get-Date -Format "HHmm"; $nombreBase="${numPC}. Resultados_${pc}_${aliasPC}_${ts}"; $dir=Join-Path $repoRoot $nombreBase }
-                "C" { continue }
+                "C" { $continuar = $false; throw '__cancel__' }
                 default { }
             }
         }
@@ -1511,7 +1512,7 @@ do {
         $htmlBsod = "<h2>$($L.H7Bsod)</h2><pre>$($L.BsodNone)</pre>"
         $exeBsod = $diagDeps.BlueScreenView
         if (-not $exeBsod) { $exeBsod = Join-Path $appsLegacy "BlueScreenView.exe" }
-        $tmpBsod = Join-Path $root "temp_bsod.txt"
+        $tmpBsod = Join-Path $env:TEMP "atlas_diag_bsod.txt"
         if (Test-Path $exeBsod) {
             $bsodOk = Start-ProcessWithTimeout -FilePath $exeBsod -Arguments "/stext `"${tmpBsod}`"" -TimeoutSeconds 15
             if ($bsodOk -and (Test-Path $tmpBsod)) { $c=Get-Content $tmpBsod -Raw -ErrorAction SilentlyContinue; if($c -and $c.Length -gt 10){$safeC=[System.Net.WebUtility]::HtmlEncode($c);$htmlBsod="<h2>$($L.H7Bsod)</h2><pre>${safeC}</pre>"}; Remove-Item $tmpBsod -ErrorAction SilentlyContinue }
@@ -1523,11 +1524,11 @@ do {
         if (-not $exeBatView) { $exeBatView = Join-Path $appsLegacy "BatteryInfoView.exe" }
         $designCap=0;$fullCap=0;$cycleCount=0;$chemistry="N/A";$voltage="N/A";$manufactureName="N/A"
         if (Test-Path $exeBatView) {
-            $tmpBatInfo=Join-Path $root "temp_bat_info.txt"
+            $tmpBatInfo=Join-Path $env:TEMP "atlas_diag_bat_info.txt"
             $batOk=Start-ProcessWithTimeout -FilePath $exeBatView -Arguments "/stext `"${tmpBatInfo}`"" -TimeoutSeconds 15
             if($batOk -and (Test-Path $tmpBatInfo)){try{$linesBat=$null;foreach($enc in @("Unicode","UTF8","Default")){try{$linesBat=Get-Content $tmpBatInfo -Encoding $enc -ErrorAction Stop;if($linesBat -and $linesBat.Count -gt 3){break}}catch{$linesBat=$null}};if($linesBat){foreach($batLine in $linesBat){if($batLine -match "Designed Capacity\s+:\s+([0-9]+)"){$designCap=[int64]$matches[1]};if($batLine -match "Full Charged Capacity\s+:\s+([0-9]+)"){$fullCap=[int64]$matches[1]};if($batLine -match "Number of charge/discharge cycles\s+:\s+([0-9]+)"){$cycleCount=[int]$matches[1]};if($batLine -match "Battery Manufacturer\s+:\s+(.*)"){$manufactureName=$matches[1].Trim()};if($batLine -match "Chemistry\s+:\s+(.*)"){$chemistry=$matches[1].Trim()};if($batLine -match "Voltage\s+:\s+(.*)"){$voltage=$matches[1].Trim()}}}}catch{};Remove-Item $tmpBatInfo -ErrorAction SilentlyContinue}
         }
-        if($designCap -eq 0){$tmpBatXML=Join-Path $root "temp_battery_report.xml";Start-ProcessWithTimeout -FilePath "powercfg" -Arguments "/batteryreport /output `"${tmpBatXML}`" /xml" -TimeoutSeconds 15|Out-Null;if(Test-Path $tmpBatXML){try{[xml]$xmlBat=Get-Content $tmpBatXML -ErrorAction Stop;$batInfo=$xmlBat.BatteryReport.Batteries.Battery;if($batInfo.DesignCapacity){$designCap=[int64]$batInfo.DesignCapacity};if($batInfo.FullChargeCapacity){$fullCap=[int64]$batInfo.FullChargeCapacity};if($batInfo.CycleCount){$cycleCount=[int]$batInfo.CycleCount}}catch{};Remove-Item $tmpBatXML -ErrorAction SilentlyContinue}}
+        if($designCap -eq 0){$tmpBatXML=Join-Path $env:TEMP "atlas_diag_battery_report.xml";Start-ProcessWithTimeout -FilePath "powercfg" -Arguments "/batteryreport /output `"${tmpBatXML}`" /xml" -TimeoutSeconds 15|Out-Null;if(Test-Path $tmpBatXML){try{[xml]$xmlBat=Get-Content $tmpBatXML -ErrorAction Stop;$batInfo=$xmlBat.BatteryReport.Batteries.Battery;if($batInfo.DesignCapacity){$designCap=[int64]$batInfo.DesignCapacity};if($batInfo.FullChargeCapacity){$fullCap=[int64]$batInfo.FullChargeCapacity};if($batInfo.CycleCount){$cycleCount=[int]$batInfo.CycleCount}}catch{};Remove-Item $tmpBatXML -ErrorAction SilentlyContinue}}
         if($designCap -gt 0){
             $healthPct=($fullCap/$designCap)*100;$saludStr="{0:N1}%" -f $healthPct
             if($healthPct -lt 50){$saludColor="#d9534f"}elseif($healthPct -lt 80){$saludColor="#f0ad4e"}else{$saludColor="#5cb85c"}
@@ -1541,7 +1542,11 @@ do {
                     3{$L.BatStFull}
                     4{$L.BatStLow}
                     5{$L.BatStCrit}
-                    default{$L.BatStInUse}
+                    6{$L.BatStCha}
+                    7{$L.BatStCha}
+                    8{$L.BatStCha}
+                    10{$L.BatStCha}
+                    default{$L.UnknownLbl}
                 }
                 $batPercent="$($wmiBat.EstimatedChargeRemaining)%"
             }
@@ -1634,9 +1639,12 @@ do {
         if($key.VirtualKeyCode -eq 32){$continuar=$true}else{$continuar=$false}
 
     } catch {
-        Write-Host ($L.FatalError -f $_.Exception.Message) -ForegroundColor Red
-        Write-Host ($L.ErrorLine -f $_.InvocationInfo.ScriptLineNumber) -ForegroundColor DarkGray
-        Read-Host $L.EnterExit; $continuar=$false
+        if ($_.Exception.Message -eq '__cancel__') { $continuar = $false }
+        else {
+            Write-Host ($L.FatalError -f $_.Exception.Message) -ForegroundColor Red
+            Write-Host ($L.ErrorLine -f $_.InvocationInfo.ScriptLineNumber) -ForegroundColor DarkGray
+            Read-Host $L.EnterExit; $continuar=$false
+        }
     }
 } while ($continuar)
 }
