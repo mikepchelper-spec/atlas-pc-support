@@ -3,27 +3,50 @@
 # Ejecuta una herramienta en una nueva ventana de PowerShell.
 #
 # Enfoque:
-#   * Tomar la SOURCE CRUDA del archivo src/tools/Invoke-X.ps1
-#     (inyectada por build.ps1 como base64 en $script:AtlasToolSources).
-#   * Escribir esa fuente + una llamada a Invoke-X + un try/catch/pausa
+#   * Extraer la source cruda de la tool usando el AST parser de PS
+#     directamente del archivo launcher en disco. El AST preserva
+#     here-strings y HTML intactos, sin depender de base64 ni de
+#     (Get-Command).Definition (que corrompe whitespace en PS 5.1).
+#   * Escribir esa fuente + una llamada a Invoke-X + try/catch
 #     en un .ps1 temporal.
 #   * Envolverlo en un .cmd que llama powershell.exe -File y DESPUES
 #     hace pause, para sobrevivir llamadas a 'exit' dentro de la tool.
 #   * Lanzar cmd.exe via Start-Process, con elevacion si procede.
-#
-# Por que NO usamos (Get-Command ....Definition):
-#   En Windows PowerShell 5.1, .Definition puede normalizar
-#   whitespace y corromper here-strings / HTML embebidos, lo que
-#   genera errores de parse en tiempo de ejecucion (missing brace,
-#   '<' es operador reservado, etc.). Embebiendo la fuente cruda
-#   en base64 evitamos todo el roundtrip y nos aseguramos de que
-#   lo que se ejecuta es lo que hay en src/tools/.
 #
 # Por que NO usamos -EncodedCommand:
 #   1. Limite de longitud de CreateProcess (~32 KB). Tools grandes
 #      (FastCopy, Robocopy) superan el limite.
 #   2. Interpolacion prematura de variables del cuerpo.
 # ============================================================
+
+function Get-AtlasToolSource {
+    param([string]$FunctionName)
+    # Leer el archivo launcher en disco y extraer la funcion por nombre
+    # usando el AST parser. Preserva here-strings, HTML y cualquier
+    # contenido literalmente, sin roundtrip por memoria.
+    $launcherPath = $MyInvocation.ScriptName
+    if (-not $launcherPath -or -not (Test-Path -LiteralPath $launcherPath)) {
+        return $null
+    }
+    try {
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $launcherPath, [ref]$null, [ref]$null)
+        $funcDef = $ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Name -eq $FunctionName
+        }, $false) | Select-Object -First 1
+        if (-not $funcDef) { return $null }
+        # Leer los bytes exactos del archivo para preservar encoding original
+        $allText = [System.IO.File]::ReadAllText($launcherPath, [System.Text.UTF8Encoding]::new($false))
+        $start   = $funcDef.Extent.StartOffset
+        $end     = $funcDef.Extent.EndOffset
+        return $allText.Substring($start, $end - $start)
+    } catch {
+        Write-AtlasLog "Get-AtlasToolSource fallo para '$FunctionName': $_" -Level WARN -Tool 'Runner'
+        return $null
+    }
+}
 
 function Invoke-AtlasTool {
     [CmdletBinding()]
@@ -50,33 +73,22 @@ function Invoke-AtlasTool {
         return
     }
 
-    # ----------- Recuperar la source cruda del map embebido -----------
-    $rawSource = $null
-    if ($script:AtlasToolSources -and $script:AtlasToolSources.ContainsKey($function)) {
-        try {
-            $b64   = $script:AtlasToolSources[$function]
-            $bytes = [Convert]::FromBase64String($b64)
-            $rawSource = [System.Text.Encoding]::UTF8.GetString($bytes)
-        } catch {
-            Write-AtlasLog "Fallo decoding base64 de '$function': $_" -Level ERROR -Tool 'Runner'
-        }
-    }
+    # ----------- Recuperar la source cruda via AST -----------
+    $rawSource = Get-AtlasToolSource -FunctionName $function
 
     if (-not $rawSource) {
-        # Fallback al metodo antiguo (por si alguien usa ToolRunner fuera del
-        # launcher compilado, p.ej. desde src/ directamente).
+        # Fallback: si el launcher no esta en disco (p.ej. dev desde src/)
+        # usar .Definition como ultimo recurso.
         $cmd = Get-Command $function -CommandType Function -ErrorAction SilentlyContinue
         if (-not $cmd) {
-            $msg = "La funcion '$function' no esta cargada ni disponible como source."
+            $msg = "La funcion '$function' no esta disponible."
             Write-AtlasLog $msg -Level ERROR -Tool 'Runner'
             [System.Windows.MessageBox]::Show($msg, 'Atlas PC Support', 'OK', 'Error') | Out-Null
             return
         }
-        $funcBody = $cmd.Definition
-        $funcBody = $funcBody -replace "[\uFEFF\u200B]", ""
+        $funcBody = $cmd.Definition -replace "[\uFEFF\u200B]", ""
         $rawSource = "function $function {`n$funcBody`n}`n"
     } else {
-        # Limpiar BOM / zero-width del texto (por si se colaron al guardar).
         $rawSource = $rawSource -replace "[\uFEFF\u200B]", ""
     }
 
