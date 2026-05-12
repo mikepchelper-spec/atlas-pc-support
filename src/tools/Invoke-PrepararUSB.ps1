@@ -282,7 +282,7 @@ Generado por Atlas PC Support - Preparar USB Offline
     $ErrorActionPreference = 'Continue'
     $Host.UI.RawUI.BackgroundColor = 'Black'
     $Host.UI.RawUI.ForegroundColor = 'Gray'
-    $Host.UI.RawUI.WindowTitle = $L.WinTitle
+    $Host.UI.RawUI.WindowTitle = 'Build Offline USB - Atlas PC Support'
     try { $Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(100, 40) } catch {}
     Clear-Host
 
@@ -312,11 +312,10 @@ Generado por Atlas PC Support - Preparar USB Offline
     function Show-Header {
         Clear-Host
         Write-Host ''
-        Write-Centered '============================================================' 'Cyan'
-        Write-Centered $L.HeaderL1 'Yellow'
-        Write-Centered '============================================================' 'Cyan'
-        Write-Host ''
-        Write-Centered $L.HeaderSub 'Gray'
+        Write-Centered '============================================================' 'DarkGray'
+        Write-Centered '        BUILD OFFLINE USB' 'Yellow'
+        Write-Centered '  Pack the panel + deps onto a USB for offline use' 'DarkGray'
+        Write-Centered '============================================================' 'DarkGray'
         Write-Host ''
     }
 
