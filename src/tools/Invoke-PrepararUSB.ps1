@@ -701,6 +701,7 @@ Generado por Atlas PC Support - Preparar USB Offline
             'Invoke-ActualizarPowerShell',
             'Invoke-AIReadiness',
             'Invoke-AuditoriaRouter',
+            'Invoke-Deduplicador',
             'Invoke-DiagnosticoEventos',
             'Invoke-DiagnosticoMaster',
             'Invoke-EntregaPC',
