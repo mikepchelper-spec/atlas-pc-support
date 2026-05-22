@@ -52,9 +52,9 @@ function Invoke-Deduplicador {
     while ($true) {
         Clear-Host
         Write-Host ''
-        Write-Host '============================================================' -ForegroundColor Orange
-        Write-Host "         ATLAS PC SUPPORT - $($T.Title)" -ForegroundColor Orange
-        Write-Host '============================================================' -ForegroundColor Orange
+        Write-Host '============================================================' -ForegroundColor Yellow
+        Write-Host "         ATLAS PC SUPPORT - $($T.Title)" -ForegroundColor Yellow
+        Write-Host '============================================================' -ForegroundColor Yellow
         Write-Host ''
         Write-Host $T.Opt1 -ForegroundColor White
         Write-Host $T.Opt2 -ForegroundColor White
