@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-05-12 13:36:52
+#  Build:   2026-05-22 12:56:30
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-05-12 13:36:52'
+$script:AtlasBuildDate = '2026-05-22 12:56:30'
 $script:AtlasToolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 $script:AtlasToolsManifest = @'
@@ -143,6 +143,17 @@ $script:AtlasToolsManifest = @'
       "category": "software",
       "function": "Invoke-InstalarMicrosoftStore",
       "source": "Invoke-InstalarMicrosoftStore.ps1",
+      "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "instalar-runtimes",
+      "name": "Install Runtime Dependencies",
+      "description": "Installs common Windows runtime packages in bulk: VC++ 2015+ and 2013 (x64/x86), .NET Framework 3.5, DirectX, and optionally XNA and OpenAL for gaming. Two modes: Minimum and Full/Gaming.",
+      "category": "software",
+      "function": "Invoke-InstalarRuntimes",
+      "source": "Invoke-InstalarRuntimes.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
       "dependencies": []
@@ -278,6 +289,17 @@ $script:AtlasToolsManifest = @'
       "function": "Invoke-ExtraerLicencias",
       "source": "Invoke-ExtraerLicencias.ps1",
       "requiresAdmin": true,
+      "runsInNewWindow": true,
+      "dependencies": []
+    },
+    {
+      "id": "deduplicador",
+      "name": "Deduplicator & Converter",
+      "description": "Visual and exact file deduplicator and media converter (WebP to JPG/PNG, WebM to MP4). Supports GUI and Web modes.",
+      "category": "copia",
+      "function": "Invoke-Deduplicador",
+      "source": "Invoke-Deduplicador.ps1",
+      "requiresAdmin": false,
       "runsInNewWindow": true,
       "dependencies": []
     },
