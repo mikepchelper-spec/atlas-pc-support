@@ -116,17 +116,63 @@ function Invoke-Deduplicador {
             }
 
             # 3. Solicitar carpeta a escanear
-            $folderPath = Read-Host $T.FolderP
-            if ([string]::IsNullOrWhiteSpace($folderPath)) {
+            $folderInput = Read-Host $T.FolderP
+            if ([string]::IsNullOrWhiteSpace($folderInput)) {
                 $folderPath = "D:\0.MULTIMEDIA\memes"
+            } else {
+                # First check if the entire input exists (handles single unquoted folder with spaces)
+                $trimmedInput = $folderInput.Trim().Trim('"').Trim("'").Trim()
+                if (Test-Path -LiteralPath $trimmedInput) {
+                    $folderPath = $trimmedInput
+                } else {
+                    # Parse multiple paths that might be quoted (single/double) or separated by space/semicolon/comma
+                    $pattern = '"([^"]+)"|''([^'']+)''|([^;,\s]+)'
+                    $matches = [regex]::Matches($folderInput, $pattern)
+                    $paths = @()
+                    foreach ($m in $matches) {
+                        $p = $m.Groups[1].Value
+                        if ([string]::IsNullOrEmpty($p)) { $p = $m.Groups[2].Value }
+                        if ([string]::IsNullOrEmpty($p)) { $p = $m.Groups[3].Value }
+                        if (-not [string]::IsNullOrWhiteSpace($p)) {
+                            $p = $p.Trim().Trim('"').Trim("'").Trim()
+                            $paths += $p
+                        }
+                    }
+                    
+                    if ($paths.Count -eq 0) {
+                        $folderPath = "D:\0.MULTIMEDIA\memes"
+                    } elseif ($paths.Count -eq 1) {
+                        $folderPath = $paths[0]
+                    } else {
+                        # Multiple paths
+                        $validPaths = @()
+                        foreach ($p in $paths) {
+                            if (Test-Path -LiteralPath $p) {
+                                $validPaths += (Resolve-Path -LiteralPath $p).Path
+                            } else {
+                                Write-Host " [WARNING] La ruta no existe y sera omitida: $p" -ForegroundColor Yellow
+                            }
+                        }
+                        if ($validPaths.Count -eq 0) {
+                            Write-Host " [ERROR] Ninguna de las rutas especificadas existe." -ForegroundColor Red
+                            Write-Host ''
+                            Read-Host $T.Next
+                            continue
+                        }
+                        $folderPath = $validPaths -join ';'
+                    }
+                }
             }
 
-            # Validar que exista la carpeta
-            if (-not (Test-Path -Path $folderPath)) {
-                Write-Host " [ERROR] La carpeta especificada no existe: $folderPath" -ForegroundColor Red
-                Write-Host ''
-                Read-Host $T.Next
-                continue
+            # Validar que exista la carpeta (si es ruta única o no validada antes)
+            if ($folderPath -notlike '*;*') {
+                if (-not (Test-Path -LiteralPath $folderPath)) {
+                    Write-Host " [ERROR] La carpeta especificada no existe: $folderPath" -ForegroundColor Red
+                    Write-Host ''
+                    Read-Host $T.Next
+                    continue
+                }
+                $folderPath = (Resolve-Path -LiteralPath $folderPath).Path
             }
 
             # 4. Iniciar Servidor
@@ -136,10 +182,60 @@ function Invoke-Deduplicador {
             # Detener antes si hay uno corriendo
             taskkill /f /fi "windowtitle eq DeduplicadorServer" 2>$null | Out-Null
             
-            # Lanzar cmd con título e iniciar python de forma minimizada
-            Start-Process cmd.exe -ArgumentList "/c title DeduplicadorServer && python `"$scriptPath`" `"$normalizedFolder`"" -WindowStyle Minimized
+            # Lanzar cmd con título e iniciar python usando la ruta absoluta detectada
+            Start-Process cmd.exe -ArgumentList "/c title DeduplicadorServer && `"$($pythonCheck.Path)`" `"$scriptPath`" `"$normalizedFolder`"" -WindowStyle Minimized
             
-            Write-Host $T.Started -ForegroundColor Green
+            # Esperar a que el puerto se abra (puertos 8000-8010)
+            $port = 8000
+            $found = $false
+            Write-Host " [>] Esperando a que el servidor web responda (puertos 8000-8010)..." -ForegroundColor Cyan
+            for ($i = 0; $i -lt 15; $i++) {
+                Start-Sleep -Milliseconds 500
+                for ($p = 8000; $p -le 8010; $p++) {
+                    $connection = $null
+                    try {
+                        $connection = New-Object System.Net.Sockets.TcpClient
+                        $connection.Connect("127.0.0.1", $p)
+                        if ($connection.Connected) {
+                            $port = $p
+                            $found = $true
+                            $connection.Close()
+                            break
+                        }
+                    } catch {
+                        try {
+                            $connection = New-Object System.Net.Sockets.TcpClient
+                            $connection.Connect("localhost", $p)
+                            if ($connection.Connected) {
+                                $port = $p
+                                $found = $true
+                                $connection.Close()
+                                break
+                            }
+                        } catch {}
+                    } finally {
+                        if ($connection) { $connection.Dispose() }
+                    }
+                }
+                if ($found) { break }
+            }
+
+            if ($found) {
+                Write-Host " [OK] Servidor detectado en puerto $port." -ForegroundColor Green
+                Write-Host $T.Started -ForegroundColor Green
+                try {
+                    Start-Process "http://localhost:$port"
+                } catch {
+                    Start-Process "explorer.exe" "http://localhost:$port"
+                }
+            } else {
+                Write-Host " [!] No se pudo confirmar que el servidor esté activo, abriendo puerto 8000 de todos modos..." -ForegroundColor Yellow
+                try {
+                    Start-Process "http://localhost:8000"
+                } catch {
+                    Start-Process "explorer.exe" "http://localhost:8000"
+                }
+            }
             Write-Host ''
             Read-Host $T.Next
         }
