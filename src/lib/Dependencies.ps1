@@ -93,6 +93,54 @@ $script:AtlasDepsRegistry = @{
             '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\BatteryInfoView.exe'
         )
     }
+    'CrystalDiskInfo' = @{
+        DisplayName    = 'CrystalDiskInfo'
+        ExecutableName = 'DiskInfo64.exe'
+        WingetId       = 'CrystalDewWorld.CrystalDiskInfo'
+        SearchPaths    = @(
+            'C:\Program Files\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files\CrystalDiskInfo\DiskInfo32.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo32.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskinfo.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\CrystalDiskInfo\DiskInfo64.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\CrystalDiskInfo\DiskInfo32.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskInfo64.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskInfo32.exe'
+        )
+    }
+    'CrystalDiskMark' = @{
+        DisplayName    = 'CrystalDiskMark'
+        ExecutableName = 'DiskMark64.exe'
+        WingetId       = 'CrystalDewWorld.CrystalDiskMark'
+        SearchPaths    = @(
+            'C:\Program Files\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark\DiskMark64.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskmark.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\CrystalDiskMark\DiskMark64.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskMark64.exe'
+        )
+    }
+}
+
+function Resolve-SymlinkPath {
+    param([string]$Path)
+    if (-not $Path) { return $Path }
+    try {
+        $item = Get-Item -LiteralPath $Path -ErrorAction Stop
+        if ($item.Attributes -match "ReparsePoint") {
+            if ($item.LinkTarget) { return $item.LinkTarget }
+            elseif ($item.Target) {
+                if ($item.Target -is [array]) { return $item.Target[0] }
+                return [string]$item.Target
+            }
+        }
+    } catch {}
+    return $Path
 }
 
 function Resolve-AtlasDependency {
@@ -116,12 +164,27 @@ function Resolve-AtlasDependency {
     foreach ($p in $dep.SearchPaths) {
         $expanded = Expand-AtlasPath $p
         if (Test-Path $expanded) {
+            # Ensure CrystalDiskInfo and CrystalDiskMark have their resource folders
+            if ($Name -eq 'CrystalDiskInfo') {
+                $parent = Split-Path -Parent $expanded
+                if (-not (Test-Path -LiteralPath (Join-Path $parent 'CdiResource'))) {
+                    Write-AtlasLog "Ignorando $Name en $expanded porque falta CdiResource" -Level WARN -Tool 'Deps'
+                    continue
+                }
+            }
+            if ($Name -eq 'CrystalDiskMark') {
+                $parent = Split-Path -Parent $expanded
+                if (-not (Test-Path -LiteralPath (Join-Path $parent 'CdmResource'))) {
+                    Write-AtlasLog "Ignorando $Name en $expanded porque falta CdmResource" -Level WARN -Tool 'Deps'
+                    continue
+                }
+            }
             Write-AtlasLog "Encontrada $Name en $expanded" -Tool 'Deps'
-            return $expanded
+            return Resolve-SymlinkPath $expanded
         }
     }
     $inPath = Get-Command $dep.ExecutableName -ErrorAction SilentlyContinue
-    if ($inPath) { return $inPath.Source }
+    if ($inPath) { return Resolve-SymlinkPath $inPath.Source }
 
     if (-not $InstallIfMissing) {
         Write-AtlasLog "$Name no encontrada (no se pidió instalar)." -Level WARN -Tool 'Deps'
@@ -137,7 +200,7 @@ function Resolve-AtlasDependency {
         }
         foreach ($p in $dep.SearchPaths) {
             $expanded = Expand-AtlasPath $p
-            if (Test-Path $expanded) { return $expanded }
+            if (Test-Path $expanded) { return Resolve-SymlinkPath $expanded }
         }
     }
 
@@ -160,10 +223,10 @@ function Resolve-AtlasDependency {
                 Remove-Item $installerFile -ErrorAction SilentlyContinue
                 foreach ($sp in $dep.SearchPaths) {
                     $expanded = Expand-AtlasPath $sp
-                    if (Test-Path $expanded) { return $expanded }
+                    if (Test-Path $expanded) { return Resolve-SymlinkPath $expanded }
                 }
                 $found = Get-ChildItem -Path $targetDir -Filter $dep.ExecutableName -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-                if ($found) { return $found.FullName }
+                if ($found) { return Resolve-SymlinkPath $found.FullName }
             }
         } catch {
             Write-AtlasLog "Descarga directa falló: $_" -Level WARN -Tool 'Deps'

@@ -74,7 +74,7 @@ function Invoke-PrepararUSB {
             GPUDepsDone     = '[OK] GPU Check offline dependencies prepared.'
             GPUDepsNone     = '[!] GPU Check dependencies could not be prepared.'
             AskDiagDeps      = 'Prepare offline Full System Report dependencies on USB? [Y/N] (recommended)'
-            AskDiagDepsNote  = 'Copies CPU-Z / BlueScreenView / BatteryInfoView when available. Missing items are installed when possible.'
+            AskDiagDepsNote  = 'Copies CPU-Z / HWiNFO64 / CrystalDiskInfo / CrystalDiskMark / BlueScreenView / BatteryInfoView when available. Missing items are installed when possible.'
             DiagDepsHeader   = '--- Preparing Full System Report offline dependencies ---'
             DiagDepsDone     = '[OK] Full System Report offline dependencies prepared.'
             DiagDepsNone     = '[!] Full System Report dependencies could not be prepared.'
@@ -156,7 +156,7 @@ function Invoke-PrepararUSB {
             GPUDepsDone     = '[OK] Dependencias offline de GPU Check preparadas.'
             GPUDepsNone     = '[!] No se pudieron preparar dependencias de GPU Check.'
             AskDiagDeps      = 'Preparar dependencias offline de Full System Report en la USB? [S/N] (recomendado)'
-            AskDiagDepsNote  = 'Copia CPU-Z / BlueScreenView / BatteryInfoView cuando estan disponibles. Si faltan, intenta instalarlos.'
+            AskDiagDepsNote  = 'Copia CPU-Z / HWiNFO64 / CrystalDiskInfo / CrystalDiskMark / BlueScreenView / BatteryInfoView cuando estan disponibles. Si faltan, intenta instalarlos.'
             DiagDepsHeader   = '--- Preparando dependencias offline de Full System Report ---'
             DiagDepsDone     = '[OK] Dependencias offline de Full System Report preparadas.'
             DiagDepsNone     = '[!] No se pudieron preparar dependencias de Full System Report.'
@@ -667,13 +667,64 @@ Generado por Atlas PC Support - Preparar USB Offline
             $copiedCount++
         }
 
+        $hwSrc = Resolve-DepPath -DepName 'HWiNFO' -FallbackPaths @(
+            'C:\Program Files\HWiNFO64\HWiNFO64.exe',
+            'C:\Program Files (x86)\HWiNFO64\HWiNFO64.exe'
+        )
+        if ($hwSrc -and (Test-Path -LiteralPath $hwSrc)) {
+            Copy-Item -LiteralPath $hwSrc -Destination (Join-Path $DiagToolsDir 'HWiNFO64.exe') -Force
+            $copiedCount++
+        }
+
+        $cdiSrc = Resolve-DepPath -DepName 'CrystalDiskInfo' -FallbackPaths @(
+            'C:\Program Files\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files\CrystalDiskInfo\DiskInfo32.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo32.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskinfo.exe'
+        )
+        if ($cdiSrc -and (Test-Path -LiteralPath $cdiSrc)) {
+            $cdiDir = Split-Path -Parent $cdiSrc
+            $cdiDstDir = Join-Path $DiagToolsDir 'CrystalDiskInfo'
+            if (Test-Path $cdiDir) {
+                if (Test-Path $cdiDstDir) { Remove-Item -Path $cdiDstDir -Recurse -Force -ErrorAction SilentlyContinue }
+                New-Item -ItemType Directory -Path $cdiDstDir -Force | Out-Null
+                Copy-Item -Path (Join-Path $cdiDir "*") -Destination $cdiDstDir -Recurse -Force -ErrorAction SilentlyContinue
+                $copiedCount++
+            }
+        }
+
+        $cdmSrc = Resolve-DepPath -DepName 'CrystalDiskMark' -FallbackPaths @(
+            'C:\Program Files\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark\DiskMark64.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskmark.exe'
+        )
+        if ($cdmSrc -and (Test-Path -LiteralPath $cdmSrc)) {
+            $cdmDir = Split-Path -Parent $cdmSrc
+            $cdmDstDir = Join-Path $DiagToolsDir 'CrystalDiskMark'
+            if (Test-Path $cdmDir) {
+                if (Test-Path $cdmDstDir) { Remove-Item -Path $cdmDstDir -Recurse -Force -ErrorAction SilentlyContinue }
+                New-Item -ItemType Directory -Path $cdmDstDir -Force | Out-Null
+                Copy-Item -Path (Join-Path $cdmDir "*") -Destination $cdmDstDir -Recurse -Force -ErrorAction SilentlyContinue
+                $copiedCount++
+            }
+        }
+
         $hasCpuZ = (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz_x64.exe')) -or
             (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz_x32.exe')) -or
             (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz.exe'))
         $hasBsod = Test-Path -LiteralPath (Join-Path $DiagToolsDir 'BlueScreenView.exe')
         $hasBat = Test-Path -LiteralPath (Join-Path $DiagToolsDir 'BatteryInfoView.exe')
+        $hasCdi = (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'CrystalDiskInfo\DiskInfo64.exe')) -or
+            (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'CrystalDiskInfo\DiskInfo32.exe'))
+        $hasCdm = (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'CrystalDiskMark\DiskMark64.exe'))
+        $hasHw = Test-Path -LiteralPath (Join-Path $DiagToolsDir 'HWiNFO64.exe')
 
-        if ($hasCpuZ -and $hasBsod -and $hasBat) {
+        if ($hasCpuZ -and $hasBsod -and $hasBat -and $hasCdi -and $hasCdm -and $hasHw) {
             Write-Centered $L.DiagDepsDone 'Green'
             return $true
         }
@@ -1171,7 +1222,10 @@ exit 0
 
     # Full System Report deps
     if ($isUpdate) {
-        if (Test-NeedsDownload $diagPresence) {
+        $hasCdiOffline = (Test-Path (Join-Path $diagToolsDir 'CrystalDiskInfo\DiskInfo64.exe')) -or (Test-Path (Join-Path $diagToolsDir 'DiskInfo64.exe'))
+        $hasCdmOffline = (Test-Path (Join-Path $diagToolsDir 'CrystalDiskMark\DiskMark64.exe')) -or (Test-Path (Join-Path $diagToolsDir 'DiskMark64.exe'))
+        $hasHwOffline = Test-Path (Join-Path $diagToolsDir 'HWiNFO64.exe')
+        if ((Test-NeedsDownload $diagPresence) -or -not $hasCdiOffline -or -not $hasCdmOffline -or -not $hasHwOffline) {
             Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'Full System Report deps') 'DarkGray'
