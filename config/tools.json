@@ -32,7 +32,7 @@
       "source": "Invoke-DiagnosticoMaster.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
-      "dependencies": ["CPUZ", "BlueScreenView", "BatteryInfoView", "CrystalDiskInfo", "CrystalDiskMark"]
+      "dependencies": ["CPUZ", "BlueScreenView", "BatteryInfoView", "CrystalDiskInfo", "CrystalDiskMark", "HWiNFO"]
     },
     {
       "id": "diagnostico-eventos",
