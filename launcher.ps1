@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-05-22 14:07:48
+#  Build:   2026-05-22 19:33:18
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-05-22 14:07:48'
+$script:AtlasBuildDate = '2026-05-22 19:33:18'
 $script:AtlasToolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 $script:AtlasToolsManifest = @'
@@ -57,7 +57,7 @@ $script:AtlasToolsManifest = @'
       "source": "Invoke-DiagnosticoMaster.ps1",
       "requiresAdmin": true,
       "runsInNewWindow": true,
-      "dependencies": ["CPUZ", "BlueScreenView", "BatteryInfoView"]
+      "dependencies": ["CPUZ", "BlueScreenView", "BatteryInfoView", "CrystalDiskInfo", "CrystalDiskMark"]
     },
     {
       "id": "diagnostico-eventos",
@@ -1907,6 +1907,35 @@ $script:AtlasDepsRegistry = @{
             'C:\Program Files (x86)\NirSoft\BatteryInfoView\BatteryInfoView.exe',
             '%LOCALAPPDATA%\Microsoft\WinGet\Links\batteryinfoview.exe',
             '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\BatteryInfoView.exe'
+        )
+    }
+    'CrystalDiskInfo' = @{
+        DisplayName    = 'CrystalDiskInfo'
+        ExecutableName = 'DiskInfo64.exe'
+        WingetId       = 'CrystalDewWorld.CrystalDiskInfo'
+        SearchPaths    = @(
+            'C:\Program Files\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files\CrystalDiskInfo\DiskInfo32.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo32.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskinfo.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskInfo64.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskInfo32.exe'
+        )
+    }
+    'CrystalDiskMark' = @{
+        DisplayName    = 'CrystalDiskMark'
+        ExecutableName = 'DiskMark64.exe'
+        WingetId       = 'CrystalDewWorld.CrystalDiskMark'
+        SearchPaths    = @(
+            'C:\Program Files\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark\DiskMark64.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskmark.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskMark64.exe'
         )
     }
 }

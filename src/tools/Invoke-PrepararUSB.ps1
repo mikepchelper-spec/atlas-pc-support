@@ -667,13 +667,44 @@ Generado por Atlas PC Support - Preparar USB Offline
             $copiedCount++
         }
 
+        $cdiSrc = Resolve-DepPath -DepName 'CrystalDiskInfo' -FallbackPaths @(
+            'C:\Program Files\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files\CrystalDiskInfo\DiskInfo32.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo32.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskinfo.exe'
+        )
+        if ($cdiSrc -and (Test-Path -LiteralPath $cdiSrc)) {
+            $cdiDstName = Split-Path -Leaf $cdiSrc
+            Copy-Item -LiteralPath $cdiSrc -Destination (Join-Path $DiagToolsDir $cdiDstName) -Force
+            $copiedCount++
+        }
+
+        $cdmSrc = Resolve-DepPath -DepName 'CrystalDiskMark' -FallbackPaths @(
+            'C:\Program Files\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark\DiskMark64.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskmark.exe'
+        )
+        if ($cdmSrc -and (Test-Path -LiteralPath $cdmSrc)) {
+            $cdmDstName = Split-Path -Leaf $cdmSrc
+            Copy-Item -LiteralPath $cdmSrc -Destination (Join-Path $DiagToolsDir $cdmDstName) -Force
+            $copiedCount++
+        }
+
         $hasCpuZ = (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz_x64.exe')) -or
             (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz_x32.exe')) -or
             (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'cpuz.exe'))
         $hasBsod = Test-Path -LiteralPath (Join-Path $DiagToolsDir 'BlueScreenView.exe')
         $hasBat = Test-Path -LiteralPath (Join-Path $DiagToolsDir 'BatteryInfoView.exe')
+        $hasCdi = (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'DiskInfo64.exe')) -or
+            (Test-Path -LiteralPath (Join-Path $DiagToolsDir 'DiskInfo32.exe'))
+        $hasCdm = Test-Path -LiteralPath (Join-Path $DiagToolsDir 'DiskMark64.exe')
 
-        if ($hasCpuZ -and $hasBsod -and $hasBat) {
+        if ($hasCpuZ -and $hasBsod -and $hasBat -and $hasCdi -and $hasCdm) {
             Write-Centered $L.DiagDepsDone 'Green'
             return $true
         }
@@ -1171,7 +1202,9 @@ exit 0
 
     # Full System Report deps
     if ($isUpdate) {
-        if (Test-NeedsDownload $diagPresence) {
+        if ((Test-NeedsDownload $diagPresence) -or 
+            (Test-NeedsDownload (Join-Path $diagToolsDir 'DiskInfo64.exe')) -or 
+            (Test-NeedsDownload (Join-Path $diagToolsDir 'DiskMark64.exe'))) {
             Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'Full System Report deps') 'DarkGray'

@@ -93,6 +93,35 @@ $script:AtlasDepsRegistry = @{
             '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\BatteryInfoView.exe'
         )
     }
+    'CrystalDiskInfo' = @{
+        DisplayName    = 'CrystalDiskInfo'
+        ExecutableName = 'DiskInfo64.exe'
+        WingetId       = 'CrystalDewWorld.CrystalDiskInfo'
+        SearchPaths    = @(
+            'C:\Program Files\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files\CrystalDiskInfo\DiskInfo32.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo32.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskinfo.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskInfo64.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskInfo32.exe'
+        )
+    }
+    'CrystalDiskMark' = @{
+        DisplayName    = 'CrystalDiskMark'
+        ExecutableName = 'DiskMark64.exe'
+        WingetId       = 'CrystalDewWorld.CrystalDiskMark'
+        SearchPaths    = @(
+            'C:\Program Files\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark\DiskMark64.exe',
+            '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskmark.exe',
+            '%LOCALAPPDATA%\AtlasPC\bin\DiagnosticoMaster\tools\DiskMark64.exe'
+        )
+    }
 }
 
 function Resolve-AtlasDependency {

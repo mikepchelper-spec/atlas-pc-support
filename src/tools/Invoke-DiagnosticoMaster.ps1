@@ -36,12 +36,18 @@ function Invoke-DiagnosticoMaster {
             ReportType    = '4. SELECT REPORT TYPE:'
             Mode1         = '[1] Simplified Report (Native Windows - Fast)'
             Mode2         = '[2] Detailed Report   (CPU-Z engine - Technical)'
+            Mode3         = '[3] Detailed Report   (CPU-Z + CrystalDiskInfo + CrystalDiskMark)'
             FolderExists  = "WARNING: The folder '{0}' already exists."
             FolderActions = '[O] Overwrite  [R] Rename with timestamp  [C] Cancel'
             CreatingFold  = 'Creating folder: {0}...'
             Step1         = '1. Analyzing system...'
             FindingCpuz   = '   Looking for CPU-Z (detailed mode)...'
+            FindingCdi    = '   Looking for CrystalDiskInfo...'
+            FindingCdm    = '   Looking for CrystalDiskMark...'
             CpuzFound     = '   > FOUND: {0}'
+            CdiFound      = '   > FOUND: {0}'
+            CdmFound      = '   > FOUND: {0}'
+            OpeningTools  = '   Opening CPU-Z, CrystalDiskInfo and CrystalDiskMark...'
             Step2Detail   = '2. Extracting hardware (CPU-Z engine)...'
             Step2Simple   = '2. Extracting hardware (Simplified native mode)...'
             Step3         = '3. CPU upgrade check...'
@@ -299,12 +305,18 @@ function Invoke-DiagnosticoMaster {
             ReportType    = '4. SELECCIONE TIPO DE INFORME:'
             Mode1         = '[1] Informe Simplificado (Nativo Windows - Rapido)'
             Mode2         = '[2] Informe Detallado    (Motor CPU-Z - Tecnico)'
+            Mode3         = '[3] Informe Detallado    (Motor CPU-Z + CristalDiskInfo + CristalDiskMark)'
             FolderExists  = "AVISO: La carpeta '{0}' ya existe."
             FolderActions = '[S] Sobreescribir  [R] Renombrar con timestamp  [C] Cancelar'
             CreatingFold  = 'Creando carpeta: {0}...'
             Step1         = '1. Analizando Sistema...'
             FindingCpuz   = '   Buscando CPU-Z (Modo Detallado)...'
+            FindingCdi    = '   Buscando CrystalDiskInfo...'
+            FindingCdm    = '   Buscando CrystalDiskMark...'
             CpuzFound     = '   > ENCONTRADO: {0}'
+            CdiFound      = '   > ENCONTRADO: {0}'
+            CdmFound      = '   > ENCONTRADO: {0}'
+            OpeningTools  = '   Abriendo CPU-Z, CrystalDiskInfo y CrystalDiskMark...'
             Step2Detail   = '2. Extrayendo Hardware (Motor CPU-Z)...'
             Step2Simple   = '2. Extrayendo Hardware (Modo Simplificado Nativo)...'
             Step3         = '3. CPU Upgrade Check...'
@@ -1268,13 +1280,14 @@ function Stage-DiagDep {
 function Resolve-DiagnosticoMasterTools {
     param(
         [Parameter(Mandatory)] [string]$ToolsDir,
-        [string]$LegacyAppsDir
+        [string]$LegacyAppsDir,
+        [string]$SelMode = "3"
     )
 
     Ensure-Dir -Path $ToolsDir
     $offlineRoot = Get-OfflineDiagToolsRoot
     if ($offlineRoot) {
-        foreach ($name in @('cpuz_x64.exe', 'cpuz_x32.exe', 'cpuz.exe', 'BlueScreenView.exe', 'BatteryInfoView.exe')) {
+        foreach ($name in @('cpuz_x64.exe', 'cpuz_x32.exe', 'cpuz.exe', 'BlueScreenView.exe', 'BatteryInfoView.exe', 'DiskInfo64.exe', 'DiskInfo32.exe', 'DiskMark64.exe')) {
             $src = Join-Path $offlineRoot $name
             if (Test-Path -LiteralPath $src) {
                 Copy-Item -LiteralPath $src -Destination (Join-Path $ToolsDir $name) -Force
@@ -1282,18 +1295,21 @@ function Resolve-DiagnosticoMasterTools {
         }
     }
 
-    $cpuz = Find-ToolFileInRoots -Roots @($ToolsDir) -Names @('cpuz_x64.exe', 'cpuz_x32.exe', 'cpuz.exe')
-    if (-not $cpuz) {
-        $cpuzSrc = Resolve-DiagDep -WingetId 'CPUID.CPU-Z' -CommandNames @('cpuz.exe', 'cpuz_x64.exe', 'cpuz_x32.exe') -InstallPaths @(
-            'C:\Program Files\CPUID\CPU-Z\cpuz_x64.exe',
-            'C:\Program Files\CPUID\CPU-Z\cpuz_x32.exe',
-            'C:\Program Files\CPUID\CPU-Z\cpuz.exe',
-            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x64.exe',
-            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x32.exe',
-            'C:\Program Files (x86)\CPUID\CPU-Z\cpuz.exe',
-            '%LOCALAPPDATA%\Microsoft\WinGet\Links\cpuz.exe'
-        )
-        if ($cpuzSrc) { $cpuz = Stage-DiagDep -Source $cpuzSrc -ToolsDir $ToolsDir }
+    $cpuz = $null
+    if ($SelMode -eq "2" -or $SelMode -eq "3") {
+        $cpuz = Find-ToolFileInRoots -Roots @($ToolsDir) -Names @('cpuz_x64.exe', 'cpuz_x32.exe', 'cpuz.exe')
+        if (-not $cpuz) {
+            $cpuzSrc = Resolve-DiagDep -WingetId 'CPUID.CPU-Z' -CommandNames @('cpuz.exe', 'cpuz_x64.exe', 'cpuz_x32.exe') -InstallPaths @(
+                'C:\Program Files\CPUID\CPU-Z\cpuz_x64.exe',
+                'C:\Program Files\CPUID\CPU-Z\cpuz_x32.exe',
+                'C:\Program Files\CPUID\CPU-Z\cpuz.exe',
+                'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x64.exe',
+                'C:\Program Files (x86)\CPUID\CPU-Z\cpuz_x32.exe',
+                'C:\Program Files (x86)\CPUID\CPU-Z\cpuz.exe',
+                '%LOCALAPPDATA%\Microsoft\WinGet\Links\cpuz.exe'
+            )
+            if ($cpuzSrc) { $cpuz = Stage-DiagDep -Source $cpuzSrc -ToolsDir $ToolsDir }
+        }
     }
 
     $bsod = Find-FirstExistingPath -Candidates @(
@@ -1320,10 +1336,49 @@ function Resolve-DiagnosticoMasterTools {
         if ($batterySrc) { $battery = Stage-DiagDep -Source $batterySrc -ToolsDir $ToolsDir -TargetName 'BatteryInfoView.exe' }
     }
 
+    $cdi = $null
+    if ($SelMode -eq "3") {
+        $cdi = Find-FirstExistingPath -Candidates @(
+            (Join-Path $ToolsDir 'DiskInfo64.exe'),
+            (Join-Path $ToolsDir 'DiskInfo32.exe')
+        )
+        if (-not $cdi) {
+            $cdiSrc = Resolve-DiagDep -WingetId 'CrystalDewWorld.CrystalDiskInfo' -CommandNames @('diskinfo.exe', 'DiskInfo64.exe', 'DiskInfo32.exe') -InstallPaths @(
+                'C:\Program Files\CrystalDiskInfo\DiskInfo64.exe',
+                'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo64.exe',
+                'C:\Program Files\CrystalDiskInfo\DiskInfo32.exe',
+                'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo32.exe',
+                '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskinfo.exe'
+            )
+            if ($cdiSrc) { $cdi = Stage-DiagDep -Source $cdiSrc -ToolsDir $ToolsDir }
+        }
+    }
+
+    $cdm = $null
+    if ($SelMode -eq "3") {
+        $cdm = Find-FirstExistingPath -Candidates @(
+            (Join-Path $ToolsDir 'DiskMark64.exe')
+        )
+        if (-not $cdm) {
+            $cdmSrc = Resolve-DiagDep -WingetId 'CrystalDewWorld.CrystalDiskMark' -CommandNames @('diskmark.exe', 'DiskMark64.exe') -InstallPaths @(
+                'C:\Program Files\CrystalDiskMark8\DiskMark64.exe',
+                'C:\Program Files\CrystalDiskMark9\DiskMark64.exe',
+                'C:\Program Files\CrystalDiskMark\DiskMark64.exe',
+                'C:\Program Files (x86)\CrystalDiskMark8\DiskMark64.exe',
+                'C:\Program Files (x86)\CrystalDiskMark9\DiskMark64.exe',
+                'C:\Program Files (x86)\CrystalDiskMark\DiskMark64.exe',
+                '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskmark.exe'
+            )
+            if ($cdmSrc) { $cdm = Stage-DiagDep -Source $cdmSrc -ToolsDir $ToolsDir }
+        }
+    }
+
     return [pscustomobject]@{
         CPUZ = $cpuz
         BlueScreenView = $bsod
         BatteryInfoView = $battery
+        CrystalDiskInfo = $cdi
+        CrystalDiskMark = $cdm
         ToolsDir = $ToolsDir
         LegacyAppsDir = $LegacyAppsDir
     }
@@ -1370,6 +1425,7 @@ do {
         Escribir-Centrado $L.ReportType "Cyan"
         Escribir-Centrado $L.Mode1 "Gray"
         Escribir-Centrado $L.Mode2 "White"
+        Escribir-Centrado $L.Mode3 "White"
         Write-Host "`n"
         Write-Host (" " * $pad) -NoNewline
         $selMode = Read-Host
@@ -1378,7 +1434,7 @@ do {
         $root = [Environment]::GetFolderPath("Desktop")
         $appsLegacy = Join-Path $root "Apps"
         $diagToolsDir = Join-Path $env:LOCALAPPDATA 'AtlasPC\bin\DiagnosticoMaster\tools'
-        $diagDeps = Resolve-DiagnosticoMasterTools -ToolsDir $diagToolsDir -LegacyAppsDir $appsLegacy
+        $diagDeps = Resolve-DiagnosticoMasterTools -ToolsDir $diagToolsDir -LegacyAppsDir $appsLegacy -SelMode $selMode
         $repoRoot = Join-Path $root "REPORTES_PC"
         if (!(Test-Path $repoRoot)) { New-Item -ItemType Directory -Path $repoRoot | Out-Null }
 
@@ -1410,7 +1466,7 @@ do {
         $txtSys = "Alias: ${aliasPC}`nOS: $($os.Caption) ($($os.OSArchitecture))`n$($L.EquipoLbl): $($cs.Manufacturer) $($cs.Model)`nModel: ${modeloExacto}`nCPU: $($proc.Name)`nRAM Total: ${ramTotal} GB (${ramDetalleStr})`nPowerShell: $($PSVersionTable.PSVersion)"
 
         $htmlHardware = ""
-        if ($selMode -eq "2") {
+        if ($selMode -eq "2" -or $selMode -eq "3") {
             Escribir-Centrado $L.FindingCpuz "Magenta"
             $exeCpuz = $null
             if ($diagDeps.CPUZ -and (Test-Path -LiteralPath $diagDeps.CPUZ)) {
@@ -1422,6 +1478,21 @@ do {
             }
             if ($exeCpuz) {
                 Escribir-Centrado ($L.CpuzFound -f $exeCpuz.Name) "Green"
+            }
+
+            if ($selMode -eq "3") {
+                Escribir-Centrado $L.FindingCdi "Magenta"
+                if ($diagDeps.CrystalDiskInfo -and (Test-Path -LiteralPath $diagDeps.CrystalDiskInfo)) {
+                    Escribir-Centrado ($L.CdiFound -f (Split-Path -Leaf $diagDeps.CrystalDiskInfo)) "Green"
+                }
+
+                Escribir-Centrado $L.FindingCdm "Magenta"
+                if ($diagDeps.CrystalDiskMark -and (Test-Path -LiteralPath $diagDeps.CrystalDiskMark)) {
+                    Escribir-Centrado ($L.CdmFound -f (Split-Path -Leaf $diagDeps.CrystalDiskMark)) "Green"
+                }
+            }
+
+            if ($exeCpuz) {
                 Escribir-Centrado $L.Step2Detail "Cyan"
                 $tempReportPath = Join-Path $env:TEMP "cpuz_report_$(Get-Date -Format 'HHmmss')"
                 $arg = "-txt=${tempReportPath}"
@@ -1633,6 +1704,19 @@ do {
         Write-Host "`n"; Escribir-Centrado ($L.ReadyAt -f $htmlFile) "Green"
         Invoke-Item $dir
 
+        if ($selMode -eq "3") {
+            Write-Host "`n"
+            Escribir-Centrado $L.OpeningTools "Cyan"
+            if ($diagDeps.CPUZ -and (Test-Path -LiteralPath $diagDeps.CPUZ)) {
+                Start-Process -FilePath $diagDeps.CPUZ -ErrorAction SilentlyContinue
+            }
+            if ($diagDeps.CrystalDiskInfo -and (Test-Path -LiteralPath $diagDeps.CrystalDiskInfo)) {
+                Start-Process -FilePath $diagDeps.CrystalDiskInfo -ErrorAction SilentlyContinue
+            }
+            if ($diagDeps.CrystalDiskMark -and (Test-Path -LiteralPath $diagDeps.CrystalDiskMark)) {
+                Start-Process -FilePath $diagDeps.CrystalDiskMark -ErrorAction SilentlyContinue
+            }
+        }
 
         Write-Host "`n"; Escribir-Centrado $L.ReturnHint "Cyan"
         $key=$host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
