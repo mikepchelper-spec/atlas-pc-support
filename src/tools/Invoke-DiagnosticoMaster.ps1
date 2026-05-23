@@ -1338,10 +1338,25 @@ function Resolve-DiagnosticoMasterTools {
 
     $cdi = $null
     if ($SelMode -eq "3") {
-        $cdi = Find-FirstExistingPath -Candidates @(
+        $cdiCandidates = @(
+            'C:\Program Files\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo64.exe',
+            'C:\Program Files\CrystalDiskInfo\DiskInfo32.exe',
+            'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo32.exe',
+            (Join-Path $LegacyAppsDir 'CrystalDiskInfo\DiskInfo64.exe'),
+            (Join-Path $LegacyAppsDir 'CrystalDiskInfo\DiskInfo32.exe'),
+            (Join-Path $ToolsDir 'CrystalDiskInfo\DiskInfo64.exe'),
+            (Join-Path $ToolsDir 'CrystalDiskInfo\DiskInfo32.exe'),
             (Join-Path $ToolsDir 'DiskInfo64.exe'),
             (Join-Path $ToolsDir 'DiskInfo32.exe')
         )
+        if ($env:ATLAS_OFFLINE_ROOT) {
+            $cdiCandidates += Join-Path $env:ATLAS_OFFLINE_ROOT 'apps\CrystalDiskInfo\DiskInfo64.exe'
+            $cdiCandidates += Join-Path $env:ATLAS_OFFLINE_ROOT 'apps\CrystalDiskInfo\DiskInfo32.exe'
+            $cdiCandidates += Join-Path $env:ATLAS_OFFLINE_ROOT 'deps\DiagnosticoMaster\tools\CrystalDiskInfo\DiskInfo64.exe'
+            $cdiCandidates += Join-Path $env:ATLAS_OFFLINE_ROOT 'deps\DiagnosticoMaster\tools\CrystalDiskInfo\DiskInfo32.exe'
+        }
+        $cdi = Find-FirstExistingPath -Candidates $cdiCandidates
         if (-not $cdi) {
             $cdiSrc = Resolve-DiagDep -WingetId 'CrystalDewWorld.CrystalDiskInfo' -CommandNames @('diskinfo.exe', 'DiskInfo64.exe', 'DiskInfo32.exe') -InstallPaths @(
                 'C:\Program Files\CrystalDiskInfo\DiskInfo64.exe',
@@ -1350,15 +1365,28 @@ function Resolve-DiagnosticoMasterTools {
                 'C:\Program Files (x86)\CrystalDiskInfo\DiskInfo32.exe',
                 '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskinfo.exe'
             )
-            if ($cdiSrc) { $cdi = Stage-DiagDep -Source $cdiSrc -ToolsDir $ToolsDir }
+            if ($cdiSrc) { $cdi = $cdiSrc }
         }
     }
 
     $cdm = $null
     if ($SelMode -eq "3") {
-        $cdm = Find-FirstExistingPath -Candidates @(
+        $cdmCandidates = @(
+            'C:\Program Files\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files\CrystalDiskMark\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark8\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark9\DiskMark64.exe',
+            'C:\Program Files (x86)\CrystalDiskMark\DiskMark64.exe',
+            (Join-Path $LegacyAppsDir 'CrystalDiskMark\DiskMark64.exe'),
+            (Join-Path $ToolsDir 'CrystalDiskMark\DiskMark64.exe'),
             (Join-Path $ToolsDir 'DiskMark64.exe')
         )
+        if ($env:ATLAS_OFFLINE_ROOT) {
+            $cdmCandidates += Join-Path $env:ATLAS_OFFLINE_ROOT 'apps\CrystalDiskMark\DiskMark64.exe'
+            $cdmCandidates += Join-Path $env:ATLAS_OFFLINE_ROOT 'deps\DiagnosticoMaster\tools\CrystalDiskMark\DiskMark64.exe'
+        }
+        $cdm = Find-FirstExistingPath -Candidates $cdmCandidates
         if (-not $cdm) {
             $cdmSrc = Resolve-DiagDep -WingetId 'CrystalDewWorld.CrystalDiskMark' -CommandNames @('diskmark.exe', 'DiskMark64.exe') -InstallPaths @(
                 'C:\Program Files\CrystalDiskMark8\DiskMark64.exe',
@@ -1369,7 +1397,7 @@ function Resolve-DiagnosticoMasterTools {
                 'C:\Program Files (x86)\CrystalDiskMark\DiskMark64.exe',
                 '%LOCALAPPDATA%\Microsoft\WinGet\Links\diskmark.exe'
             )
-            if ($cdmSrc) { $cdm = Stage-DiagDep -Source $cdmSrc -ToolsDir $ToolsDir }
+            if ($cdmSrc) { $cdm = $cdmSrc }
         }
     }
 
