@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-05-24 20:22:30
+#  Build:   2026-05-24 20:31:39
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-05-24 20:22:30'
+$script:AtlasBuildDate = '2026-05-24 20:31:39'
 $script:AtlasToolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 $script:AtlasToolsManifest = @'
@@ -321,7 +321,7 @@ $script:AtlasToolsManifest = @'
 
 $script:AtlasToolHashesJson = @'
 {
-  "generatedAt": "2026-05-24T20:22:30.8875264-05:00",
+  "generatedAt": "2026-05-24T20:31:39.6070082-05:00",
   "algorithm": "SHA256",
   "files": {
     "Invoke-ActualizarPowerShell.ps1": "ac45e299a0005c124dfa2306c916db1e072fc98480ef569bcbe2d4872a74e523",
@@ -2366,6 +2366,7 @@ function Initialize-AtlasPS7 {
 # Ejecuta una herramienta en una nueva ventana de PowerShell.
 #
 # Orden de origen:
+#   0. Source local (dev checkout): src\tools\ si existe junto al repo
 #   1. USB offline: deps\tools\ junto al launcher
 #   2. Cache local: %LOCALAPPDATA%\AtlasPC\tools\
 #   3. Descarga remota: $script:AtlasToolsBaseUrl
@@ -2513,6 +2514,31 @@ function Get-AtlasToolScript {
     }
 
     if ($launcherDir) {
+        # 0) Source local (dev checkout) - evita mismatch de hash cuando el launcher
+        # local apunta a un branch que aun no esta en main remoto.
+        $localCandidates = @()
+        if ($script:AtlasSrc) {
+            $localCandidates += (Join-Path $script:AtlasSrc "tools\$fileName")
+        }
+        $localCandidates += (Join-Path $launcherDir "src\tools\$fileName")
+
+        $seen = @{}
+        foreach ($localPath in $localCandidates) {
+            if (-not $localPath) { continue }
+            $key = $localPath.ToLowerInvariant()
+            if ($seen.ContainsKey($key)) { continue }
+            $seen[$key] = $true
+
+            if (Test-Path -LiteralPath $localPath) {
+                if (Test-AtlasToolFileIntegrity -Path $localPath -FileName $fileName -SourceLabel 'local-src') {
+                    Unblock-AtlasFile -Path $localPath
+                    Write-AtlasLog "Tool desde source local: $localPath" -Tool 'Runner'
+                    return $localPath
+                }
+                Write-AtlasLog "Tool local-src descartada por integridad: $localPath" -Level WARN -Tool 'Runner'
+            }
+        }
+
         $usbPath = Join-Path $launcherDir "deps\tools\$fileName"
         if (Test-Path -LiteralPath $usbPath) {
             if (Test-AtlasToolFileIntegrity -Path $usbPath -FileName $fileName -SourceLabel 'usb') {
