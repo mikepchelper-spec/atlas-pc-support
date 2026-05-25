@@ -452,7 +452,9 @@ Generado por Atlas PC Support - Preparar USB Offline
         $afterBytes = Get-PathSizeBytes -Paths $MeasurePaths
 
         [int64]$transferred = [int64]($afterBytes - $beforeBytes)
-        if ($transferred -le 0 -and $afterBytes -gt 0) { $transferred = $afterBytes }
+        if ($transferred -le 0 -and $beforeBytes -eq 0 -and $afterBytes -gt 0) {
+            $transferred = $afterBytes
+        }
 
         $realTime = Format-Duration -TotalSeconds $sw.Elapsed.TotalSeconds
         if ($transferred -gt 0 -and $sw.Elapsed.TotalSeconds -gt 0.01) {
@@ -618,7 +620,10 @@ Generado por Atlas PC Support - Preparar USB Offline
     }
 
     function Download-PS7 {
-        param([string]$DepsDir)
+        param(
+            [string]$DepsDir,
+            [switch]$ForceRedownload
+        )
 
         Write-Host ''
         Write-Centered $L.DLPS7Hdr 'Yellow'
@@ -628,23 +633,31 @@ Generado por Atlas PC Support - Preparar USB Offline
             New-Item -ItemType Directory -Path $DepsDir -Force | Out-Null
         }
         $msiFile = Join-Path $DepsDir "PowerShell-$PS7_VERSION-win-x64.msi"
-        if ((Test-Path $msiFile) -and ((Get-Item $msiFile).Length -gt 50MB)) {
+        if (-not $ForceRedownload -and (Test-Path $msiFile) -and ((Get-Item $msiFile).Length -gt 50MB)) {
             Write-Centered ($L.PS7Exists -f $msiFile) 'Green'
             return $true
         }
+        $tmpFile = "$msiFile.download"
         try {
             $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest -Uri $PS7_URL -OutFile $msiFile -UseBasicParsing -TimeoutSec 300 -ErrorAction Stop
-            $sz = (Get-Item $msiFile).Length
+            if (Test-Path -LiteralPath $tmpFile) {
+                Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
+            }
+            Invoke-WebRequest -Uri $PS7_URL -OutFile $tmpFile -UseBasicParsing -TimeoutSec 300 -ErrorAction Stop
+            $sz = (Get-Item $tmpFile).Length
             if ($sz -gt 50MB) {
+                Move-Item -LiteralPath $tmpFile -Destination $msiFile -Force
                 Write-Centered ($L.PS7Ok -f (Format-Size $sz)) 'Green'
                 return $true
             } else {
                 Write-Centered ($L.PS7Partial -f (Format-Size $sz)) 'Yellow'
-                Remove-Item $msiFile -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath $tmpFile -ErrorAction SilentlyContinue
             }
         } catch {
             Write-Centered ($L.PS7Fail -f $_.Exception.Message) 'Yellow'
+            if (Test-Path -LiteralPath $tmpFile) {
+                Remove-Item -LiteralPath $tmpFile -Force -ErrorAction SilentlyContinue
+            }
         }
         return $false
     }
@@ -954,7 +967,10 @@ Generado por Atlas PC Support - Preparar USB Offline
     }
 
     function Save-AtlasTools {
-        param([string]$ToolsDir)
+        param(
+            [string]$ToolsDir,
+            [switch]$ForceRedownload
+        )
 
         Write-Host ''
         Write-Centered $L.ToolsHeader 'Yellow'
@@ -998,21 +1014,29 @@ Generado por Atlas PC Support - Preparar USB Offline
 
         foreach ($name in $toolNames) {
             $dest = Join-Path $ToolsDir "$name.ps1"
-            if (Test-Path -LiteralPath $dest) {
+            if ((-not $ForceRedownload) -and (Test-Path -LiteralPath $dest)) {
                 $skipped++
                 continue
             }
+            $tmp = "$dest.download"
             $url = "$TOOLS_BASE_URL/$name.ps1?v=$bust"
             try {
-                Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
-                if ((Get-Item $dest).Length -gt 100) {
+                if (Test-Path -LiteralPath $tmp) {
+                    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+                }
+                Invoke-WebRequest -Uri $url -OutFile $tmp -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+                if ((Get-Item $tmp).Length -gt 100) {
+                    Move-Item -LiteralPath $tmp -Destination $dest -Force
                     $ok++
                 } else {
-                    Remove-Item $dest -ErrorAction SilentlyContinue
+                    Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
                     $failed++
                 }
             } catch {
                 $failed++
+                if (Test-Path -LiteralPath $tmp) {
+                    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+                }
                 Write-Centered "  [!] $name : $($_.Exception.Message)" 'Yellow'
             }
         }
@@ -1026,7 +1050,10 @@ Generado por Atlas PC Support - Preparar USB Offline
     }
 
     function Save-MicrosoftStoreBundle {
-        param([string]$BundleDir)
+        param(
+            [string]$BundleDir,
+            [switch]$ForceRedownload
+        )
 
         Write-Host ''
         Write-Centered $L.StoreHeader 'Yellow'
@@ -1040,21 +1067,29 @@ Generado por Atlas PC Support - Preparar USB Offline
 
         foreach ($pkg in $STORE_PACKAGES) {
             $dest = Join-Path $BundleDir $pkg.Name
-            if (Test-Path -LiteralPath $dest) {
+            if ((-not $ForceRedownload) -and (Test-Path -LiteralPath $dest)) {
                 $skipped++
                 continue
             }
             Write-Centered ("  [>] $($pkg.Name) (~$($pkg.SizeMB) MB)...") 'Gray'
+            $tmp = "$dest.download"
             try {
-                Invoke-WebRequest -Uri $pkg.Url -OutFile $dest -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
-                if ((Get-Item $dest).Length -gt 10KB) {
+                if (Test-Path -LiteralPath $tmp) {
+                    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+                }
+                Invoke-WebRequest -Uri $pkg.Url -OutFile $tmp -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+                if ((Get-Item $tmp).Length -gt 10KB) {
+                    Move-Item -LiteralPath $tmp -Destination $dest -Force
                     $ok++
                 } else {
-                    Remove-Item $dest -ErrorAction SilentlyContinue
+                    Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
                     $failed++
                 }
             } catch {
                 $failed++
+                if (Test-Path -LiteralPath $tmp) {
+                    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+                }
                 Write-Centered "  [!] $($pkg.Name): $($_.Exception.Message)" 'Yellow'
             }
         }
@@ -1423,7 +1458,7 @@ exit 0
             Invoke-StageWithTelemetry -StageName $L.StageLblPS7 `
                 -EstimateMinSec $ps7Est.Min -EstimateMaxSec $ps7Est.Max `
                 -MeasurePaths @($ps7Msi) `
-                -Action { Download-PS7 -DepsDir $depsDir } | Out-Null
+                -Action { Download-PS7 -DepsDir $depsDir -ForceRedownload:$updateAll } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'PowerShell 7 MSI') 'DarkGray'
         }
@@ -1502,7 +1537,7 @@ exit 0
             Invoke-StageWithTelemetry -StageName $L.StageLblTools `
                 -EstimateMinSec $toolsEst.Min -EstimateMaxSec $toolsEst.Max `
                 -MeasurePaths @($usbToolsDir) `
-                -Action { Save-AtlasTools -ToolsDir $usbToolsDir } | Out-Null
+                -Action { Save-AtlasTools -ToolsDir $usbToolsDir -ForceRedownload:$updateAll } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'tool scripts') 'DarkGray'
         }
@@ -1529,7 +1564,7 @@ exit 0
             Invoke-StageWithTelemetry -StageName $L.StageLblStore `
                 -EstimateMinSec $storeEst.Min -EstimateMaxSec $storeEst.Max `
                 -MeasurePaths @($storeBundleDir) `
-                -Action { Save-MicrosoftStoreBundle -BundleDir $storeBundleDir } | Out-Null
+                -Action { Save-MicrosoftStoreBundle -BundleDir $storeBundleDir -ForceRedownload:$updateAll } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'Microsoft Store bundle') 'DarkGray'
         }
