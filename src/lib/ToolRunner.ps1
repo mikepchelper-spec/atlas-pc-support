@@ -3,6 +3,7 @@
 # Ejecuta una herramienta en una nueva ventana de PowerShell.
 #
 # Orden de origen:
+#   0. Source local (dev checkout): src\tools\ si existe junto al repo
 #   1. USB offline: deps\tools\ junto al launcher
 #   2. Cache local: %LOCALAPPDATA%\AtlasPC\tools\
 #   3. Descarga remota: $script:AtlasToolsBaseUrl
@@ -38,7 +39,18 @@ function Get-AtlasSHA256 {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
     try {
-        return (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+        # Tool scripts are text. Hash in canonical UTF-8 + LF form so checks are
+        # stable across CRLF/LF differences between local checkout and GitHub raw.
+        $text = Get-Content -Raw -LiteralPath $Path -Encoding UTF8 -ErrorAction Stop
+        $normalized = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+        $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($normalized)
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hashBytes = $sha.ComputeHash($bytes)
+            return ([System.BitConverter]::ToString($hashBytes) -replace '-', '').ToLowerInvariant()
+        } finally {
+            $sha.Dispose()
+        }
     } catch {
         Write-AtlasLog "No se pudo calcular SHA256 de '$Path': $_" -Level WARN -Tool 'Runner'
         return $null
@@ -135,7 +147,7 @@ function Get-AtlasToolScript {
     $cachePath = Join-Path $cacheDir $fileName
     $fallbackCachePath = $null
 
-    # 1) USB offline: deps\tools\ junto al launcher
+    # 0) Source local (dev checkout) + 1) USB offline: deps\tools\ junto al launcher
     $launcherDir = $null
     if ($script:AtlasRoot -and (Test-Path -LiteralPath $script:AtlasRoot)) {
         $launcherDir = $script:AtlasRoot
@@ -150,6 +162,31 @@ function Get-AtlasToolScript {
     }
 
     if ($launcherDir) {
+        # 0) Source local (dev checkout) - evita mismatch de hash cuando el launcher
+        # local apunta a un branch que aun no esta en main remoto.
+        $localCandidates = @()
+        if ($script:AtlasSrc) {
+            $localCandidates += (Join-Path $script:AtlasSrc "tools\$fileName")
+        }
+        $localCandidates += (Join-Path $launcherDir "src\tools\$fileName")
+
+        $seen = @{}
+        foreach ($localPath in $localCandidates) {
+            if (-not $localPath) { continue }
+            $key = $localPath.ToLowerInvariant()
+            if ($seen.ContainsKey($key)) { continue }
+            $seen[$key] = $true
+
+            if (Test-Path -LiteralPath $localPath) {
+                if (Test-AtlasToolFileIntegrity -Path $localPath -FileName $fileName -SourceLabel 'local-src') {
+                    Unblock-AtlasFile -Path $localPath
+                    Write-AtlasLog "Tool desde source local: $localPath" -Tool 'Runner'
+                    return $localPath
+                }
+                Write-AtlasLog "Tool local-src descartada por integridad: $localPath" -Level WARN -Tool 'Runner'
+            }
+        }
+
         $usbPath = Join-Path $launcherDir "deps\tools\$fileName"
         if (Test-Path -LiteralPath $usbPath) {
             if (Test-AtlasToolFileIntegrity -Path $usbPath -FileName $fileName -SourceLabel 'usb') {
