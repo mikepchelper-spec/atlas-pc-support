@@ -88,6 +88,10 @@ function Invoke-PrepararUSB {
             StoreHeader      = '--- Downloading Microsoft Store bundle (deps\MicrosoftStore\) ---'
             StoreDone        = '[OK] Store bundle on USB: {0} downloaded, {1} already present.'
             StorePartial     = '[!] Store bundle: {0} ok, {1} failed (check internet).'
+            StorePartialSoft = '[!] Store bundle: {0} ok, {1} unavailable (source restrictions).'
+            StoreMixed       = '[!] Store bundle: {0} ok, {1} unavailable, {2} failed.'
+            StoreManifestAuth= '[!] {0}: source returned manifest/auth-required; skipping (best effort).'
+            StoreMirrorHint  = '  [i] Optional: set ATLAS_STORE_BUNDLE_URL to a direct .appxbundle mirror.'
             StageETA         = '[ETA] {0}: {1}'
             StageReal        = '[REAL] {0}: {1}'
             StageRealSpeed   = '[REAL] {0}: {1} @ {2}'
@@ -180,6 +184,10 @@ function Invoke-PrepararUSB {
             StoreHeader      = '--- Descargando bundle de Microsoft Store (deps\MicrosoftStore\) ---'
             StoreDone        = '[OK] Bundle Store en USB: {0} descargados, {1} ya estaban.'
             StorePartial     = '[!] Bundle Store: {0} ok, {1} fallaron (verifica internet).'
+            StorePartialSoft = '[!] Bundle Store: {0} ok, {1} no disponibles (restricciones del origen).'
+            StoreMixed       = '[!] Bundle Store: {0} ok, {1} no disponibles, {2} fallaron.'
+            StoreManifestAuth= '[!] {0}: la fuente devolvio manifest/auth-required; se omite (best effort).'
+            StoreMirrorHint  = '  [i] Opcional: define ATLAS_STORE_BUNDLE_URL con un mirror .appxbundle directo.'
             StageETA         = '[ETA] {0}: {1}'
             StageReal        = '[REAL] {0}: {1}'
             StageRealSpeed   = '[REAL] {0}: {1} a {2}'
@@ -1062,7 +1070,7 @@ Generado por Atlas PC Support - Preparar USB Offline
             New-Item -ItemType Directory -Path $BundleDir -Force | Out-Null
         }
 
-        $ok = 0; $skipped = 0; $failed = 0
+        $ok = 0; $skipped = 0; $failed = 0; $unavailable = 0
         $ProgressPreference = 'SilentlyContinue'
 
         foreach ($pkg in $STORE_PACKAGES) {
@@ -1072,32 +1080,93 @@ Generado por Atlas PC Support - Preparar USB Offline
                 continue
             }
             Write-Centered ("  [>] $($pkg.Name) (~$($pkg.SizeMB) MB)...") 'Gray'
-            $tmp = "$dest.download"
-            try {
-                if (Test-Path -LiteralPath $tmp) {
-                    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+
+            $candidateUrls = @()
+            $mirrorUrl = [string]$env:ATLAS_STORE_BUNDLE_URL
+            if ($pkg.Name -ieq 'Microsoft.WindowsStore.appxbundle' -and -not [string]::IsNullOrWhiteSpace($mirrorUrl)) {
+                $candidateUrls += $mirrorUrl.Trim()
+            }
+            if ($pkg.Url) { $candidateUrls += [string]$pkg.Url }
+            $candidateUrls = @($candidateUrls | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+
+            $downloaded = $false
+            $manifestBlocked = $false
+            $lastError = $null
+
+            foreach ($url in $candidateUrls) {
+                $tmp = "$dest.download"
+                try {
+                    if (Test-Path -LiteralPath $tmp) {
+                        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+                    }
+
+                    $resp = Invoke-WebRequest -Uri $url -OutFile $tmp -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+                    $len = (Get-Item -LiteralPath $tmp).Length
+                    $contentType = ''
+                    try { $contentType = [string]$resp.Headers['Content-Type'] } catch {}
+
+                    $isManifestResponse = $false
+                    if ($pkg.Name -ieq 'Microsoft.WindowsStore.appxbundle') {
+                        if ($contentType -match 'application/json') {
+                            $isManifestResponse = $true
+                        } elseif ($len -lt 100KB) {
+                            try {
+                                $probe = Get-Content -Raw -LiteralPath $tmp -Encoding UTF8
+                                $jsonProbe = $probe | ConvertFrom-Json -ErrorAction Stop
+                                if ($jsonProbe.Data -and $jsonProbe.Data.PackageIdentifier) {
+                                    $isManifestResponse = $true
+                                }
+                            } catch {}
+                        }
+                    }
+
+                    if ($isManifestResponse) {
+                        Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
+                        $manifestBlocked = $true
+                        Write-Centered ($L.StoreManifestAuth -f $pkg.Name) 'Yellow'
+                        continue
+                    }
+
+                    if ($len -gt 10KB) {
+                        Move-Item -LiteralPath $tmp -Destination $dest -Force
+                        $ok++
+                        $downloaded = $true
+                        break
+                    } else {
+                        Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
+                        $lastError = 'download incomplete'
+                    }
+                } catch {
+                    $lastError = $_.Exception.Message
+                    if (Test-Path -LiteralPath $tmp) {
+                        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+                    }
                 }
-                Invoke-WebRequest -Uri $pkg.Url -OutFile $tmp -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
-                if ((Get-Item $tmp).Length -gt 10KB) {
-                    Move-Item -LiteralPath $tmp -Destination $dest -Force
-                    $ok++
+            }
+
+            if (-not $downloaded) {
+                if ($manifestBlocked -and $pkg.Name -ieq 'Microsoft.WindowsStore.appxbundle') {
+                    $unavailable++
+                    if ([string]::IsNullOrWhiteSpace([string]$env:ATLAS_STORE_BUNDLE_URL)) {
+                        Write-Centered $L.StoreMirrorHint 'DarkGray'
+                    }
                 } else {
-                    Remove-Item -LiteralPath $tmp -ErrorAction SilentlyContinue
                     $failed++
+                    if ($lastError) {
+                        Write-Centered "  [!] $($pkg.Name): $lastError" 'Yellow'
+                    }
                 }
-            } catch {
-                $failed++
-                if (Test-Path -LiteralPath $tmp) {
-                    Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
-                }
-                Write-Centered "  [!] $($pkg.Name): $($_.Exception.Message)" 'Yellow'
             }
         }
 
-        if ($failed -eq 0) {
+        if ($failed -eq 0 -and $unavailable -eq 0) {
             Write-Centered ($L.StoreDone -f $ok, $skipped) 'Green'
-        } else {
+        } elseif ($failed -eq 0) {
+            Write-Centered ($L.StorePartialSoft -f ($ok + $skipped), $unavailable) 'Yellow'
+        } elseif ($unavailable -eq 0) {
             Write-Centered ($L.StorePartial -f ($ok + $skipped), $failed) 'Yellow'
+        } else {
+            Write-Centered ($L.StoreMixed -f ($ok + $skipped), $unavailable, $failed) 'Yellow'
         }
         return ($failed -eq 0)
     }
