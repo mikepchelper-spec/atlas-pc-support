@@ -630,6 +630,46 @@ Generado por Atlas PC Support - Preparar USB Offline
             return $resolved
         }
 
+        function Copy-TreeSafely {
+            param(
+                [Parameter(Mandatory)][string]$SourceDir,
+                [Parameter(Mandatory)][string]$DestinationDir
+            )
+
+            if (-not (Test-Path -LiteralPath $SourceDir)) { return $false }
+
+            if (Test-Path -LiteralPath $DestinationDir) {
+                Remove-Item -LiteralPath $DestinationDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
+
+            $copyOk = $false
+            $robo = Get-Command robocopy.exe -ErrorAction SilentlyContinue
+            if ($robo) {
+                # /XJ evita bucles por junctions/symlinks; salida silenciosa para no "atascar" visualmente.
+                & $robo.Source $SourceDir $DestinationDir /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP /XJ | Out-Null
+                $rc = $LASTEXITCODE
+                if ($rc -ge 0 -and $rc -lt 8) {
+                    $copyOk = $true
+                }
+            }
+
+            if (-not $copyOk) {
+                $prevProgress = $ProgressPreference
+                try {
+                    $ProgressPreference = 'SilentlyContinue'
+                    Copy-Item -Path (Join-Path $SourceDir '*') -Destination $DestinationDir -Recurse -Force -ErrorAction Stop
+                    $copyOk = $true
+                } catch {
+                    $copyOk = $false
+                } finally {
+                    $ProgressPreference = $prevProgress
+                }
+            }
+
+            return $copyOk
+        }
+
         $copiedCount = 0
 
         $cpuzSrc = Resolve-DepPath -DepName 'CPUZ' -FallbackPaths @(
@@ -687,10 +727,13 @@ Generado por Atlas PC Support - Preparar USB Offline
             $cdiDir = Split-Path -Parent $cdiSrc
             $cdiDstDir = Join-Path $DiagToolsDir 'CrystalDiskInfo'
             if (Test-Path $cdiDir) {
-                if (Test-Path $cdiDstDir) { Remove-Item -Path $cdiDstDir -Recurse -Force -ErrorAction SilentlyContinue }
-                New-Item -ItemType Directory -Path $cdiDstDir -Force | Out-Null
-                Copy-Item -Path (Join-Path $cdiDir "*") -Destination $cdiDstDir -Recurse -Force -ErrorAction SilentlyContinue
-                $copiedCount++
+                $ok = Copy-TreeSafely -SourceDir $cdiDir -DestinationDir $cdiDstDir
+                if ($ok -and (
+                    (Test-Path -LiteralPath (Join-Path $cdiDstDir 'DiskInfo64.exe')) -or
+                    (Test-Path -LiteralPath (Join-Path $cdiDstDir 'DiskInfo32.exe'))
+                )) {
+                    $copiedCount++
+                }
             }
         }
 
@@ -707,10 +750,10 @@ Generado por Atlas PC Support - Preparar USB Offline
             $cdmDir = Split-Path -Parent $cdmSrc
             $cdmDstDir = Join-Path $DiagToolsDir 'CrystalDiskMark'
             if (Test-Path $cdmDir) {
-                if (Test-Path $cdmDstDir) { Remove-Item -Path $cdmDstDir -Recurse -Force -ErrorAction SilentlyContinue }
-                New-Item -ItemType Directory -Path $cdmDstDir -Force | Out-Null
-                Copy-Item -Path (Join-Path $cdmDir "*") -Destination $cdmDstDir -Recurse -Force -ErrorAction SilentlyContinue
-                $copiedCount++
+                $ok = Copy-TreeSafely -SourceDir $cdmDir -DestinationDir $cdmDstDir
+                if ($ok -and (Test-Path -LiteralPath (Join-Path $cdmDstDir 'DiskMark64.exe'))) {
+                    $copiedCount++
+                }
             }
         }
 
