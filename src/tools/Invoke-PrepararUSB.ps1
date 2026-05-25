@@ -92,6 +92,7 @@ function Invoke-PrepararUSB {
             StoreMixed       = '[!] Store bundle: {0} ok, {1} unavailable, {2} failed.'
             StoreManifestAuth= '[!] {0}: source returned manifest/auth-required; skipping (best effort).'
             StoreMirrorHint  = '  [i] Optional: set ATLAS_STORE_BUNDLE_URL to a direct .appxbundle mirror.'
+            StoreOnlineAuto  = '  [i] Store offline bundle unavailable: target tool will use automatic online install (winget).'
             StageETA         = '[ETA] {0}: {1}'
             StageReal        = '[REAL] {0}: {1}'
             StageRealSpeed   = '[REAL] {0}: {1} @ {2}'
@@ -188,6 +189,7 @@ function Invoke-PrepararUSB {
             StoreMixed       = '[!] Bundle Store: {0} ok, {1} no disponibles, {2} fallaron.'
             StoreManifestAuth= '[!] {0}: la fuente devolvio manifest/auth-required; se omite (best effort).'
             StoreMirrorHint  = '  [i] Opcional: define ATLAS_STORE_BUNDLE_URL con un mirror .appxbundle directo.'
+            StoreOnlineAuto  = '  [i] Bundle offline no disponible: la tool destino usara instalacion online automatica (winget).'
             StageETA         = '[ETA] {0}: {1}'
             StageReal        = '[REAL] {0}: {1}'
             StageRealSpeed   = '[REAL] {0}: {1} a {2}'
@@ -1070,7 +1072,9 @@ Generado por Atlas PC Support - Preparar USB Offline
             New-Item -ItemType Directory -Path $BundleDir -Force | Out-Null
         }
 
+        $onlineOnlyFlag = Join-Path $BundleDir 'ONLINE_MODE_REQUIRED.flag'
         $ok = 0; $skipped = 0; $failed = 0; $unavailable = 0
+        $storeBundleUnavailable = $false
         $ProgressPreference = 'SilentlyContinue'
 
         foreach ($pkg in $STORE_PACKAGES) {
@@ -1147,6 +1151,7 @@ Generado por Atlas PC Support - Preparar USB Offline
             if (-not $downloaded) {
                 if ($manifestBlocked -and $pkg.Name -ieq 'Microsoft.WindowsStore.appxbundle') {
                     $unavailable++
+                    $storeBundleUnavailable = $true
                     if ([string]::IsNullOrWhiteSpace([string]$env:ATLAS_STORE_BUNDLE_URL)) {
                         Write-Centered $L.StoreMirrorHint 'DarkGray'
                     }
@@ -1168,6 +1173,20 @@ Generado por Atlas PC Support - Preparar USB Offline
         } else {
             Write-Centered ($L.StoreMixed -f ($ok + $skipped), $unavailable, $failed) 'Yellow'
         }
+
+        if ($storeBundleUnavailable) {
+            $flagBody = @(
+                '# Atlas PC Support - Microsoft Store online fallback required'
+                '# Store appxbundle could not be obtained from source (manifest/auth-required).'
+                '# Invoke-InstalarMicrosoftStore will skip offline expectation and use winget online mode.'
+                ('# Generated: ' + (Get-Date).ToString('s'))
+            ) -join [Environment]::NewLine
+            [System.IO.File]::WriteAllText($onlineOnlyFlag, $flagBody, [System.Text.UTF8Encoding]::new($true))
+            Write-Centered $L.StoreOnlineAuto 'DarkGray'
+        } elseif (Test-Path -LiteralPath $onlineOnlyFlag) {
+            Remove-Item -LiteralPath $onlineOnlyFlag -Force -ErrorAction SilentlyContinue
+        }
+
         return ($failed -eq 0)
     }
 

@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-05-24 22:12:20
+#  Build:   2026-05-24 22:27:33
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-05-24 22:12:20'
+$script:AtlasBuildDate = '2026-05-24 22:27:33'
 $script:AtlasToolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 $script:AtlasToolsManifest = @'
@@ -321,7 +321,7 @@ $script:AtlasToolsManifest = @'
 
 $script:AtlasToolHashesJson = @'
 {
-  "generatedAt": "2026-05-24T22:12:21.1392674-05:00",
+  "generatedAt": "2026-05-24T22:27:33.3157851-05:00",
   "algorithm": "SHA256",
   "files": {
     "Invoke-ActualizarPowerShell.ps1": "54832b414eaed34411ff1e2a471f0d1ec5fb04229e59d92c635261ed61ed09b0",
@@ -337,7 +337,7 @@ $script:AtlasToolHashesJson = @'
     "Invoke-GestorBitLocker.ps1": "00ea4e8b691077e80679e1c7b7f878d2b60e8e9d84ead4f0419bf9e9042f0d10",
     "Invoke-GPUCheck.ps1": "5e3439b8ba1bd6ec34de358429596f53a986bbfeab797492d8453fad13b4492b",
     "Invoke-HostsManager.ps1": "669737fde3ae354f86d0247c6b511ad14e908a769a4bc2a8496b1b4d6d4c9a8a",
-    "Invoke-InstalarMicrosoftStore.ps1": "7a2b3eee7125bc849ab606e969d68155407dbc28487fb1baef1a15149b051782",
+    "Invoke-InstalarMicrosoftStore.ps1": "a88f4096d33749637d2257bc7284fea002140d1ebb7833795f4d2803e4dd8fb2",
     "Invoke-InstalarPaquetes.ps1": "5a86ad81d6f6a2a1676b94f3a9d5a5b3058f22476bb303914946c89f847a92cd",
     "Invoke-InstalarRuntimes.ps1": "60502070af04e5ac8fe97743f201773b755197efcdeeb6c312b04cc8698b0826",
     "Invoke-KeyboardDoctor.ps1": "645f606446394dd5f1b192a612ade7bb16bb8f0c8fb37dc40344115c156e6756",
@@ -345,7 +345,7 @@ $script:AtlasToolHashesJson = @'
     "Invoke-MenorPrivilegio.ps1": "a2a5ff7fdc7cfc5fd0ae9ec65fc8ee565ded2e802fa804719e4fa60d632dcc4f",
     "Invoke-PartsUpgrade.ps1": "f77e3e9ac6937950373377c943123e87aac84473dd8347a14f67d9b8a619e136",
     "Invoke-Personalizacion.ps1": "08aff302f6f6faa331ee587904106a4b8efb3fa0ca7176d83e53c21f8460169c",
-    "Invoke-PrepararUSB.ps1": "a957cd66a8ca7279924f7a6544abe3177ba5fbf6cb843288e3493dda5df86fe4",
+    "Invoke-PrepararUSB.ps1": "38581d2c9951661f343a95a6d5588950a6298aaefc69c9133fe0ab58392d3cbf",
     "Invoke-PrinterDoctor.ps1": "d1d6c5f4ae88467a072cfb021c69315cbe4a771fb538baf8974d17fddaf20dad",
     "Invoke-Robocopy.ps1": "6ba87e7315c789357d90b821b866a057125153149fa221d081bc38d56fe7ec92",
     "Invoke-SelectorDNS.ps1": "0f5461f61d45c1fe0316a731a047bed8c93986d69a1c5607b72724b0d2804651",
