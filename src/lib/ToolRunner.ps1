@@ -3,6 +3,7 @@
 # Ejecuta una herramienta en una nueva ventana de PowerShell.
 #
 # Orden de origen:
+#   0. Source local (dev checkout): src\tools\ si existe junto al repo
 #   1. USB offline: deps\tools\ junto al launcher
 #   2. Cache local: %LOCALAPPDATA%\AtlasPC\tools\
 #   3. Descarga remota: $script:AtlasToolsBaseUrl
@@ -150,6 +151,31 @@ function Get-AtlasToolScript {
     }
 
     if ($launcherDir) {
+        # 0) Source local (dev checkout) - evita mismatch de hash cuando el launcher
+        # local apunta a un branch que aun no esta en main remoto.
+        $localCandidates = @()
+        if ($script:AtlasSrc) {
+            $localCandidates += (Join-Path $script:AtlasSrc "tools\$fileName")
+        }
+        $localCandidates += (Join-Path $launcherDir "src\tools\$fileName")
+
+        $seen = @{}
+        foreach ($localPath in $localCandidates) {
+            if (-not $localPath) { continue }
+            $key = $localPath.ToLowerInvariant()
+            if ($seen.ContainsKey($key)) { continue }
+            $seen[$key] = $true
+
+            if (Test-Path -LiteralPath $localPath) {
+                if (Test-AtlasToolFileIntegrity -Path $localPath -FileName $fileName -SourceLabel 'local-src') {
+                    Unblock-AtlasFile -Path $localPath
+                    Write-AtlasLog "Tool desde source local: $localPath" -Tool 'Runner'
+                    return $localPath
+                }
+                Write-AtlasLog "Tool local-src descartada por integridad: $localPath" -Level WARN -Tool 'Runner'
+            }
+        }
+
         $usbPath = Join-Path $launcherDir "deps\tools\$fileName"
         if (Test-Path -LiteralPath $usbPath) {
             if (Test-AtlasToolFileIntegrity -Path $usbPath -FileName $fileName -SourceLabel 'usb') {
