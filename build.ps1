@@ -27,6 +27,23 @@ function Get-EmbeddedContent {
     return $content -replace "`r`n", "`n"
 }
 
+function Get-AtlasNormalizedTextSha256 {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+
+    # Canonical UTF-8 + LF hash to avoid CRLF/LF drift across environments.
+    $text = Get-Content -Raw -LiteralPath $Path -Encoding UTF8
+    $normalized = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+    $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($normalized)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $hashBytes = $sha.ComputeHash($bytes)
+        return ([System.BitConverter]::ToString($hashBytes) -replace '-', '').ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+}
+
 $version      = '1.0.0'
 $buildDate    = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 $manifest     = Get-EmbeddedContent (Join-Path $PSScriptRoot 'config\tools.json')
@@ -38,7 +55,7 @@ $toolHashMap = [ordered]@{}
 Get-ChildItem -Path (Join-Path $src 'tools') -Filter 'Invoke-*.ps1' -File |
     Sort-Object -Property Name |
     ForEach-Object {
-        $toolHashMap[$_.Name] = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $toolHashMap[$_.Name] = Get-AtlasNormalizedTextSha256 -Path $_.FullName
     }
 
 # Validaciones de coherencia: manifest <-> source files <-> hash map.

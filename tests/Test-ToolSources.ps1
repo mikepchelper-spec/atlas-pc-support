@@ -57,6 +57,20 @@ function Get-ManifestHashesMap {
     return $map
 }
 
+function Get-NormalizedToolSha256 {
+    param([Parameter(Mandatory)][string]$Path)
+    $text = Get-Content -Raw -LiteralPath $Path -Encoding UTF8
+    $normalized = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+    $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($normalized)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $hashBytes = $sha.ComputeHash($bytes)
+        return ([System.BitConverter]::ToString($hashBytes) -replace '-', '').ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+}
+
 foreach ($path in @($LauncherPath, $ManifestPath, $ToolHashesPath, $ToolsDir)) {
     if (-not (Test-Path -LiteralPath $path)) {
         throw "No existe ruta requerida: $path"
@@ -181,7 +195,7 @@ foreach ($tool in $tools) {
         continue
     }
 
-    $actualHash = (Get-FileHash -LiteralPath $toolPath -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+    $actualHash = Get-NormalizedToolSha256 -Path $toolPath
     if ($actualHash -ne $hash.ToLowerInvariant()) {
         Write-CheckFail "Tool '$id': hash desactualizado para '$source'. Esperado=$hash Actual=$actualHash"
     }

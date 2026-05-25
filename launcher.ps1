@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-05-24 20:31:39
+#  Build:   2026-05-24 20:59:59
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-05-24 20:31:39'
+$script:AtlasBuildDate = '2026-05-24 20:59:59'
 $script:AtlasToolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 $script:AtlasToolsManifest = @'
@@ -321,35 +321,35 @@ $script:AtlasToolsManifest = @'
 
 $script:AtlasToolHashesJson = @'
 {
-  "generatedAt": "2026-05-24T20:31:39.6070082-05:00",
+  "generatedAt": "2026-05-24T20:59:59.8502591-05:00",
   "algorithm": "SHA256",
   "files": {
-    "Invoke-ActualizarPowerShell.ps1": "ac45e299a0005c124dfa2306c916db1e072fc98480ef569bcbe2d4872a74e523",
-    "Invoke-AIReadiness.ps1": "699fe40867a70e7cf392a3613f92a05aaa55b0b060a331315fae61dd1edc754f",
-    "Invoke-AuditoriaRouter.ps1": "d4ef2178d21e460a9200868fc0b03d33ab6d84eab587110d48991372f78d6ac5",
-    "Invoke-Deduplicador.ps1": "0ed8b3d714b231188197a5a507f76f7f8b3a7daaa54fa93ca831249e1c9ce56a",
-    "Invoke-DiagnosticoEventos.ps1": "fc873172591d3221f75f181e6f245810f4c1bceeca70f450df4b361fc22bd092",
-    "Invoke-DiagnosticoMaster.ps1": "30d0527890a6d9e3f0ff4573dc916ad14fc4b7fe49c754ec801f57526cc92e39",
-    "Invoke-EntregaPC.ps1": "c55e5b1622303d987619d9d8cf749dca8d95653aaff64ad5e0dfdff68428c22c",
-    "Invoke-ExtraerLicencias.ps1": "3feef6399eb1021a4a5f2160a268579898255bc1dc9f43bb00094bf6a2070810",
-    "Invoke-Fase0.ps1": "e756ef7561de30039059d47522298c522dbc17e1b0f5a396c76adb5a1f90ec1d",
-    "Invoke-FastCopy.ps1": "0173a6e8e221e9186e9f7308d6d4e35a96eacf4c8a1f87ad03840c3e0b41511a",
-    "Invoke-GestorBitLocker.ps1": "6255ef7f11814f09bd0c5e2bf825fc7cb274b77bc969360723ccac3310e21c9f",
-    "Invoke-GPUCheck.ps1": "904e5c70d1adcf0e9519bfeebce099ba8b1933e492f507057c19648a34c810ab",
-    "Invoke-HostsManager.ps1": "61e78ff05a8074a1bf1e461af9324818a6893042f6f3e19e650d0673b68f3eaf",
-    "Invoke-InstalarMicrosoftStore.ps1": "fd45d18f5637daf079d64aa70be132b9b0233e0a35100409e63ab67c890594af",
-    "Invoke-InstalarPaquetes.ps1": "642955990d2e5e83a0d4ccb32777e887a8e284c00eec8c71ab2f56337f0ac229",
-    "Invoke-InstalarRuntimes.ps1": "b90487346f98e0c6f34dec0e7ddfac1fe6bbd7e0f9669175f98c2536e3339c83",
-    "Invoke-KeyboardDoctor.ps1": "faf196df23327acbb28c3e26d3baa9bf13f9b3ef776f2eac966db5f58c322280",
-    "Invoke-MantenimientoPRO.ps1": "156272a877310873c14704a1279e57974ad4dc56a33966f868acaefc7120c6ca",
-    "Invoke-MenorPrivilegio.ps1": "065410d4f5840fb7f5398c7f03c11d6674462ea96ecf7df05c3a71a600898707",
-    "Invoke-PartsUpgrade.ps1": "80ed28f8c9ef926b5dd6ef9162739c84164889b3e19d708fc8a3feb5aa5f4fb1",
-    "Invoke-Personalizacion.ps1": "db76f51c006741a6c9e5af4a7444b8ea1b47162745e8e6e2416cc2610db7bac7",
-    "Invoke-PrepararUSB.ps1": "b430c5fad52ea97c4a2b8158abb8adc05c3021bd1f96dbf91301584883583bf2",
-    "Invoke-PrinterDoctor.ps1": "173412cc95fed1dfd92576a27b58aba9eccf584949fb8f546c796ebb0569aef7",
-    "Invoke-Robocopy.ps1": "ddbd335c6056618af8f7516b0fe8cd00b4587c0285990f378497e49fb4655390",
-    "Invoke-SelectorDNS.ps1": "3289ebe923ef26fa8878daef8c83363ff334311449ca33f61c5946c741d65b52",
-    "Invoke-StopServices.ps1": "5572b7a409b03009ef259e7ab73a8f20c739b9908aa0668dc1a3f2466adb66f6"
+    "Invoke-ActualizarPowerShell.ps1": "54832b414eaed34411ff1e2a471f0d1ec5fb04229e59d92c635261ed61ed09b0",
+    "Invoke-AIReadiness.ps1": "a36c35576bf44ce220658ae97279a79b1a0d66ed60fa858182f5137fc7cb355b",
+    "Invoke-AuditoriaRouter.ps1": "ddc72007cd9ff080aee1b34141f6b7ab9319ae3b9527a923280b2bea6cde4451",
+    "Invoke-Deduplicador.ps1": "8c37f2d12d54ced67cea7b8c36a00bdc7272b2cbdee0bbfcf0346945a36e0afc",
+    "Invoke-DiagnosticoEventos.ps1": "f98c1de1539ad7968a9a9330f952b964cd54d2e67af155cb14a6f7095c691331",
+    "Invoke-DiagnosticoMaster.ps1": "7aa9c0b717f24002af30cbc93b9c22f6d978e02508f813f4f42d4c63688f31ae",
+    "Invoke-EntregaPC.ps1": "93ae68c47b4f4b3955cdbeacb6290e12f1bd3278b481fd26a9a6b5658a3db164",
+    "Invoke-ExtraerLicencias.ps1": "56775007685dbcfd87fb5c10a2318a8534cbc5c764c83228bcd1f0d264ca4ce7",
+    "Invoke-Fase0.ps1": "2985b232443f6037376b9866934d28ebc293fad935de40ad0d23e55da5972352",
+    "Invoke-FastCopy.ps1": "deb4615764cb1068f41f50add5dee3fd69610e210d093a681eae7677b8015554",
+    "Invoke-GestorBitLocker.ps1": "00ea4e8b691077e80679e1c7b7f878d2b60e8e9d84ead4f0419bf9e9042f0d10",
+    "Invoke-GPUCheck.ps1": "5e3439b8ba1bd6ec34de358429596f53a986bbfeab797492d8453fad13b4492b",
+    "Invoke-HostsManager.ps1": "669737fde3ae354f86d0247c6b511ad14e908a769a4bc2a8496b1b4d6d4c9a8a",
+    "Invoke-InstalarMicrosoftStore.ps1": "7a2b3eee7125bc849ab606e969d68155407dbc28487fb1baef1a15149b051782",
+    "Invoke-InstalarPaquetes.ps1": "5a86ad81d6f6a2a1676b94f3a9d5a5b3058f22476bb303914946c89f847a92cd",
+    "Invoke-InstalarRuntimes.ps1": "60502070af04e5ac8fe97743f201773b755197efcdeeb6c312b04cc8698b0826",
+    "Invoke-KeyboardDoctor.ps1": "645f606446394dd5f1b192a612ade7bb16bb8f0c8fb37dc40344115c156e6756",
+    "Invoke-MantenimientoPRO.ps1": "981f64c24dccf8ff1d4c7a38cc43b9e5a230e0ad3d637a0eeee766e31b8ab124",
+    "Invoke-MenorPrivilegio.ps1": "a2a5ff7fdc7cfc5fd0ae9ec65fc8ee565ded2e802fa804719e4fa60d632dcc4f",
+    "Invoke-PartsUpgrade.ps1": "f77e3e9ac6937950373377c943123e87aac84473dd8347a14f67d9b8a619e136",
+    "Invoke-Personalizacion.ps1": "08aff302f6f6faa331ee587904106a4b8efb3fa0ca7176d83e53c21f8460169c",
+    "Invoke-PrepararUSB.ps1": "a09496f6cb75d79b7319305c2f3b14c78352fdefc4c382b36c82ce273ed77f26",
+    "Invoke-PrinterDoctor.ps1": "d1d6c5f4ae88467a072cfb021c69315cbe4a771fb538baf8974d17fddaf20dad",
+    "Invoke-Robocopy.ps1": "6ba87e7315c789357d90b821b866a057125153149fa221d081bc38d56fe7ec92",
+    "Invoke-SelectorDNS.ps1": "0f5461f61d45c1fe0316a731a047bed8c93986d69a1c5607b72724b0d2804651",
+    "Invoke-StopServices.ps1": "62089b6915ed4a9f51ffbfd353521ff07fca6294e9081b0c71bcd329381cc11b"
   }
 }
 '@
@@ -2402,7 +2402,18 @@ function Get-AtlasSHA256 {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
     try {
-        return (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+        # Tool scripts are text. Hash in canonical UTF-8 + LF form so checks are
+        # stable across CRLF/LF differences between local checkout and GitHub raw.
+        $text = Get-Content -Raw -LiteralPath $Path -Encoding UTF8 -ErrorAction Stop
+        $normalized = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+        $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($normalized)
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hashBytes = $sha.ComputeHash($bytes)
+            return ([System.BitConverter]::ToString($hashBytes) -replace '-', '').ToLowerInvariant()
+        } finally {
+            $sha.Dispose()
+        }
     } catch {
         Write-AtlasLog "No se pudo calcular SHA256 de '$Path': $_" -Level WARN -Tool 'Runner'
         return $null
@@ -2499,7 +2510,7 @@ function Get-AtlasToolScript {
     $cachePath = Join-Path $cacheDir $fileName
     $fallbackCachePath = $null
 
-    # 1) USB offline: deps\tools\ junto al launcher
+    # 0) Source local (dev checkout) + 1) USB offline: deps\tools\ junto al launcher
     $launcherDir = $null
     if ($script:AtlasRoot -and (Test-Path -LiteralPath $script:AtlasRoot)) {
         $launcherDir = $script:AtlasRoot

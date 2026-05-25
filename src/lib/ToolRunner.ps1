@@ -39,7 +39,18 @@ function Get-AtlasSHA256 {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
     try {
-        return (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+        # Tool scripts are text. Hash in canonical UTF-8 + LF form so checks are
+        # stable across CRLF/LF differences between local checkout and GitHub raw.
+        $text = Get-Content -Raw -LiteralPath $Path -Encoding UTF8 -ErrorAction Stop
+        $normalized = ($text -replace "`r`n", "`n") -replace "`r", "`n"
+        $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($normalized)
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hashBytes = $sha.ComputeHash($bytes)
+            return ([System.BitConverter]::ToString($hashBytes) -replace '-', '').ToLowerInvariant()
+        } finally {
+            $sha.Dispose()
+        }
     } catch {
         Write-AtlasLog "No se pudo calcular SHA256 de '$Path': $_" -Level WARN -Tool 'Runner'
         return $null
@@ -136,7 +147,7 @@ function Get-AtlasToolScript {
     $cachePath = Join-Path $cacheDir $fileName
     $fallbackCachePath = $null
 
-    # 1) USB offline: deps\tools\ junto al launcher
+    # 0) Source local (dev checkout) + 1) USB offline: deps\tools\ junto al launcher
     $launcherDir = $null
     if ($script:AtlasRoot -and (Test-Path -LiteralPath $script:AtlasRoot)) {
         $launcherDir = $script:AtlasRoot
