@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T20:59:59.8502591-05:00",
+  "generatedAt": "2026-05-24T21:07:51.9869497-05:00",
   "algorithm": "SHA256",
   "files": {
     "Invoke-ActualizarPowerShell.ps1": "54832b414eaed34411ff1e2a471f0d1ec5fb04229e59d92c635261ed61ed09b0",
@@ -23,7 +23,7 @@
     "Invoke-MenorPrivilegio.ps1": "a2a5ff7fdc7cfc5fd0ae9ec65fc8ee565ded2e802fa804719e4fa60d632dcc4f",
     "Invoke-PartsUpgrade.ps1": "f77e3e9ac6937950373377c943123e87aac84473dd8347a14f67d9b8a619e136",
     "Invoke-Personalizacion.ps1": "08aff302f6f6faa331ee587904106a4b8efb3fa0ca7176d83e53c21f8460169c",
-    "Invoke-PrepararUSB.ps1": "a09496f6cb75d79b7319305c2f3b14c78352fdefc4c382b36c82ce273ed77f26",
+    "Invoke-PrepararUSB.ps1": "b2b906b42ba3b169d697393bf1583c795c410cbccf8b7cfd48d3062e00f5c8b8",
     "Invoke-PrinterDoctor.ps1": "d1d6c5f4ae88467a072cfb021c69315cbe4a771fb538baf8974d17fddaf20dad",
     "Invoke-Robocopy.ps1": "6ba87e7315c789357d90b821b866a057125153149fa221d081bc38d56fe7ec92",
     "Invoke-SelectorDNS.ps1": "0f5461f61d45c1fe0316a731a047bed8c93986d69a1c5607b72724b0d2804651",
