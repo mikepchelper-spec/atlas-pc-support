@@ -21,7 +21,7 @@ Open **PowerShell as Administrator** and paste:
 irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/get.ps1 | iex
 ```
 
-That's it — nothing else to install. `get.ps1` downloads the launcher to a temp file and runs it with `-File`, which avoids the `irm | iex` pattern that Windows Defender AMSI blocks on many machines.
+That's it — nothing else to install. `get.ps1` downloads the launcher to a temp file, validates its SHA-256 integrity (`launcher.ps1.sha256`), then runs it with `-File`, which avoids the `irm | iex` pattern that Windows Defender AMSI blocks on many machines.
 
 > 💡 **Auto-updates**: every time you run that command, the latest build is pulled from GitHub. There is no separate "update" step.
 
@@ -37,7 +37,7 @@ A live dashboard banner (CPU / RAM / Disk + alerts) sits above the tool grid, an
 
 ## 📦 Bundled tools (v1.0)
 
-The panel ships with **22 tools** grouped in 7 categories. Every tool runs in its own PowerShell window so the UX stays the same as running it standalone.
+The panel ships with **26 tools** grouped in 7 categories. Every tool runs in its own PowerShell window so the UX stays the same as running it standalone.
 
 ### 🔍 Diagnostics
 
@@ -162,11 +162,12 @@ git clone https://github.com/mikepchelper-spec/atlas-pc-support
 cd atlas-pc-support
 
 # Run in dev mode (uses src/, no compile step):
-pwsh -NoProfile -ExecutionPolicy Bypass -File src\Launcher.ps1
+pwsh -NoProfile -ExecutionPolicy RemoteSigned -File src\Launcher.ps1
 
 # Or build the distributable launcher:
 pwsh -NoProfile -File build.ps1
-# This regenerates launcher.ps1 (repo root) with everything embedded.
+# This regenerates launcher.ps1 (repo root) with everything embedded,
+# plus launcher.ps1.sha256 and config/tool-hashes.json.
 ```
 
 ### Repo layout
@@ -174,12 +175,14 @@ pwsh -NoProfile -File build.ps1
 ```
 atlas-pc-support/
 ├── launcher.ps1              ← Compiled. This is what `irm | iex` downloads.
+├── launcher.ps1.sha256       ← SHA-256 sidecar used by get.ps1.
 ├── build.ps1                 ← Regenerates launcher.ps1 from src/.
 ├── branding.example.json     ← Custom-branding template.
 ├── README.md / README.es.md  ← English / Spanish docs.
 ├── LICENSE / .gitignore
 ├── config/
-│   └── tools.json            ← Tool manifest (see "Add a tool" below).
+│   ├── tools.json            ← Tool manifest (see "Add a tool" below).
+│   └── tool-hashes.json      ← Expected SHA-256 for every Invoke-*.ps1.
 ├── docs/                     ← Guides + screenshots.
 ├── onboarding/               ← Standalone RustDesk client onboarding installer.
 ├── src/
@@ -207,9 +210,9 @@ atlas-pc-support/
      "name": "My Tool",
      "description": "Short description (~150 chars max).",
      "category": "mantenimiento",
-     "function": "Invoke-MyTool",
-     "source": "MyTool.ps1",
-     "requiresAdmin": false,
+      "function": "Invoke-MyTool",
+      "source": "Invoke-MyTool.ps1",
+      "requiresAdmin": false,
      "runsInNewWindow": true,
      "dependencies": []
    }
@@ -225,6 +228,7 @@ See [docs/ADDING-TOOLS.md](docs/ADDING-TOOLS.md) for the full reference.
 
 - **Logs**: `%LOCALAPPDATA%\AtlasPC\logs\atlas-YYYY-MM-DD.log`.
 - **External binaries** (FastCopy.exe, etc.): downloaded on demand to `%LOCALAPPDATA%\AtlasPC\bin\`.
+- **Tool script cache**: `%LOCALAPPDATA%\AtlasPC\tools\` (validated with `config/tool-hashes.json`).
 - **Client data / reports**: stored in `%USERPROFILE%\Documents\AtlasPC\` and never committed to the repo.
 
 ---

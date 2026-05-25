@@ -763,6 +763,7 @@ Generado por Atlas PC Support - Preparar USB Offline
             'Invoke-GPUCheck',
             'Invoke-HostsManager',
             'Invoke-InstalarPaquetes',
+            'Invoke-InstalarRuntimes',
             'Invoke-KeyboardDoctor',
             'Invoke-MantenimientoPRO',
             'Invoke-MenorPrivilegio',

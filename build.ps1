@@ -18,6 +18,7 @@ $ErrorActionPreference = 'Stop'
 
 $src = Join-Path $PSScriptRoot 'src'
 if (-not (Test-Path $src)) { throw "No existe $src" }
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 function Get-EmbeddedContent {
     param([string]$Path)
@@ -31,6 +32,67 @@ $buildDate    = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 $manifest     = Get-EmbeddedContent (Join-Path $PSScriptRoot 'config\tools.json')
 $xamlTemplate = Get-EmbeddedContent (Join-Path $src 'gui\MainWindow.xaml')
 $toolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
+
+# Mapa de hashes SHA-256 de herramientas (integridad en ToolRunner).
+$toolHashMap = [ordered]@{}
+Get-ChildItem -Path (Join-Path $src 'tools') -Filter 'Invoke-*.ps1' -File |
+    Sort-Object -Property Name |
+    ForEach-Object {
+        $toolHashMap[$_.Name] = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+
+# Validaciones de coherencia: manifest <-> source files <-> hash map.
+try {
+    $manifestBuildObj = $manifest | ConvertFrom-Json -ErrorAction Stop
+} catch {
+    throw "config/tools.json invalido: $($_.Exception.Message)"
+}
+$manifestTools = @($manifestBuildObj.tools)
+if ($manifestTools.Count -eq 0) {
+    throw "config/tools.json no contiene tools."
+}
+
+$manifestSourceMap = @{}
+foreach ($tool in $manifestTools) {
+    $toolId = [string]$tool.id
+    $toolSource = [string]$tool.source
+    $toolFunction = [string]$tool.function
+    if (-not $toolId) { throw "Tool sin 'id' en config/tools.json." }
+    if (-not $toolSource) { throw "Tool '$toolId' sin 'source' en config/tools.json." }
+    if (-not $toolFunction) { throw "Tool '$toolId' sin 'function' en config/tools.json." }
+    if ($manifestSourceMap.ContainsKey($toolSource)) {
+        throw "Source duplicado en manifest: $toolSource"
+    }
+    $manifestSourceMap[$toolSource] = $toolId
+
+    $expectedFunction = [System.IO.Path]::GetFileNameWithoutExtension($toolSource)
+    if ($toolFunction -ne $expectedFunction) {
+        throw "Tool '$toolId': function '$toolFunction' debe coincidir con '$expectedFunction'."
+    }
+
+    $toolSourcePath = Join-Path $src "tools\$toolSource"
+    if (-not (Test-Path -LiteralPath $toolSourcePath)) {
+        throw "Tool '$toolId' apunta a source inexistente: $toolSource"
+    }
+}
+
+foreach ($toolSource in $manifestSourceMap.Keys) {
+    if (-not $toolHashMap.Contains($toolSource)) {
+        throw "Falta hash para tool en manifest: $toolSource"
+    }
+}
+foreach ($toolFileName in $toolHashMap.Keys) {
+    if (-not $manifestSourceMap.ContainsKey([string]$toolFileName)) {
+        Write-Warning "Tool source sin entrada en manifest: $toolFileName"
+    }
+}
+
+$toolHashEnvelope = [ordered]@{
+    generatedAt = (Get-Date).ToString('o')
+    algorithm   = 'SHA256'
+    files       = $toolHashMap
+}
+$toolHashesJson = ($toolHashEnvelope | ConvertTo-Json -Depth 6)
 
 $libFiles = @(
     'lib\Branding.ps1'
@@ -93,6 +155,20 @@ if ($ps7) {
 }
 
 try {
+    $toolHashesObj = ConvertFrom-AtlasJson $script:AtlasToolHashesJson
+    if ($toolHashesObj.files -is [hashtable]) {
+        $script:AtlasToolHashes = $toolHashesObj.files
+        Write-AtlasLog "Hashes embebidos cargados: $($script:AtlasToolHashes.Count)" -Tool 'Launcher'
+    } else {
+        $script:AtlasToolHashes = @{}
+        Write-AtlasLog "Hash map embebido invalido; continuando sin validacion fuerte." -Level WARN -Tool 'Launcher'
+    }
+} catch {
+    $script:AtlasToolHashes = @{}
+    Write-AtlasLog "No se pudo parsear hash map embebido: $_" -Level WARN -Tool 'Launcher'
+}
+
+try {
     $manifestObj = ConvertFrom-AtlasJson $script:AtlasToolsManifest
     $tools = @($manifestObj.tools)
 } catch {
@@ -105,6 +181,7 @@ $epilog = $epilog -replace "`r`n", "`n"
 
 $manifestEscaped = $manifest.Replace("'", "''")
 $xamlEscaped     = $xamlTemplate.Replace("'", "''")
+$toolHashesEscaped = $toolHashesJson.Replace("'", "''")
 
 $embeddedData = (@"
 
@@ -118,6 +195,10 @@ $embeddedData = (@"
 
 `$script:AtlasToolsManifest = @'
 $manifestEscaped
+'@
+
+`$script:AtlasToolHashesJson = @'
+$toolHashesEscaped
 '@
 
 `$script:AtlasXamlTemplate = @'
@@ -163,8 +244,21 @@ $output = @(
 # launcher.ps1 lands on disk via the bootstrap, the BOM is prepended
 # right before run-launcher.ps1 invokes it. WriteAllText() emits the
 # BOM-less variant on both Windows and Linux pwsh.
-$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 [System.IO.File]::WriteAllText($OutFile, $output, $utf8NoBom)
+
+# Persistir hash map de tools para launcher DEV / tests.
+$toolHashesPath = Join-Path $PSScriptRoot 'config\tool-hashes.json'
+[System.IO.File]::WriteAllText($toolHashesPath, $toolHashesJson, $utf8NoBom)
+
+# Sidecar de integridad del launcher distribuible (consumido por get.ps1).
+$launcherHash = (Get-FileHash -LiteralPath $OutFile -Algorithm SHA256).Hash.ToLowerInvariant()
+$launcherName = Split-Path -Leaf $OutFile
+$launcherShaPath = "$OutFile.sha256"
+[System.IO.File]::WriteAllText(
+    $launcherShaPath,
+    ("{0}  {1}{2}" -f $launcherHash, $launcherName, [Environment]::NewLine),
+    $utf8NoBom
+)
 
 Write-Host ""
 Write-Host "  Atlas PC Support — build completado" -ForegroundColor Green
@@ -172,4 +266,7 @@ Write-Host "  Archivo: $OutFile" -ForegroundColor Gray
 $fi = Get-Item $OutFile
 Write-Host "  Tamaño:  $([math]::Round($fi.Length / 1KB, 1)) KB ($([math]::Round($fi.Length / 1MB, 2)) MB)" -ForegroundColor Gray
 Write-Host "  Build:   $buildDate" -ForegroundColor Gray
+Write-Host "  Hash:    $launcherHash" -ForegroundColor Gray
+Write-Host "  SHA256:  $launcherShaPath" -ForegroundColor Gray
+Write-Host "  Tools:   $toolHashesPath" -ForegroundColor Gray
 Write-Host ""

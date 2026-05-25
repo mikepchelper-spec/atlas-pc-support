@@ -679,7 +679,7 @@ function Get-RAMDiagnostic {
 
         $configSpeed = if ($ram.ConfiguredClockSpeed) { $ram.ConfiguredClockSpeed } else { 0 }
         $nativeSpeed = if ($ram.Speed) { $ram.Speed } else { 0 }
-        $speedDisplay = if ($configSpeed -gt 0) { "${configSpeed} MHz" } else { "N/A" }
+        $speedDisplay = if ($configSpeed -gt 0) { "${configSpeed} MHz" } elseif ($nativeSpeed -gt 0) { "${nativeSpeed} MHz (Nat)" } else { "N/A" }
 
         $xmpStatus = "OK"; $xmpColor = "#5cb85c"; $xmpIcon = "&#10004;"
         if ($configSpeed -gt 0 -and $nativeSpeed -gt 0 -and $configSpeed -lt $nativeSpeed) {
@@ -1736,7 +1736,7 @@ do {
             $batOk=Start-ProcessWithTimeout -FilePath $exeBatView -Arguments "/stext `"${tmpBatInfo}`"" -TimeoutSeconds 15
             if($batOk -and (Test-Path $tmpBatInfo)){try{$linesBat=$null;foreach($enc in @("Unicode","UTF8","Default")){try{$linesBat=Get-Content $tmpBatInfo -Encoding $enc -ErrorAction Stop;if($linesBat -and $linesBat.Count -gt 3){break}}catch{$linesBat=$null}};if($linesBat){foreach($batLine in $linesBat){if($batLine -match "Designed Capacity\s+:\s+([0-9]+)"){$designCap=[int64]$matches[1]};if($batLine -match "Full Charged Capacity\s+:\s+([0-9]+)"){$fullCap=[int64]$matches[1]};if($batLine -match "Number of charge/discharge cycles\s+:\s+([0-9]+)"){$cycleCount=[int]$matches[1]};if($batLine -match "Battery Manufacturer\s+:\s+(.*)"){$manufactureName=$matches[1].Trim()};if($batLine -match "Chemistry\s+:\s+(.*)"){$chemistry=$matches[1].Trim()};if($batLine -match "Voltage\s+:\s+(.*)"){$voltage=$matches[1].Trim()}}}}catch{};Remove-Item $tmpBatInfo -ErrorAction SilentlyContinue}
         }
-        if($designCap -eq 0){$tmpBatXML=Join-Path $env:TEMP "atlas_diag_battery_report.xml";Start-ProcessWithTimeout -FilePath "powercfg" -Arguments "/batteryreport /output `"${tmpBatXML}`" /xml" -TimeoutSeconds 15|Out-Null;if(Test-Path $tmpBatXML){try{[xml]$xmlBat=Get-Content $tmpBatXML -ErrorAction Stop;$batInfo=$xmlBat.BatteryReport.Batteries.Battery;if($batInfo.DesignCapacity){$designCap=[int64]$batInfo.DesignCapacity};if($batInfo.FullChargeCapacity){$fullCap=[int64]$batInfo.FullChargeCapacity};if($batInfo.CycleCount){$cycleCount=[int]$batInfo.CycleCount}}catch{};Remove-Item $tmpBatXML -ErrorAction SilentlyContinue}}
+        if($designCap -eq 0){$tmpBatXML=Join-Path $env:TEMP "atlas_diag_battery_report.xml";Start-ProcessWithTimeout -FilePath "powercfg" -Arguments "/batteryreport /output `"${tmpBatXML}`" /xml" -TimeoutSeconds 15|Out-Null;if(Test-Path $tmpBatXML){try{[xml]$xmlBat=Get-Content $tmpBatXML -ErrorAction Stop;$batInfo=$xmlBat.BatteryReport.Batteries.Battery;if($batInfo){if($batInfo -is [array]){$designCap=0;$fullCap=0;$cycleCount=0;foreach($b in $batInfo){if($b.DesignCapacity){$designCap+=[int64]$b.DesignCapacity};if($b.FullChargeCapacity){$fullCap+=[int64]$b.FullChargeCapacity};if($b.CycleCount){$cycleCount=[math]::Max($cycleCount,[int]$b.CycleCount)}}}else{if($batInfo.DesignCapacity){$designCap=[int64]$batInfo.DesignCapacity};if($batInfo.FullChargeCapacity){$fullCap=[int64]$batInfo.FullChargeCapacity};if($batInfo.CycleCount){$cycleCount=[int]$batInfo.CycleCount}}}}catch{};Remove-Item $tmpBatXML -ErrorAction SilentlyContinue}}
         if($designCap -gt 0){
             $healthPct=($fullCap/$designCap)*100;$saludStr="{0:N1}%" -f $healthPct
             if($healthPct -lt 50){$saludColor="#d9534f"}elseif($healthPct -lt 80){$saludColor="#f0ad4e"}else{$saludColor="#5cb85c"}

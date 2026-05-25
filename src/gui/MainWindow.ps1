@@ -6,8 +6,28 @@
 function ConvertTo-AtlasHex {
     param([string]$Hex)
     if (-not $Hex) { return "#FFFFFF" }
-    if ($Hex -notmatch '^#') { $Hex = "#$Hex" }
-    return $Hex
+
+    $clean = ([string]$Hex).Trim()
+    if ($clean.StartsWith('#')) { $clean = $clean.Substring(1) }
+    if ($clean -match '^[0-9A-Fa-f]{3}$') {
+        $clean = ($clean.ToCharArray() | ForEach-Object { "$_$_" }) -join ''
+    }
+    if ($clean -notmatch '^[0-9A-Fa-f]{6}$') {
+        return "#FFFFFF"
+    }
+
+    return ('#{0}' -f $clean.ToUpperInvariant())
+}
+
+function ConvertTo-AtlasXamlSafe {
+    param($Value)
+    if ($null -eq $Value) { return '' }
+    return [System.Security.SecurityElement]::Escape([string]$Value)
+}
+
+function ConvertTo-AtlasIntOrDefault {
+    param($Value, [int]$Default = 0)
+    try { return [int]$Value } catch { return $Default }
 }
 
 # Recorre el arbol logico de WPF buscando el primer descendiente del tipo indicado.
@@ -85,10 +105,11 @@ function Get-AtlasPalette {
 
 function Get-AtlasColorShift {
     param([string]$Hex, [int]$Delta)
-    $Hex = $Hex.TrimStart('#')
-    $r = [Convert]::ToInt32($Hex.Substring(0,2), 16)
-    $g = [Convert]::ToInt32($Hex.Substring(2,2), 16)
-    $b = [Convert]::ToInt32($Hex.Substring(4,2), 16)
+    $safeHex = ConvertTo-AtlasHex $Hex
+    $h = $safeHex.TrimStart('#')
+    $r = [Convert]::ToInt32($h.Substring(0,2), 16)
+    $g = [Convert]::ToInt32($h.Substring(2,2), 16)
+    $b = [Convert]::ToInt32($h.Substring(4,2), 16)
     $r = [Math]::Max(0, [Math]::Min(255, $r + $Delta))
     $g = [Math]::Max(0, [Math]::Min(255, $g + $Delta))
     $b = [Math]::Max(0, [Math]::Min(255, $b + $Delta))
@@ -105,17 +126,17 @@ function Expand-AtlasXaml {
     if (-not $tagline) { $tagline = Get-AtlasString 'app.tagline' }
 
     $map = @{
-        'WINDOW_TITLE'       = $Branding.window.title
-        'WINDOW_WIDTH'       = $Branding.window.width
-        'WINDOW_HEIGHT'      = $Branding.window.height
-        'WINDOW_MIN_WIDTH'   = $Branding.window.minWidth
-        'WINDOW_MIN_HEIGHT'  = $Branding.window.minHeight
-        'BRAND_NAME'         = $Branding.brand.name
-        'BRAND_TAGLINE'      = $tagline
-        'BRAND_VERSION'      = $Branding.brand.version
-        'BRAND_COPYRIGHT'    = $Branding.brand.copyright
-        'FONT_FAMILY'        = $Branding.theme.fontFamily
-        'CORNER_RADIUS'      = $Branding.theme.cornerRadius
+        'WINDOW_TITLE'       = (ConvertTo-AtlasXamlSafe $Branding.window.title)
+        'WINDOW_WIDTH'       = (ConvertTo-AtlasIntOrDefault $Branding.window.width 1100)
+        'WINDOW_HEIGHT'      = (ConvertTo-AtlasIntOrDefault $Branding.window.height 720)
+        'WINDOW_MIN_WIDTH'   = (ConvertTo-AtlasIntOrDefault $Branding.window.minWidth 900)
+        'WINDOW_MIN_HEIGHT'  = (ConvertTo-AtlasIntOrDefault $Branding.window.minHeight 600)
+        'BRAND_NAME'         = (ConvertTo-AtlasXamlSafe $Branding.brand.name)
+        'BRAND_TAGLINE'      = (ConvertTo-AtlasXamlSafe $tagline)
+        'BRAND_VERSION'      = (ConvertTo-AtlasXamlSafe $Branding.brand.version)
+        'BRAND_COPYRIGHT'    = (ConvertTo-AtlasXamlSafe $Branding.brand.copyright)
+        'FONT_FAMILY'        = (ConvertTo-AtlasXamlSafe $Branding.theme.fontFamily)
+        'CORNER_RADIUS'      = (ConvertTo-AtlasIntOrDefault $Branding.theme.cornerRadius 8)
         'ACCENT_COLOR'       = $Palette.AccentColor
         'ACCENT_HOVER'       = $Palette.AccentHover
         'ACCENT_PRESSED'     = $Palette.AccentPressed
@@ -126,31 +147,31 @@ function Expand-AtlasXaml {
         'TEXT_PRIMARY'       = $Palette.TextPrimary
         'TEXT_SECONDARY'     = $Palette.TextSecondary
         'TEXT_MUTED'         = $Palette.TextMuted
-        'SEARCH_PLACEHOLDER' = (Get-AtlasString 'search.placeholder')
-        'HEADER_LOGS'        = (Get-AtlasString 'header.logs')
-        'HEADER_ABOUT'       = (Get-AtlasString 'header.about')
-        'STATUS_READY'       = (Get-AtlasString 'status.ready')
-        'COFFEE_LABEL'       = (Get-AtlasString 'footer.coffee')
-        'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
-        'LANG_TOOLTIP'       = (Get-AtlasString 'header.languageTooltip')
-        'RESTART_TOOLTIP'    = (Get-AtlasString 'header.restartTooltip')
-        'DASH_CPU'           = (Get-AtlasString 'dash.cpu')
-        'DASH_RAM'           = (Get-AtlasString 'dash.ram')
-        'DASH_DISK'          = (Get-AtlasString 'dash.disk')
-        'DASH_ALERTS'        = (Get-AtlasString 'dash.alerts')
-        'DASH_REFRESH_TOOLTIP' = (Get-AtlasString 'dash.refreshTooltip')
-        'DASH_TOGGLE_ON'     = (Get-AtlasString 'dash.monitor.on')
-        'DASH_TOGGLE_OFF'    = (Get-AtlasString 'dash.monitor.off')
-        'DASH_TOGGLE_TOOLTIP'= (Get-AtlasString 'dash.monitor.tooltip')
-        'SIDEBAR_HEADER'     = (Get-AtlasString 'sidebar.header')
-        'SIDEBAR_HOST'       = (Get-AtlasString 'sidebar.host')
-        'SIDEBAR_USER'       = (Get-AtlasString 'sidebar.user')
-        'SIDEBAR_OS'         = (Get-AtlasString 'sidebar.os')
-        'SIDEBAR_CPU'        = (Get-AtlasString 'sidebar.cpu')
-        'SIDEBAR_RAM'        = (Get-AtlasString 'sidebar.ram')
-        'SIDEBAR_UPTIME'     = (Get-AtlasString 'sidebar.uptime')
-        'SIDEBAR_IP'         = (Get-AtlasString 'sidebar.ip')
-        'SIDEBAR_LASTSYNC'   = (Get-AtlasString 'sidebar.lastSync')
+        'SEARCH_PLACEHOLDER' = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'search.placeholder'))
+        'HEADER_LOGS'        = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'header.logs'))
+        'HEADER_ABOUT'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'header.about'))
+        'STATUS_READY'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'status.ready'))
+        'COFFEE_LABEL'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'footer.coffee'))
+        'COFFEE_TOOLTIP'     = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'footer.coffeeTooltip'))
+        'LANG_TOOLTIP'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'header.languageTooltip'))
+        'RESTART_TOOLTIP'    = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'header.restartTooltip'))
+        'DASH_CPU'           = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.cpu'))
+        'DASH_RAM'           = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.ram'))
+        'DASH_DISK'          = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.disk'))
+        'DASH_ALERTS'        = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.alerts'))
+        'DASH_REFRESH_TOOLTIP' = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.refreshTooltip'))
+        'DASH_TOGGLE_ON'     = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.monitor.on'))
+        'DASH_TOGGLE_OFF'    = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.monitor.off'))
+        'DASH_TOGGLE_TOOLTIP'= (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.monitor.tooltip'))
+        'SIDEBAR_HEADER'     = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.header'))
+        'SIDEBAR_HOST'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.host'))
+        'SIDEBAR_USER'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.user'))
+        'SIDEBAR_OS'         = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.os'))
+        'SIDEBAR_CPU'        = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.cpu'))
+        'SIDEBAR_RAM'        = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.ram'))
+        'SIDEBAR_UPTIME'     = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.uptime'))
+        'SIDEBAR_IP'         = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.ip'))
+        'SIDEBAR_LASTSYNC'   = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.lastSync'))
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -166,13 +187,14 @@ function New-AtlasToolCard {
     )
 
     $width = 320
+    $cornerRadius = ConvertTo-AtlasIntOrDefault $Branding.theme.cornerRadius 8
     $xaml = @"
 <Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
         xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'
         Background='$($Palette.SurfaceColor)'
         BorderBrush='$($Palette.BorderColor)'
         BorderThickness='1'
-        CornerRadius='$($Branding.theme.cornerRadius)'
+        CornerRadius='$cornerRadius'
         Padding='16'
         Margin='0,0,12,12'
         Width='$width'>
@@ -227,6 +249,14 @@ function New-AtlasToolCard {
 
 # ---- Dashboard / Sidebar helpers ----------------------------------------
 
+if (-not $script:AtlasLiveSnapshotMinIntervalSeconds) {
+    # Avoid hammering CIM from the UI thread every 2 seconds.
+    $script:AtlasLiveSnapshotMinIntervalSeconds = 5
+}
+if (-not $script:AtlasLiveSnapshotAt) {
+    $script:AtlasLiveSnapshotAt = [datetime]::MinValue
+}
+
 # Cached static system info (gathered once — these don't change at runtime).
 function Get-AtlasStaticSystemInfo {
     if ($script:AtlasStaticSysInfo) { return $script:AtlasStaticSysInfo }
@@ -273,6 +303,16 @@ function Get-AtlasStaticSystemInfo {
 
 # Live snapshot — fast queries only (called every refresh tick).
 function Get-AtlasLiveSystemSnapshot {
+    [CmdletBinding()]
+    param([switch]$ForceRefresh)
+
+    if (-not $ForceRefresh -and $script:AtlasLiveSnapshotCache -and $script:AtlasLiveSnapshotAt) {
+        $ageSec = ((Get-Date) - $script:AtlasLiveSnapshotAt).TotalSeconds
+        if ($ageSec -lt [double]$script:AtlasLiveSnapshotMinIntervalSeconds) {
+            return $script:AtlasLiveSnapshotCache
+        }
+    }
+
     $snap = @{
         CpuPercent  = $null
         RamPercent  = $null
@@ -352,6 +392,8 @@ function Get-AtlasLiveSystemSnapshot {
         }
     } catch { }
 
+    $script:AtlasLiveSnapshotCache = $snap
+    $script:AtlasLiveSnapshotAt = Get-Date
     return $snap
 }
 
@@ -508,19 +550,27 @@ function Initialize-AtlasDashboard {
     # $dashCpuVal/$sideHost/$logFn/etc. are all resolvable when the tick runs.
     $tickClosed = $tickAction.GetNewClosure()
     $script:AtlasDashboardTick = $tickClosed
+    try {
+        & $logFn ("Dashboard tick handler initialized: {0}" -f ($script:AtlasDashboardTick.GetType().FullName)) -Level DEBUG -Tool 'UI'
+    } catch { }
 
     $startMonitorAction = {
         try {
+            $tickToRun = if ($script:AtlasDashboardTick -is [scriptblock]) { $script:AtlasDashboardTick } else { $tickClosed }
+            if (-not ($tickToRun -is [scriptblock])) {
+                throw "Dashboard tick handler no disponible."
+            }
             if (-not $script:AtlasDashboardTimer) {
                 $timer = New-Object System.Windows.Threading.DispatcherTimer
                 $timer.Interval = [TimeSpan]::FromSeconds(2)
-                $timer.Add_Tick($script:AtlasDashboardTick)
+                $timer.Add_Tick($tickToRun)
                 $script:AtlasDashboardTimer = $timer
             }
-            & $script:AtlasDashboardTick
+            & $tickToRun
             $script:AtlasDashboardTimer.Start()
             $script:AtlasDashboardMonitorEnabled = $true
             if ($btnDashMonitorToggle) { $btnDashMonitorToggle.Content = $monitorOnText }
+            try { & $logFn "Dashboard monitor started." -Level DEBUG -Tool 'UI' } catch { }
         } catch {
             try { & $logFn "Dashboard monitor start failed: $_" -Level WARN -Tool 'UI' } catch { }
         }
@@ -542,25 +592,49 @@ function Initialize-AtlasDashboard {
         }
     }
 
-    $script:AtlasDashboardStartMonitor = $startMonitorAction.GetNewClosure()
-    $script:AtlasDashboardStopMonitor = $stopMonitorAction.GetNewClosure()
+    $startClosed = $startMonitorAction.GetNewClosure()
+    $stopClosed = $stopMonitorAction.GetNewClosure()
+    $script:AtlasDashboardStartMonitor = $startClosed
+    $script:AtlasDashboardStopMonitor = $stopClosed
 
     # Wire the manual refresh button (↻ next to the alerts panel).
     if ($btnDashRefresh) {
         $btnDashRefresh.Add_Click({
-            try { & $script:AtlasDashboardTick } catch { }
+            try {
+                $script:AtlasLiveSnapshotAt = [datetime]::MinValue
+                $tickToRun = if ($script:AtlasDashboardTick -is [scriptblock]) { $script:AtlasDashboardTick } else { $tickClosed }
+                if ($tickToRun -is [scriptblock]) {
+                    & $tickToRun
+                } else {
+                    throw "Dashboard tick handler no disponible para refresh."
+                }
+            } catch {
+                try { & $logFn "Dashboard manual refresh failed: $_" -Level WARN -Tool 'UI' } catch { }
+            }
         })
     }
 
     if ($btnDashMonitorToggle) {
         $btnDashMonitorToggle.Add_Click({
             try {
+                $startToRun = if ($script:AtlasDashboardStartMonitor -is [scriptblock]) { $script:AtlasDashboardStartMonitor } else { $startClosed }
+                $stopToRun  = if ($script:AtlasDashboardStopMonitor -is [scriptblock]) { $script:AtlasDashboardStopMonitor } else { $stopClosed }
                 if ($script:AtlasDashboardMonitorEnabled) {
-                    & $script:AtlasDashboardStopMonitor
+                    if ($stopToRun -is [scriptblock]) {
+                        & $stopToRun
+                    } else {
+                        throw "Dashboard stop handler no disponible."
+                    }
                 } else {
-                    & $script:AtlasDashboardStartMonitor
+                    if ($startToRun -is [scriptblock]) {
+                        & $startToRun
+                    } else {
+                        throw "Dashboard start handler no disponible."
+                    }
                 }
-            } catch { }
+            } catch {
+                try { & $logFn "Dashboard monitor toggle click failed: $_" -Level WARN -Tool 'UI' } catch { }
+            }
         })
     }
 
@@ -569,7 +643,8 @@ function Initialize-AtlasDashboard {
         try {
             if ($script:AtlasDashboardBooted) { return }
             $script:AtlasDashboardBooted = $true
-            & $script:AtlasDashboardStopMonitor
+            $stopToRun = if ($script:AtlasDashboardStopMonitor -is [scriptblock]) { $script:AtlasDashboardStopMonitor } else { $stopClosed }
+            if ($stopToRun -is [scriptblock]) { & $stopToRun }
         } catch {
             Write-AtlasLog "Dashboard bootstrap failed: $_" -Level WARN -Tool 'UI'
         }
@@ -588,6 +663,8 @@ function Initialize-AtlasDashboard {
             $script:AtlasDashboardTick = $null
             $script:AtlasDashboardStartMonitor = $null
             $script:AtlasDashboardStopMonitor = $null
+            $script:AtlasLiveSnapshotCache = $null
+            $script:AtlasLiveSnapshotAt = [datetime]::MinValue
         } catch { }
     })
 }

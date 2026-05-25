@@ -10,6 +10,7 @@ $script:AtlasDepsRegistry = @{
         ExecutableName = 'FastCopy.exe'
         WingetId       = 'FastCopy.FastCopy'
         DownloadUrl    = 'https://fastcopy.jp/archive/FastCopy5.11.2_installer.exe'
+        DownloadSha256 = '70b273dd08c15d40fac59a217b93be195bacfa47acabd031463a6df800d29fea'
         SearchPaths    = @(
             'C:\Program Files\FastCopy\FastCopy.exe',
             'C:\Program Files (x86)\FastCopy\FastCopy.exe',
@@ -143,6 +144,31 @@ function Resolve-SymlinkPath {
     return $Path
 }
 
+function Test-AtlasDependencyHash {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$ExpectedSha256
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    if (-not $ExpectedSha256) { return $true }
+
+    $expected = $ExpectedSha256.ToLowerInvariant()
+    if ($expected -notmatch '^[a-f0-9]{64}$') {
+        Write-AtlasLog "Hash esperado invalido para dependencia: $ExpectedSha256" -Level WARN -Tool 'Deps'
+        return $false
+    }
+
+    try {
+        $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+        return ($actual -eq $expected)
+    } catch {
+        Write-AtlasLog "No se pudo calcular SHA256 para '$Path': $_" -Level WARN -Tool 'Deps'
+        return $false
+    }
+}
+
 function Resolve-AtlasDependency {
     <#
     .SYNOPSIS
@@ -214,6 +240,11 @@ function Resolve-AtlasDependency {
             $ProgressPreference = 'SilentlyContinue'
             Invoke-WebRequest -Uri $dep.DownloadUrl -OutFile $installerFile -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
             if ((Get-Item $installerFile).Length -gt 100KB) {
+                if ($dep.DownloadSha256) {
+                    if (-not (Test-AtlasDependencyHash -Path $installerFile -ExpectedSha256 $dep.DownloadSha256)) {
+                        throw "Hash SHA-256 invalido para el instalador de $Name."
+                    }
+                }
                 $targetDir = Join-Path $env:LOCALAPPDATA "AtlasPC\bin\$Name"
                 if (-not (Test-Path $targetDir)) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }
                 $p = Start-Process -FilePath $installerFile -ArgumentList @('/EXTRACT64', '/NOSUBDIR', '/AGREE_LICENSE', "/DIR=`"$targetDir`"") -Wait -PassThru -ErrorAction SilentlyContinue

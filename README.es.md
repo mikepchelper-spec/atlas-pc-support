@@ -21,7 +21,7 @@ Abre **PowerShell como Administrador** y pega:
 irm https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/get.ps1 | iex
 ```
 
-Eso es todo - no hay que instalar nada mas. `get.ps1` descarga el launcher a un archivo temporal y lo lanza con `-File`, evitando el patron `irm | iex` que Windows Defender AMSI bloquea en muchos equipos.
+Eso es todo - no hay que instalar nada mas. `get.ps1` descarga el launcher a un archivo temporal, valida su integridad SHA-256 (`launcher.ps1.sha256`) y lo lanza con `-File`, evitando el patron `irm | iex` que Windows Defender AMSI bloquea en muchos equipos.
 
 > 💡 **Actualizaciones automáticas**: cada vez que ejecutas ese comando, se baja la versión más reciente desde GitHub. No hay que "instalar updates".
 
@@ -38,7 +38,7 @@ Sobre la rejilla de herramientas hay un dashboard en vivo (CPU / RAM / Disco + a
 
 ## 📦 Herramientas incluidas (v1.0)
 
-El panel viene con **22 herramientas** organizadas en 7 categorías. Cada herramienta se ejecuta en su propia ventana de PowerShell para mantener la UX original.
+El panel viene con **26 herramientas** organizadas en 7 categorías. Cada herramienta se ejecuta en su propia ventana de PowerShell para mantener la UX original.
 
 ### 🔍 Diagnóstico
 
@@ -163,11 +163,12 @@ git clone https://github.com/mikepchelper-spec/atlas-pc-support
 cd atlas-pc-support
 
 # Modo desarrollo (usa src/, sin compilar):
-pwsh -NoProfile -ExecutionPolicy Bypass -File src\Launcher.ps1
+pwsh -NoProfile -ExecutionPolicy RemoteSigned -File src\Launcher.ps1
 
 # O compilar el launcher distribuible:
 pwsh -NoProfile -File build.ps1
-# Esto regenera launcher.ps1 (raíz del repo) con todo embebido.
+# Esto regenera launcher.ps1 (raíz del repo) con todo embebido,
+# además de launcher.ps1.sha256 y config/tool-hashes.json.
 ```
 
 ### Estructura del repo
@@ -175,12 +176,14 @@ pwsh -NoProfile -File build.ps1
 ```
 atlas-pc-support/
 ├── launcher.ps1              ← Compilado. Es lo que descarga `irm | iex`.
+├── launcher.ps1.sha256       ← Sidecar SHA-256 usado por get.ps1.
 ├── build.ps1                 ← Regenera launcher.ps1 desde src/.
 ├── branding.example.json     ← Plantilla de branding personalizado.
 ├── README.md / README.es.md  ← Docs en inglés / español.
 ├── LICENSE / .gitignore
 ├── config/
-│   └── tools.json            ← Manifiesto de herramientas (ver "Añadir tool").
+│   ├── tools.json            ← Manifiesto de herramientas (ver "Añadir tool").
+│   └── tool-hashes.json      ← SHA-256 esperado para cada Invoke-*.ps1.
 ├── docs/                     ← Guías + capturas.
 ├── src/
 │   ├── Launcher.ps1          ← Entry point de desarrollo.
@@ -207,9 +210,9 @@ atlas-pc-support/
      "name": "Mi Tool",
      "description": "Descripción corta (máx. ~150 caracteres).",
      "category": "mantenimiento",
-     "function": "Invoke-MiTool",
-     "source": "MiTool.ps1",
-     "requiresAdmin": false,
+      "function": "Invoke-MiTool",
+      "source": "Invoke-MiTool.ps1",
+      "requiresAdmin": false,
      "runsInNewWindow": true,
      "dependencies": []
    }
@@ -225,6 +228,7 @@ Ver [docs/ADDING-TOOLS.md](docs/ADDING-TOOLS.md) para la referencia completa.
 
 - **Logs**: `%LOCALAPPDATA%\AtlasPC\logs\atlas-YYYY-MM-DD.log`.
 - **Binarios externos** (FastCopy.exe, etc.): se descargan bajo demanda a `%LOCALAPPDATA%\AtlasPC\bin\`.
+- **Cache de scripts de tools**: `%LOCALAPPDATA%\AtlasPC\tools\` (validada con `config/tool-hashes.json`).
 - **Datos de clientes / reportes**: se guardan en `%USERPROFILE%\Documents\AtlasPC\` y NUNCA se suben al repo.
 
 ---

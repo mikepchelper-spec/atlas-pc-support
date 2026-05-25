@@ -180,7 +180,7 @@ function Invoke-Deduplicador {
             $normalizedFolder = $folderPath -replace '\\', '/'
             
             # Detener antes si hay uno corriendo
-            taskkill /f /fi "windowtitle eq DeduplicadorServer" 2>$null | Out-Null
+            taskkill /f /t /fi "windowtitle eq DeduplicadorServer" 2>$null | Out-Null
             
             # Lanzar cmd con título e iniciar python usando la ruta absoluta detectada
             Start-Process cmd.exe -ArgumentList "/c title DeduplicadorServer && `"$($pythonCheck.Path)`" `"$scriptPath`" `"$normalizedFolder`"" -WindowStyle Minimized
@@ -242,7 +242,7 @@ function Invoke-Deduplicador {
         elseif ($opt -eq '2') {
             Write-Host ''
             Write-Host $T.Stopping -ForegroundColor Cyan
-            taskkill /f /fi "windowtitle eq DeduplicadorServer" 2>$null | Out-Null
+            taskkill /f /t /fi "windowtitle eq DeduplicadorServer" 2>$null | Out-Null
             Write-Host $T.Stopped -ForegroundColor Green
             Write-Host ''
             Read-Host $T.Next
