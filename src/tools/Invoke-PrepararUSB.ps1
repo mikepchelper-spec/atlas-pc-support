@@ -88,6 +88,16 @@ function Invoke-PrepararUSB {
             StoreHeader      = '--- Downloading Microsoft Store bundle (deps\MicrosoftStore\) ---'
             StoreDone        = '[OK] Store bundle on USB: {0} downloaded, {1} already present.'
             StorePartial     = '[!] Store bundle: {0} ok, {1} failed (check internet).'
+            StageETA         = '[ETA] {0}: {1}'
+            StageReal        = '[REAL] {0}: {1}'
+            StageRealSpeed   = '[REAL] {0}: {1} @ {2}'
+            StageLblLauncher = 'Launcher download'
+            StageLblFastCopy = 'FastCopy package'
+            StageLblPS7      = 'PowerShell 7 MSI'
+            StageLblGPU      = 'GPU Check dependencies'
+            StageLblDiag     = 'Full System Report dependencies'
+            StageLblTools    = 'Tool scripts'
+            StageLblStore    = 'Microsoft Store bundle'
             UpdAll      = '[1] Update all  — re-download launcher + all dependencies'
             UpdMissing  = '[2] Fill missing  — launcher + only download what is absent'
             DepSkipped  = '[=] Already on USB, skipped: {0}'
@@ -170,6 +180,16 @@ function Invoke-PrepararUSB {
             StoreHeader      = '--- Descargando bundle de Microsoft Store (deps\MicrosoftStore\) ---'
             StoreDone        = '[OK] Bundle Store en USB: {0} descargados, {1} ya estaban.'
             StorePartial     = '[!] Bundle Store: {0} ok, {1} fallaron (verifica internet).'
+            StageETA         = '[ETA] {0}: {1}'
+            StageReal        = '[REAL] {0}: {1}'
+            StageRealSpeed   = '[REAL] {0}: {1} a {2}'
+            StageLblLauncher = 'Descarga de launcher'
+            StageLblFastCopy = 'Paquete FastCopy'
+            StageLblPS7      = 'MSI de PowerShell 7'
+            StageLblGPU      = 'Dependencias de GPU Check'
+            StageLblDiag     = 'Dependencias de Full System Report'
+            StageLblTools    = 'Scripts de tools'
+            StageLblStore    = 'Bundle de Microsoft Store'
             UpdAll      = '[1] Actualizar todo  — re-descargar launcher + todas las dependencias'
             UpdMissing  = '[2] Completar lo que falta  — launcher + solo descargar lo ausente'
             DepSkipped  = '[=] Ya existe en la USB, omitido: {0}'
@@ -326,6 +346,129 @@ Generado por Atlas PC Support - Preparar USB Offline
         if ($Bytes -ge 1MB) { return ('{0:N1} MB' -f ($Bytes / 1MB)) }
         if ($Bytes -ge 1KB) { return ('{0:N0} KB' -f ($Bytes / 1KB)) }
         return ("$Bytes B")
+    }
+
+    function Get-PathSizeBytes {
+        param([string[]]$Paths)
+
+        [int64]$total = 0
+        foreach ($path in @($Paths)) {
+            if ([string]::IsNullOrWhiteSpace($path)) { continue }
+            if (-not (Test-Path -LiteralPath $path)) { continue }
+            try {
+                $item = Get-Item -LiteralPath $path -ErrorAction Stop
+                if ($item -is [System.IO.FileInfo]) {
+                    $total += [int64]$item.Length
+                } else {
+                    $sum = (Get-ChildItem -LiteralPath $path -Recurse -File -Force -ErrorAction SilentlyContinue |
+                            Measure-Object -Property Length -Sum).Sum
+                    if ($sum) { $total += [int64]$sum }
+                }
+            } catch {}
+        }
+        return $total
+    }
+
+    function Format-Duration {
+        param([double]$TotalSeconds)
+
+        $seconds = [Math]::Max(0, [int][Math]::Round($TotalSeconds))
+        if ($seconds -lt 60) { return ('{0}s' -f $seconds) }
+
+        $minutes = [Math]::Floor($seconds / 60)
+        $secRem = $seconds % 60
+        if ($minutes -lt 60) { return ('{0}m {1:D2}s' -f $minutes, $secRem) }
+
+        $hours = [Math]::Floor($minutes / 60)
+        $minRem = $minutes % 60
+        return ('{0}h {1:D2}m {2:D2}s' -f $hours, $minRem, $secRem)
+    }
+
+    function Format-EstimateRange {
+        param([int]$MinSeconds, [int]$MaxSeconds)
+
+        if ($MinSeconds -lt 0) { $MinSeconds = 0 }
+        if ($MaxSeconds -lt $MinSeconds) { $MaxSeconds = $MinSeconds }
+
+        if ($MaxSeconds -lt 60) {
+            if ($MinSeconds -eq $MaxSeconds) { return ('{0}s' -f $MinSeconds) }
+            return ('{0}-{1}s' -f $MinSeconds, $MaxSeconds)
+        }
+
+        $minMinutes = [Math]::Max(1, [Math]::Floor($MinSeconds / 60))
+        $maxMinutes = [Math]::Max($minMinutes, [Math]::Ceiling($MaxSeconds / 60))
+        if ($minMinutes -eq $maxMinutes) { return ('{0} min' -f $minMinutes) }
+        return ('{0}-{1} min' -f $minMinutes, $maxMinutes)
+    }
+
+    function Get-StageEstimate {
+        param(
+            [Parameter(Mandatory)][string]$StageKey,
+            [bool]$UseDeltaProfile
+        )
+
+        $profile = if ($UseDeltaProfile) { 'delta' } else { 'full' }
+        $estimates = @{
+            full = @{
+                Launcher = @{ Min = 8;   Max = 30  }
+                FastCopy = @{ Min = 30;  Max = 150 }
+                PS7      = @{ Min = 120; Max = 480 }
+                GPU      = @{ Min = 30;  Max = 180 }
+                Diag     = @{ Min = 120; Max = 600 }
+                Tools    = @{ Min = 20;  Max = 90  }
+                Store    = @{ Min = 90;  Max = 420 }
+            }
+            delta = @{
+                Launcher = @{ Min = 8;   Max = 30  }
+                FastCopy = @{ Min = 15;  Max = 60  }
+                PS7      = @{ Min = 60;  Max = 240 }
+                GPU      = @{ Min = 20;  Max = 120 }
+                Diag     = @{ Min = 60;  Max = 300 }
+                Tools    = @{ Min = 10;  Max = 45  }
+                Store    = @{ Min = 30;  Max = 180 }
+            }
+        }
+
+        $entry = $estimates[$profile][$StageKey]
+        if (-not $entry) { return @{ Min = 10; Max = 60 } }
+        return $entry
+    }
+
+    function Invoke-StageWithTelemetry {
+        param(
+            [Parameter(Mandatory)][string]$StageName,
+            [Parameter(Mandatory)][int]$EstimateMinSec,
+            [Parameter(Mandatory)][int]$EstimateMaxSec,
+            [string[]]$MeasurePaths,
+            [Parameter(Mandatory)][scriptblock]$Action
+        )
+
+        Write-Centered ($L.StageETA -f $StageName, (Format-EstimateRange -MinSeconds $EstimateMinSec -MaxSeconds $EstimateMaxSec)) 'DarkGray'
+
+        $beforeBytes = Get-PathSizeBytes -Paths $MeasurePaths
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $result = & $Action
+        $sw.Stop()
+        $afterBytes = Get-PathSizeBytes -Paths $MeasurePaths
+
+        [int64]$transferred = [int64]($afterBytes - $beforeBytes)
+        if ($transferred -le 0 -and $afterBytes -gt 0) { $transferred = $afterBytes }
+
+        $realTime = Format-Duration -TotalSeconds $sw.Elapsed.TotalSeconds
+        if ($transferred -gt 0 -and $sw.Elapsed.TotalSeconds -gt 0.01) {
+            $speedMBps = ($transferred / 1MB) / $sw.Elapsed.TotalSeconds
+            if ($speedMBps -ge 1) {
+                $speedTxt = ('{0:N2} MB/s' -f $speedMBps)
+            } else {
+                $speedKBps = ($transferred / 1KB) / $sw.Elapsed.TotalSeconds
+                $speedTxt = ('{0:N0} KB/s' -f $speedKBps)
+            }
+            Write-Centered ($L.StageRealSpeed -f $StageName, $realTime, $speedTxt) 'DarkGray'
+        } else {
+            Write-Centered ($L.StageReal -f $StageName, $realTime) 'DarkGray'
+        }
+
+        return $result
     }
 
     # Canonical URLs
@@ -638,16 +781,16 @@ Generado por Atlas PC Support - Preparar USB Offline
 
             if (-not (Test-Path -LiteralPath $SourceDir)) { return $false }
 
-            if (Test-Path -LiteralPath $DestinationDir) {
-                Remove-Item -LiteralPath $DestinationDir -Recurse -Force -ErrorAction SilentlyContinue
+            if (-not (Test-Path -LiteralPath $DestinationDir)) {
+                New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
             }
-            New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
 
             $copyOk = $false
             $robo = Get-Command robocopy.exe -ErrorAction SilentlyContinue
             if ($robo) {
-                # /XJ evita bucles por junctions/symlinks; salida silenciosa para no "atascar" visualmente.
-                & $robo.Source $SourceDir $DestinationDir /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP /XJ | Out-Null
+                # Delta sync (size/date) to avoid recopying unchanged trees.
+                # /XJ avoids junction loops and /FFT improves compatibility across filesystems.
+                & $robo.Source $SourceDir $DestinationDir /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP /XJ /FFT /COPY:DAT /DCOPY:DAT | Out-Null
                 $rc = $LASTEXITCODE
                 if ($rc -ge 0 -and $rc -lt 8) {
                     $copyOk = $true
@@ -655,15 +798,44 @@ Generado por Atlas PC Support - Preparar USB Offline
             }
 
             if (-not $copyOk) {
-                $prevProgress = $ProgressPreference
                 try {
-                    $ProgressPreference = 'SilentlyContinue'
-                    Copy-Item -Path (Join-Path $SourceDir '*') -Destination $DestinationDir -Recurse -Force -ErrorAction Stop
+                    # Fallback delta sync using date/size, and SHA256 only when needed.
+                    $sourceRoot = (Resolve-Path -LiteralPath $SourceDir -ErrorAction Stop).Path
+                    $destRoot = (Resolve-Path -LiteralPath $DestinationDir -ErrorAction Stop).Path
+                    $sourceFiles = Get-ChildItem -LiteralPath $sourceRoot -Recurse -File -Force -ErrorAction Stop
+
+                    foreach ($srcFile in $sourceFiles) {
+                        $relative = $srcFile.FullName.Substring($sourceRoot.Length).TrimStart('\')
+                        $dstPath = Join-Path $destRoot $relative
+                        $dstDir = Split-Path -Parent $dstPath
+                        if (-not (Test-Path -LiteralPath $dstDir)) {
+                            New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+                        }
+
+                        $needsCopy = $true
+                        if (Test-Path -LiteralPath $dstPath) {
+                            $dstFile = Get-Item -LiteralPath $dstPath -ErrorAction SilentlyContinue
+                            if ($dstFile -and $dstFile.Length -eq $srcFile.Length) {
+                                if ($dstFile.LastWriteTimeUtc -eq $srcFile.LastWriteTimeUtc) {
+                                    $needsCopy = $false
+                                } else {
+                                    $srcHash = (Get-FileHash -LiteralPath $srcFile.FullName -Algorithm SHA256 -ErrorAction SilentlyContinue).Hash
+                                    $dstHash = (Get-FileHash -LiteralPath $dstFile.FullName -Algorithm SHA256 -ErrorAction SilentlyContinue).Hash
+                                    if ($srcHash -and $dstHash -and $srcHash -eq $dstHash) {
+                                        $needsCopy = $false
+                                    }
+                                }
+                            }
+                        }
+
+                        if ($needsCopy) {
+                            Copy-Item -LiteralPath $srcFile.FullName -Destination $dstPath -Force -ErrorAction Stop
+                            try { (Get-Item -LiteralPath $dstPath -ErrorAction SilentlyContinue).LastWriteTimeUtc = $srcFile.LastWriteTimeUtc } catch {}
+                        }
+                    }
                     $copyOk = $true
                 } catch {
                     $copyOk = $false
-                } finally {
-                    $ProgressPreference = $prevProgress
                 }
             }
 
@@ -1177,9 +1349,15 @@ exit 0
         return (-not (Test-Path $PresencePath))
     }
 
+    $useDeltaEstimate = ($isUpdate -and -not $updateAll)
+
     # ---- Launcher + bootstrap scripts (always refreshed) ----
     $launcherDest = Join-Path $targetDir 'launcher.ps1'
-    $ok = Download-Launcher -TargetFile $launcherDest
+    $launcherEst = Get-StageEstimate -StageKey 'Launcher' -UseDeltaProfile:$useDeltaEstimate
+    $ok = Invoke-StageWithTelemetry -StageName $L.StageLblLauncher `
+        -EstimateMinSec $launcherEst.Min -EstimateMaxSec $launcherEst.Max `
+        -MeasurePaths @($launcherDest) `
+        -Action { Download-Launcher -TargetFile $launcherDest }
     if (-not $ok) {
         Write-Host ''
         Write-Centered $L.DLLnchFatal 'Red'
@@ -1217,7 +1395,11 @@ exit 0
     # FastCopy
     if ($isUpdate) {
         if (Test-NeedsDownload $fcExe) {
-            Download-FastCopy -AppsDir $fcDir | Out-Null
+            $fcEst = Get-StageEstimate -StageKey 'FastCopy' -UseDeltaProfile:$useDeltaEstimate
+            Invoke-StageWithTelemetry -StageName $L.StageLblFastCopy `
+                -EstimateMinSec $fcEst.Min -EstimateMaxSec $fcEst.Max `
+                -MeasurePaths @($fcDir) `
+                -Action { Download-FastCopy -AppsDir $fcDir } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'FastCopy') 'DarkGray'
         }
@@ -1226,14 +1408,22 @@ exit 0
         Write-Centered $L.AskFC 'Yellow'
         $dfc = Read-Host '  '
         if ($dfc -match '^[SsYy]$') {
-            Download-FastCopy -AppsDir $fcDir | Out-Null
+            $fcEst = Get-StageEstimate -StageKey 'FastCopy' -UseDeltaProfile:$false
+            Invoke-StageWithTelemetry -StageName $L.StageLblFastCopy `
+                -EstimateMinSec $fcEst.Min -EstimateMaxSec $fcEst.Max `
+                -MeasurePaths @($fcDir) `
+                -Action { Download-FastCopy -AppsDir $fcDir } | Out-Null
         }
     }
 
     # PowerShell 7 MSI
     if ($isUpdate) {
         if (Test-NeedsDownload $ps7Msi) {
-            Download-PS7 -DepsDir $depsDir | Out-Null
+            $ps7Est = Get-StageEstimate -StageKey 'PS7' -UseDeltaProfile:$useDeltaEstimate
+            Invoke-StageWithTelemetry -StageName $L.StageLblPS7 `
+                -EstimateMinSec $ps7Est.Min -EstimateMaxSec $ps7Est.Max `
+                -MeasurePaths @($ps7Msi) `
+                -Action { Download-PS7 -DepsDir $depsDir } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'PowerShell 7 MSI') 'DarkGray'
         }
@@ -1243,14 +1433,22 @@ exit 0
         Write-Centered $L.AskPS7Note 'DarkGray'
         $dps = Read-Host '  '
         if ($dps -match '^[SsYy]$') {
-            Download-PS7 -DepsDir $depsDir | Out-Null
+            $ps7Est = Get-StageEstimate -StageKey 'PS7' -UseDeltaProfile:$false
+            Invoke-StageWithTelemetry -StageName $L.StageLblPS7 `
+                -EstimateMinSec $ps7Est.Min -EstimateMaxSec $ps7Est.Max `
+                -MeasurePaths @($ps7Msi) `
+                -Action { Download-PS7 -DepsDir $depsDir } | Out-Null
         }
     }
 
     # GPU Check deps
     if ($isUpdate) {
         if (Test-NeedsDownload $gpuPresence) {
-            Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir | Out-Null
+            $gpuEst = Get-StageEstimate -StageKey 'GPU' -UseDeltaProfile:$useDeltaEstimate
+            Invoke-StageWithTelemetry -StageName $L.StageLblGPU `
+                -EstimateMinSec $gpuEst.Min -EstimateMaxSec $gpuEst.Max `
+                -MeasurePaths @($gpuToolsDir) `
+                -Action { Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'GPU Check deps') 'DarkGray'
         }
@@ -1260,7 +1458,11 @@ exit 0
         Write-Centered $L.AskGPUDepsNote 'DarkGray'
         $dgd = Read-Host '  '
         if ($dgd -match '^[SsYy]$') {
-            Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir | Out-Null
+            $gpuEst = Get-StageEstimate -StageKey 'GPU' -UseDeltaProfile:$false
+            Invoke-StageWithTelemetry -StageName $L.StageLblGPU `
+                -EstimateMinSec $gpuEst.Min -EstimateMaxSec $gpuEst.Max `
+                -MeasurePaths @($gpuToolsDir) `
+                -Action { Prepare-GPUCheckDeps -GpuToolsDir $gpuToolsDir } | Out-Null
         }
     }
 
@@ -1270,7 +1472,11 @@ exit 0
         $hasCdmOffline = (Test-Path (Join-Path $diagToolsDir 'CrystalDiskMark\DiskMark64.exe')) -or (Test-Path (Join-Path $diagToolsDir 'DiskMark64.exe'))
         $hasHwOffline = Test-Path (Join-Path $diagToolsDir 'HWiNFO64.exe')
         if ((Test-NeedsDownload $diagPresence) -or -not $hasCdiOffline -or -not $hasCdmOffline -or -not $hasHwOffline) {
-            Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
+            $diagEst = Get-StageEstimate -StageKey 'Diag' -UseDeltaProfile:$useDeltaEstimate
+            Invoke-StageWithTelemetry -StageName $L.StageLblDiag `
+                -EstimateMinSec $diagEst.Min -EstimateMaxSec $diagEst.Max `
+                -MeasurePaths @($diagToolsDir) `
+                -Action { Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'Full System Report deps') 'DarkGray'
         }
@@ -1280,7 +1486,11 @@ exit 0
         Write-Centered $L.AskDiagDepsNote 'DarkGray'
         $ddd = Read-Host '  '
         if ($ddd -match '^[SsYy]$') {
-            Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir | Out-Null
+            $diagEst = Get-StageEstimate -StageKey 'Diag' -UseDeltaProfile:$false
+            Invoke-StageWithTelemetry -StageName $L.StageLblDiag `
+                -EstimateMinSec $diagEst.Min -EstimateMaxSec $diagEst.Max `
+                -MeasurePaths @($diagToolsDir) `
+                -Action { Prepare-DiagnosticoMasterDeps -DiagToolsDir $diagToolsDir } | Out-Null
         }
     }
 
@@ -1288,7 +1498,11 @@ exit 0
     $toolsPresence = Join-Path $usbToolsDir 'Invoke-MantenimientoPRO.ps1'
     if ($isUpdate) {
         if (Test-NeedsDownload $toolsPresence) {
-            Save-AtlasTools -ToolsDir $usbToolsDir | Out-Null
+            $toolsEst = Get-StageEstimate -StageKey 'Tools' -UseDeltaProfile:$useDeltaEstimate
+            Invoke-StageWithTelemetry -StageName $L.StageLblTools `
+                -EstimateMinSec $toolsEst.Min -EstimateMaxSec $toolsEst.Max `
+                -MeasurePaths @($usbToolsDir) `
+                -Action { Save-AtlasTools -ToolsDir $usbToolsDir } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'tool scripts') 'DarkGray'
         }
@@ -1298,7 +1512,11 @@ exit 0
         Write-Centered $L.AskToolsNote 'DarkGray'
         $dtl = Read-Host '  '
         if ($dtl -match '^[SsYy]$') {
-            Save-AtlasTools -ToolsDir $usbToolsDir | Out-Null
+            $toolsEst = Get-StageEstimate -StageKey 'Tools' -UseDeltaProfile:$false
+            Invoke-StageWithTelemetry -StageName $L.StageLblTools `
+                -EstimateMinSec $toolsEst.Min -EstimateMaxSec $toolsEst.Max `
+                -MeasurePaths @($usbToolsDir) `
+                -Action { Save-AtlasTools -ToolsDir $usbToolsDir } | Out-Null
         }
     }
 
@@ -1307,7 +1525,11 @@ exit 0
     $storePresence   = Join-Path $storeBundleDir 'Microsoft.WindowsStore.appxbundle'
     if ($isUpdate) {
         if (Test-NeedsDownload $storePresence) {
-            Save-MicrosoftStoreBundle -BundleDir $storeBundleDir | Out-Null
+            $storeEst = Get-StageEstimate -StageKey 'Store' -UseDeltaProfile:$useDeltaEstimate
+            Invoke-StageWithTelemetry -StageName $L.StageLblStore `
+                -EstimateMinSec $storeEst.Min -EstimateMaxSec $storeEst.Max `
+                -MeasurePaths @($storeBundleDir) `
+                -Action { Save-MicrosoftStoreBundle -BundleDir $storeBundleDir } | Out-Null
         } else {
             Write-Centered ($L.DepSkipped -f 'Microsoft Store bundle') 'DarkGray'
         }
@@ -1317,7 +1539,11 @@ exit 0
         Write-Centered $L.AskStoreNote 'DarkGray'
         $dms = Read-Host '  '
         if ($dms -match '^[SsYy]$') {
-            Save-MicrosoftStoreBundle -BundleDir $storeBundleDir | Out-Null
+            $storeEst = Get-StageEstimate -StageKey 'Store' -UseDeltaProfile:$false
+            Invoke-StageWithTelemetry -StageName $L.StageLblStore `
+                -EstimateMinSec $storeEst.Min -EstimateMaxSec $storeEst.Max `
+                -MeasurePaths @($storeBundleDir) `
+                -Action { Save-MicrosoftStoreBundle -BundleDir $storeBundleDir } | Out-Null
         }
     }
 
