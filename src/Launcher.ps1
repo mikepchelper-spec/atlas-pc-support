@@ -51,6 +51,28 @@ if ($ps7) {
     Write-AtlasLog "PowerShell 7 NO instalado; tools correran en Windows PowerShell 5.1. Recomendado: usar tool 'Actualizar PowerShell'."
 }
 
+# Fuente remota para scripts de herramientas (fallback cuando no hay USB/cache).
+$script:AtlasToolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
+
+# Tabla de hashes esperados para validar integridad de tools descargadas.
+$script:AtlasToolHashes = @{}
+$toolHashesPath = Join-Path $script:AtlasRoot 'config\tool-hashes.json'
+if (Test-Path -LiteralPath $toolHashesPath) {
+    try {
+        $toolHashesObj = ConvertFrom-AtlasJson (Get-Content -Raw -LiteralPath $toolHashesPath -Encoding UTF8)
+        if ($toolHashesObj.files -is [hashtable]) {
+            $script:AtlasToolHashes = $toolHashesObj.files
+            Write-AtlasLog "Hashes de tools cargados: $($script:AtlasToolHashes.Count)" -Tool 'Launcher'
+        } else {
+            Write-AtlasLog "tool-hashes.json no contiene bloque 'files' valido." -Level WARN -Tool 'Launcher'
+        }
+    } catch {
+        Write-AtlasLog "No se pudo cargar tool-hashes.json: $_" -Level WARN -Tool 'Launcher'
+    }
+} else {
+    Write-AtlasLog "tool-hashes.json no encontrado; ToolRunner funcionara sin validacion fuerte de hash." -Level WARN -Tool 'Launcher'
+}
+
 $toolsManifestPath = Join-Path $script:AtlasRoot 'config\tools.json'
 $manifest = ConvertFrom-AtlasJson (Get-Content -Raw $toolsManifestPath)
 $tools = @($manifest.tools)

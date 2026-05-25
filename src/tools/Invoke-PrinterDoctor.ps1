@@ -369,14 +369,12 @@ function Invoke-PrinterDoctor {
         $since = (Get-Date).AddDays(-1 * $Days)
         $events = @()
         $queries = @(
-            @{ LogName='Microsoft-Windows-PrintService/Admin'; StartTime=$since },
-            @{ LogName='System'; ProviderName='Microsoft-Windows-PrintSpooler'; StartTime=$since }
+            @{ LogName='Microsoft-Windows-PrintService/Admin'; StartTime=$since; Level=1,2,3 }
+            @{ LogName='System'; ProviderName='Microsoft-Windows-PrintSpooler'; StartTime=$since; Level=1,2,3 }
         )
         foreach ($q in $queries) {
             try {
-                $events += @(Get-WinEvent -FilterHashtable $q -ErrorAction Stop | Where-Object {
-                    $_.LevelDisplayName -match 'Error|Warning|Critical|Advertencia|Error'
-                } | Select-Object -First 50 TimeCreated, ProviderName, Id, LevelDisplayName, Message)
+                $events += @(Get-WinEvent -FilterHashtable $q -ErrorAction Stop | Select-Object -First 50 TimeCreated, ProviderName, Id, LevelDisplayName, Message)
             } catch {}
         }
         $script:PrinterDoctorReport.Events = @($events | Sort-Object TimeCreated -Descending)
@@ -544,8 +542,8 @@ function Invoke-PrinterDoctor {
             ($script:PrinterDoctorReport.Jobs | ForEach-Object { "<tr><td>$(ConvertTo-HtmlCell $_.Name)</td><td>$(ConvertTo-HtmlCell $_.Owner)</td><td>$(ConvertTo-HtmlCell $_.Document)</td><td>$(ConvertTo-HtmlCell $_.Status)</td></tr>" }) -join "`n"
         } else { "<tr><td colspan='4'>$($L.NoJobs)</td></tr>" }
         $eventRows = if ($script:PrinterDoctorReport.Events.Count) {
-            ($script:PrinterDoctorReport.Events | Select-Object -First 20 | ForEach-Object { "<tr><td>$($_.TimeCreated)</td><td>$(ConvertTo-HtmlCell $_.ProviderName)</td><td>$($_.Id)</td><td>$(ConvertTo-HtmlCell $_.LevelDisplayName)</td></tr>" }) -join "`n"
-        } else { "<tr><td colspan='4'>$($L.NoEvents)</td></tr>" }
+            ($script:PrinterDoctorReport.Events | Select-Object -First 20 | ForEach-Object { "<tr><td>$($_.TimeCreated)</td><td>$(ConvertTo-HtmlCell $_.ProviderName)</td><td>$($_.Id)</td><td>$(ConvertTo-HtmlCell $_.LevelDisplayName)</td><td>$(ConvertTo-HtmlCell $_.Message)</td></tr>" }) -join "`n"
+        } else { "<tr><td colspan='5'>$($L.NoEvents)</td></tr>" }
         $findingsHtml = ($script:PrinterDoctorReport.Findings | ForEach-Object { "<li>$(ConvertTo-HtmlCell $_)</li>" }) -join "`n"
         $recsHtml = ($script:PrinterDoctorReport.Recommendations | ForEach-Object { "<li>$(ConvertTo-HtmlCell $_)</li>" }) -join "`n"
         $spoolerState = if ($script:PrinterDoctorReport.Spooler) { $script:PrinterDoctorReport.Spooler.State } else { $L.Unknown }
@@ -579,7 +577,7 @@ li{margin:6px 0}
 <h2>$($L.Recommendations)</h2><ul>$recsHtml</ul>
 <h2>$($L.Printer)</h2><table><tr><th>$($L.Printer)</th><th>$($L.Default)</th><th>$($L.WorkOffline)</th><th>$($L.Driver)</th><th>$($L.Port)</th></tr>$printerRows</table>
 <h2>$($L.Jobs)</h2><table><tr><th>$($L.JobId)</th><th>$($L.Owner)</th><th>$($L.Document)</th><th>$($L.Status)</th></tr>$jobRows</table>
-<h2>$($L.EventTime)</h2><table><tr><th>$($L.EventTime)</th><th>$($L.Provider)</th><th>$($L.EventId)</th><th>$($L.Level)</th></tr>$eventRows</table>
+<h2>$($L.EventTime)</h2><table><tr><th>$($L.EventTime)</th><th>$($L.Provider)</th><th>$($L.EventId)</th><th>$($L.Level)</th><th>$($L.Message)</th></tr>$eventRows</table>
 </div></div></body></html>
 "@
         $html | Out-File -LiteralPath $htmlPath -Encoding UTF8

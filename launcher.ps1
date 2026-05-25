@@ -1,7 +1,7 @@
 # ============================================================
 #  Atlas PC Support — launcher.ps1 (compilado)
 #  Versión: 1.0.0
-#  Build:   2026-05-22 20:20:50
+#  Build:   2026-05-24 20:22:30
 #  Repo:    https://github.com/mikepchelper-spec/atlas-pc-support
 #
 #  Uso:
@@ -19,7 +19,7 @@
 # ============================================================
 
 $script:AtlasVersion = '1.0.0'
-$script:AtlasBuildDate = '2026-05-22 20:20:50'
+$script:AtlasBuildDate = '2026-05-24 20:22:30'
 $script:AtlasToolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 $script:AtlasToolsManifest = @'
@@ -317,6 +317,41 @@ $script:AtlasToolsManifest = @'
   ]
 }
 
+'@
+
+$script:AtlasToolHashesJson = @'
+{
+  "generatedAt": "2026-05-24T20:22:30.8875264-05:00",
+  "algorithm": "SHA256",
+  "files": {
+    "Invoke-ActualizarPowerShell.ps1": "ac45e299a0005c124dfa2306c916db1e072fc98480ef569bcbe2d4872a74e523",
+    "Invoke-AIReadiness.ps1": "699fe40867a70e7cf392a3613f92a05aaa55b0b060a331315fae61dd1edc754f",
+    "Invoke-AuditoriaRouter.ps1": "d4ef2178d21e460a9200868fc0b03d33ab6d84eab587110d48991372f78d6ac5",
+    "Invoke-Deduplicador.ps1": "0ed8b3d714b231188197a5a507f76f7f8b3a7daaa54fa93ca831249e1c9ce56a",
+    "Invoke-DiagnosticoEventos.ps1": "fc873172591d3221f75f181e6f245810f4c1bceeca70f450df4b361fc22bd092",
+    "Invoke-DiagnosticoMaster.ps1": "30d0527890a6d9e3f0ff4573dc916ad14fc4b7fe49c754ec801f57526cc92e39",
+    "Invoke-EntregaPC.ps1": "c55e5b1622303d987619d9d8cf749dca8d95653aaff64ad5e0dfdff68428c22c",
+    "Invoke-ExtraerLicencias.ps1": "3feef6399eb1021a4a5f2160a268579898255bc1dc9f43bb00094bf6a2070810",
+    "Invoke-Fase0.ps1": "e756ef7561de30039059d47522298c522dbc17e1b0f5a396c76adb5a1f90ec1d",
+    "Invoke-FastCopy.ps1": "0173a6e8e221e9186e9f7308d6d4e35a96eacf4c8a1f87ad03840c3e0b41511a",
+    "Invoke-GestorBitLocker.ps1": "6255ef7f11814f09bd0c5e2bf825fc7cb274b77bc969360723ccac3310e21c9f",
+    "Invoke-GPUCheck.ps1": "904e5c70d1adcf0e9519bfeebce099ba8b1933e492f507057c19648a34c810ab",
+    "Invoke-HostsManager.ps1": "61e78ff05a8074a1bf1e461af9324818a6893042f6f3e19e650d0673b68f3eaf",
+    "Invoke-InstalarMicrosoftStore.ps1": "fd45d18f5637daf079d64aa70be132b9b0233e0a35100409e63ab67c890594af",
+    "Invoke-InstalarPaquetes.ps1": "642955990d2e5e83a0d4ccb32777e887a8e284c00eec8c71ab2f56337f0ac229",
+    "Invoke-InstalarRuntimes.ps1": "b90487346f98e0c6f34dec0e7ddfac1fe6bbd7e0f9669175f98c2536e3339c83",
+    "Invoke-KeyboardDoctor.ps1": "faf196df23327acbb28c3e26d3baa9bf13f9b3ef776f2eac966db5f58c322280",
+    "Invoke-MantenimientoPRO.ps1": "156272a877310873c14704a1279e57974ad4dc56a33966f868acaefc7120c6ca",
+    "Invoke-MenorPrivilegio.ps1": "065410d4f5840fb7f5398c7f03c11d6674462ea96ecf7df05c3a71a600898707",
+    "Invoke-PartsUpgrade.ps1": "80ed28f8c9ef926b5dd6ef9162739c84164889b3e19d708fc8a3feb5aa5f4fb1",
+    "Invoke-Personalizacion.ps1": "db76f51c006741a6c9e5af4a7444b8ea1b47162745e8e6e2416cc2610db7bac7",
+    "Invoke-PrepararUSB.ps1": "b430c5fad52ea97c4a2b8158abb8adc05c3021bd1f96dbf91301584883583bf2",
+    "Invoke-PrinterDoctor.ps1": "173412cc95fed1dfd92576a27b58aba9eccf584949fb8f546c796ebb0569aef7",
+    "Invoke-Robocopy.ps1": "ddbd335c6056618af8f7516b0fe8cd00b4587c0285990f378497e49fb4655390",
+    "Invoke-SelectorDNS.ps1": "3289ebe923ef26fa8878daef8c83363ff334311449ca33f61c5946c741d65b52",
+    "Invoke-StopServices.ps1": "5572b7a409b03009ef259e7ab73a8f20c739b9908aa0668dc1a3f2466adb66f6"
+  }
+}
 '@
 
 $script:AtlasXamlTemplate = @'
@@ -1694,8 +1729,9 @@ function Invoke-SelfElevate {
     }
 
     try {
+        Unblock-File -LiteralPath $ScriptPath -ErrorAction SilentlyContinue
         Start-Process -FilePath "powershell.exe" `
-            -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$ScriptPath`"") `
+            -ArgumentList @("-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-File", "`"$ScriptPath`"") `
             -Verb RunAs | Out-Null
         exit 0
     } catch {
@@ -1726,7 +1762,12 @@ function Invoke-AsAdmin {
     # -EncodedCommand triggers AV heuristics on many endpoints.
     $tmp = Join-Path $env:TEMP ("atlas-admin-" + [guid]::NewGuid().ToString('N').Substring(0,8) + ".ps1")
     try {
-        [System.IO.File]::WriteAllText($tmp, $ScriptBlock.ToString(), [System.Text.UTF8Encoding]::new($false))
+        $payload = @(
+            '$ErrorActionPreference = ''Continue'''
+            $ScriptBlock.ToString()
+            'try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}'
+        ) -join [Environment]::NewLine
+        [System.IO.File]::WriteAllText($tmp, $payload, [System.Text.UTF8Encoding]::new($true))
     } catch {
         Write-Warning "No se pudo escribir script temporal: $_"
         return $false
@@ -1734,7 +1775,7 @@ function Invoke-AsAdmin {
 
     $psArgs = @(
         "-NoProfile",
-        "-ExecutionPolicy", "Bypass",
+        "-ExecutionPolicy", "RemoteSigned",
         "-File", $tmp
     )
 
@@ -1826,6 +1867,7 @@ $script:AtlasDepsRegistry = @{
         ExecutableName = 'FastCopy.exe'
         WingetId       = 'FastCopy.FastCopy'
         DownloadUrl    = 'https://fastcopy.jp/archive/FastCopy5.11.2_installer.exe'
+        DownloadSha256 = '70b273dd08c15d40fac59a217b93be195bacfa47acabd031463a6df800d29fea'
         SearchPaths    = @(
             'C:\Program Files\FastCopy\FastCopy.exe',
             'C:\Program Files (x86)\FastCopy\FastCopy.exe',
@@ -1959,6 +2001,31 @@ function Resolve-SymlinkPath {
     return $Path
 }
 
+function Test-AtlasDependencyHash {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$ExpectedSha256
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    if (-not $ExpectedSha256) { return $true }
+
+    $expected = $ExpectedSha256.ToLowerInvariant()
+    if ($expected -notmatch '^[a-f0-9]{64}$') {
+        Write-AtlasLog "Hash esperado invalido para dependencia: $ExpectedSha256" -Level WARN -Tool 'Deps'
+        return $false
+    }
+
+    try {
+        $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+        return ($actual -eq $expected)
+    } catch {
+        Write-AtlasLog "No se pudo calcular SHA256 para '$Path': $_" -Level WARN -Tool 'Deps'
+        return $false
+    }
+}
+
 function Resolve-AtlasDependency {
     <#
     .SYNOPSIS
@@ -2030,6 +2097,11 @@ function Resolve-AtlasDependency {
             $ProgressPreference = 'SilentlyContinue'
             Invoke-WebRequest -Uri $dep.DownloadUrl -OutFile $installerFile -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
             if ((Get-Item $installerFile).Length -gt 100KB) {
+                if ($dep.DownloadSha256) {
+                    if (-not (Test-AtlasDependencyHash -Path $installerFile -ExpectedSha256 $dep.DownloadSha256)) {
+                        throw "Hash SHA-256 invalido para el instalador de $Name."
+                    }
+                }
                 $targetDir = Join-Path $env:LOCALAPPDATA "AtlasPC\bin\$Name"
                 if (-not (Test-Path $targetDir)) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }
                 $p = Start-Process -FilePath $installerFile -ArgumentList @('/EXTRACT64', '/NOSUBDIR', '/AGREE_LICENSE', "/DIR=`"$targetDir`"") -Wait -PassThru -ErrorAction SilentlyContinue
@@ -2082,6 +2154,7 @@ function Register-AtlasDependency {
 $script:AtlasPS7Version  = '7.5.0'
 $script:AtlasPS7UrlX64   = "https://github.com/PowerShell/PowerShell/releases/download/v$($script:AtlasPS7Version)/PowerShell-$($script:AtlasPS7Version)-win-x64.msi"
 $script:AtlasPS7MsiName  = "PowerShell-$($script:AtlasPS7Version)-win-x64.msi"
+$script:AtlasPS7HashesUrl = "https://github.com/PowerShell/PowerShell/releases/download/v$($script:AtlasPS7Version)/hashes.sha256"
 
 function Get-AtlasPS7Path {
     <#
@@ -2138,6 +2211,44 @@ function Find-AtlasPS7OfflineMsi {
     return $null
 }
 
+function Get-AtlasPS7ExpectedHash {
+    <#
+    .SYNOPSIS
+      Descarga el archivo oficial hashes.sha256 y extrae el hash del MSI x64.
+    #>
+    [CmdletBinding()]
+    param()
+
+    try {
+        $ProgressPreference = 'SilentlyContinue'
+        $raw = (Invoke-WebRequest -Uri $script:AtlasPS7HashesUrl -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content
+    } catch {
+        throw "No se pudo descargar hashes.sha256 oficial: $($_.Exception.Message)"
+    }
+
+    $line = ($raw -split "`r?`n" | Where-Object { $_ -match [regex]::Escape($script:AtlasPS7MsiName) } | Select-Object -First 1)
+    if (-not $line) {
+        throw "No se encontro hash para $($script:AtlasPS7MsiName) en hashes.sha256."
+    }
+
+    $hash = (($line -split '\s+') | Where-Object { $_ } | Select-Object -First 1).ToLowerInvariant()
+    if ($hash -notmatch '^[a-f0-9]{64}$') {
+        throw "Formato de hash invalido en hashes.sha256."
+    }
+    return $hash
+}
+
+function Test-AtlasFileHash {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$ExpectedHash
+    )
+
+    $actual = (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+    return ($actual -eq $ExpectedHash.ToLowerInvariant())
+}
+
 function Install-AtlasPS7 {
     <#
     .SYNOPSIS
@@ -2154,6 +2265,8 @@ function Install-AtlasPS7 {
     )
 
     $msi = $null
+    $expectedHash = $null
+    $downloadedFromWeb = $false
 
     if ($OfflineSource -and (Test-Path -LiteralPath $OfflineSource)) {
         $msi = (Resolve-Path -LiteralPath $OfflineSource).Path
@@ -2175,11 +2288,40 @@ function Install-AtlasPS7 {
         $msi = Join-Path $cacheDir $script:AtlasPS7MsiName
         Write-Host "  [>] Descargando PowerShell $($script:AtlasPS7Version) (~120 MB)..." -ForegroundColor Cyan
         try {
+            $expectedHash = Get-AtlasPS7ExpectedHash
             $ProgressPreference = 'SilentlyContinue'
             Invoke-WebRequest -Uri $script:AtlasPS7UrlX64 -OutFile $msi -UseBasicParsing
+            $downloadedFromWeb = $true
         } catch {
             throw "Fallo descarga de PS 7: $($_.Exception.Message)"
         }
+    }
+
+    # Validar integridad del MSI.
+    if (-not $expectedHash) {
+        $sidecar = "$msi.sha256"
+        if (Test-Path -LiteralPath $sidecar) {
+            try {
+                $raw = Get-Content -LiteralPath $sidecar -Raw -Encoding UTF8 -ErrorAction Stop
+                $parsed = (($raw -split '\s+') | Where-Object { $_ } | Select-Object -First 1).ToLowerInvariant()
+                if ($parsed -match '^[a-f0-9]{64}$') {
+                    $expectedHash = $parsed
+                }
+            } catch {}
+        }
+    }
+
+    if ($expectedHash) {
+        Write-Host "  [>] Verificando integridad SHA-256 del MSI..." -ForegroundColor Cyan
+        if (-not (Test-AtlasFileHash -Path $msi -ExpectedHash $expectedHash)) {
+            if ($downloadedFromWeb) {
+                Remove-Item -LiteralPath $msi -Force -ErrorAction SilentlyContinue
+            }
+            throw "La verificacion SHA-256 del MSI de PowerShell 7 fallo."
+        }
+        Write-Host "  [OK] Integridad verificada." -ForegroundColor Green
+    } else {
+        Write-Host "  [!] No se pudo validar hash del MSI (sin sidecar/local hash)." -ForegroundColor Yellow
     }
 
     # Instalar silencioso con feature completa
@@ -2223,60 +2365,231 @@ function Initialize-AtlasPS7 {
 # Atlas PC Support - Tool runner
 # Ejecuta una herramienta en una nueva ventana de PowerShell.
 #
-# Las tools NO estan embebidas en el launcher. Se buscan en orden:
-#   1. USB offline: deps\tools\ junto al launcher en disco
+# Orden de origen:
+#   1. USB offline: deps\tools\ junto al launcher
 #   2. Cache local: %LOCALAPPDATA%\AtlasPC\tools\
-#   3. Descarga desde GitHub (se guarda en cache para proximas veces)
+#   3. Descarga remota: $script:AtlasToolsBaseUrl
 #
-# El script temporal se escribe con BOM UTF-8 para que PS 5.1 lo
-# lea correctamente. Se envuelve en un .cmd que hace pause al final
-# para sobrevivir llamadas a 'exit' dentro de la tool.
+# Seguridad:
+#   - Valida SHA-256 cuando existe hash esperado en $script:AtlasToolHashes.
+#   - Descargas se escriben primero a .download y luego se mueven atomicamente.
+#   - Nunca usa EncodedCommand (reduce heuristicas AV).
+#
+# Estabilidad:
+#   - Limpia wrappers temporales antiguos en %TEMP%\AtlasPC.
+#   - Cache con refresco por antiguedad para evitar "version congelada".
 # ============================================================
 
+if (-not $script:AtlasToolCacheMaxAgeHours) {
+    $script:AtlasToolCacheMaxAgeHours = 6
+}
+if (-not $script:AtlasToolHashes) {
+    $script:AtlasToolHashes = @{}
+}
+
+function Unblock-AtlasFile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    try {
+        if (Test-Path -LiteralPath $Path) {
+            Unblock-File -LiteralPath $Path -ErrorAction SilentlyContinue
+        }
+    } catch {}
+}
+
+function Get-AtlasSHA256 {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+    try {
+        return (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+    } catch {
+        Write-AtlasLog "No se pudo calcular SHA256 de '$Path': $_" -Level WARN -Tool 'Runner'
+        return $null
+    }
+}
+
+function Get-AtlasToolExpectedHash {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$FileName)
+
+    if (-not $script:AtlasToolHashes) { return $null }
+    if ($script:AtlasToolHashes -is [hashtable]) {
+        if ($script:AtlasToolHashes.ContainsKey($FileName)) {
+            return [string]$script:AtlasToolHashes[$FileName]
+        }
+        return $null
+    }
+
+    try {
+        $prop = $script:AtlasToolHashes.PSObject.Properties[$FileName]
+        if ($prop) { return [string]$prop.Value }
+    } catch {}
+
+    return $null
+}
+
+function Test-AtlasToolFileIntegrity {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$FileName,
+        [string]$SourceLabel = 'unknown'
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+
+    try {
+        $fi = Get-Item -LiteralPath $Path -ErrorAction Stop
+        if ($fi.Length -lt 128) {
+            Write-AtlasLog "Archivo tool demasiado corto (sospechoso): $Path" -Level ERROR -Tool 'Runner'
+            return $false
+        }
+    } catch {
+        Write-AtlasLog "No se pudo inspeccionar archivo tool '$Path': $_" -Level ERROR -Tool 'Runner'
+        return $false
+    }
+
+    $expected = Get-AtlasToolExpectedHash -FileName $FileName
+    if (-not $expected) {
+        Write-AtlasLog "Sin hash esperado para '$FileName' (origen=$SourceLabel)." -Level WARN -Tool 'Runner'
+        return $true
+    }
+
+    $actual = Get-AtlasSHA256 -Path $Path
+    if (-not $actual) { return $false }
+    if ($actual -ne $expected.ToLowerInvariant()) {
+        Write-AtlasLog "Hash invalido para '$FileName' (origen=$SourceLabel). Esperado=$expected Actual=$actual" -Level ERROR -Tool 'Runner'
+        return $false
+    }
+
+    return $true
+}
+
+function Invoke-AtlasRunnerTempCleanup {
+    [CmdletBinding()]
+    param(
+        [string]$TempDir = (Join-Path $env:TEMP 'AtlasPC'),
+        [int]$MaxAgeHours = 24
+    )
+
+    if (-not (Test-Path -LiteralPath $TempDir)) { return }
+
+    $cutoff = (Get-Date).AddHours(-1 * [math]::Abs($MaxAgeHours))
+    try {
+        Get-ChildItem -LiteralPath $TempDir -File -ErrorAction SilentlyContinue |
+            Where-Object {
+                ($_.Name -like 'run-*.ps1' -or $_.Name -like 'run-*.cmd') -and
+                $_.LastWriteTime -lt $cutoff
+            } |
+            ForEach-Object {
+                Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+            }
+    } catch {
+        Write-AtlasLog "Limpieza de temporales fallo: $_" -Level WARN -Tool 'Runner'
+    }
+}
+
 function Get-AtlasToolScript {
-    param([string]$FunctionName)
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$FunctionName)
 
     $fileName  = "$FunctionName.ps1"
     $cacheDir  = Join-Path $env:LOCALAPPDATA 'AtlasPC\tools'
     $cachePath = Join-Path $cacheDir $fileName
+    $fallbackCachePath = $null
 
-    # 1. Buscar en USB offline: carpeta deps\tools\ junto al launcher
+    # 1) USB offline: deps\tools\ junto al launcher
     $launcherDir = $null
-    try {
-        $launcherPath = $MyInvocation.ScriptName
-        if ($launcherPath -and (Test-Path -LiteralPath $launcherPath)) {
-            $launcherDir = Split-Path -Parent $launcherPath
+    if ($script:AtlasRoot -and (Test-Path -LiteralPath $script:AtlasRoot)) {
+        $launcherDir = $script:AtlasRoot
+    } else {
+        $candidates = @($PSCommandPath, $MyInvocation.PSCommandPath, $MyInvocation.ScriptName)
+        foreach ($candidate in $candidates) {
+            if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+                $launcherDir = Split-Path -Parent $candidate
+                if ($launcherDir) { break }
+            }
         }
-    } catch {}
+    }
 
     if ($launcherDir) {
         $usbPath = Join-Path $launcherDir "deps\tools\$fileName"
         if (Test-Path -LiteralPath $usbPath) {
-            Write-AtlasLog "Tool desde USB: $usbPath" -Tool 'Runner'
-            return $usbPath
+            if (Test-AtlasToolFileIntegrity -Path $usbPath -FileName $fileName -SourceLabel 'usb') {
+                Unblock-AtlasFile -Path $usbPath
+                Write-AtlasLog "Tool desde USB: $usbPath" -Tool 'Runner'
+                return $usbPath
+            }
+            Write-AtlasLog "Tool USB descartada por integridad: $usbPath" -Level WARN -Tool 'Runner'
         }
     }
 
-    # 2. Cache local
+    # 2) Cache local
     if (Test-Path -LiteralPath $cachePath) {
-        Write-AtlasLog "Tool desde cache: $cachePath" -Tool 'Runner'
-        return $cachePath
+        if (Test-AtlasToolFileIntegrity -Path $cachePath -FileName $fileName -SourceLabel 'cache') {
+            Unblock-AtlasFile -Path $cachePath
+            $ageHours = [math]::Round(((Get-Date) - (Get-Item -LiteralPath $cachePath).LastWriteTime).TotalHours, 2)
+            if ($ageHours -lt [double]$script:AtlasToolCacheMaxAgeHours) {
+                Write-AtlasLog "Tool desde cache fresca ($ageHours h): $cachePath" -Tool 'Runner'
+                return $cachePath
+            }
+            $fallbackCachePath = $cachePath
+            Write-AtlasLog "Tool cache valida pero expirada ($ageHours h); intentare refrescar." -Level INFO -Tool 'Runner'
+        } else {
+            Write-AtlasLog "Cache invalida para '$fileName'; se forzara descarga." -Level WARN -Tool 'Runner'
+            Remove-Item -LiteralPath $cachePath -Force -ErrorAction SilentlyContinue
+        }
     }
 
-    # 3. Descargar desde GitHub
+    # 3) Descarga remota (si hay URL base)
+    if (-not $script:AtlasToolsBaseUrl) {
+        if ($fallbackCachePath) {
+            Write-AtlasLog "Sin AtlasToolsBaseUrl; usando cache expirada como fallback: $fallbackCachePath" -Level WARN -Tool 'Runner'
+            return $fallbackCachePath
+        }
+        Write-AtlasLog "No hay AtlasToolsBaseUrl configurada para '$FunctionName'." -Level ERROR -Tool 'Runner'
+        return $null
+    }
+
+    $toolsBaseUri = $null
+    try { $toolsBaseUri = [Uri]$script:AtlasToolsBaseUrl } catch {}
+    if (-not $toolsBaseUri -or -not $toolsBaseUri.IsAbsoluteUri -or $toolsBaseUri.Scheme -ne 'https') {
+        Write-AtlasLog "AtlasToolsBaseUrl invalida o insegura (solo HTTPS): '$script:AtlasToolsBaseUrl'." -Level ERROR -Tool 'Runner'
+        if ($fallbackCachePath) {
+            Write-AtlasLog "Usando cache expirada por URL insegura: $fallbackCachePath" -Level WARN -Tool 'Runner'
+            return $fallbackCachePath
+        }
+        return $null
+    }
+
     Write-AtlasLog "Descargando tool: $FunctionName" -Tool 'Runner'
     try {
-        if (-not (Test-Path $cacheDir)) {
+        if (-not (Test-Path -LiteralPath $cacheDir)) {
             New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
         }
-        $url = "$script:AtlasToolsBaseUrl/$fileName"
+
+        $baseUrl = $script:AtlasToolsBaseUrl.TrimEnd('/')
+        $url = "$baseUrl/$fileName"
+        $tempDownload = Join-Path $cacheDir ($fileName + '.download')
         $ProgressPreference = 'SilentlyContinue'
         Invoke-WebRequest -Uri ($url + '?v=' + [guid]::NewGuid().ToString('N').Substring(0,8)) `
-            -OutFile $cachePath -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
-        Write-AtlasLog "Tool descargada: $cachePath" -Tool 'Runner'
+            -OutFile $tempDownload -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+
+        if (-not (Test-AtlasToolFileIntegrity -Path $tempDownload -FileName $fileName -SourceLabel 'download')) {
+            Remove-Item -LiteralPath $tempDownload -Force -ErrorAction SilentlyContinue
+            throw "Descarga rechazada por validacion de integridad."
+        }
+
+        Move-Item -LiteralPath $tempDownload -Destination $cachePath -Force
+        Unblock-AtlasFile -Path $cachePath
+        Write-AtlasLog "Tool descargada y validada: $cachePath" -Tool 'Runner'
         return $cachePath
     } catch {
         Write-AtlasLog "Fallo descarga de '$FunctionName': $_" -Level ERROR -Tool 'Runner'
+        if ($fallbackCachePath) {
+            Write-AtlasLog "Usando cache expirada como fallback: $fallbackCachePath" -Level WARN -Tool 'Runner'
+            return $fallbackCachePath
+        }
         return $null
     }
 }
@@ -2288,6 +2601,7 @@ function Invoke-AtlasTool {
         [hashtable]$Branding
     )
 
+    Invoke-AtlasRunnerTempCleanup
     Write-AtlasLog "Ejecutando: $($Tool.name) [$($Tool.id)]" -Tool 'Runner'
 
     $function = $Tool.function
@@ -2318,7 +2632,7 @@ function Invoke-AtlasTool {
     # ----------- Obtener ruta del script de la tool -----------
     $toolScriptPath = Get-AtlasToolScript -FunctionName $function
     if (-not $toolScriptPath) {
-        $msg = "No se pudo obtener la tool '$($Tool.name)'. Verifica tu conexion a internet."
+        $msg = "No se pudo obtener la tool '$($Tool.name)'. Verifica conexion o integridad."
         Write-AtlasLog $msg -Level ERROR -Tool 'Runner'
         [System.Windows.MessageBox]::Show($msg, 'Atlas PC Support', 'OK', 'Error') | Out-Null
         return
@@ -2347,7 +2661,7 @@ function Invoke-AtlasTool {
     [void]$sb.AppendLine('$ErrorActionPreference = ''Continue''')
     [void]$sb.AppendLine('try { $Host.UI.RawUI.WindowTitle = ' + ("'{0}'" -f ($title -replace "'","''")) + ' } catch {}')
     [void]$sb.AppendLine('')
-    # Dot-source el archivo de la tool (define la funcion)
+    # Dot-source del archivo de la tool (define la funcion)
     $escapedPath = $toolScriptPath -replace "'", "''"
     [void]$sb.AppendLine(". '$escapedPath'")
     [void]$sb.AppendLine('')
@@ -2359,41 +2673,42 @@ function Invoke-AtlasTool {
     [void]$sb.AppendLine('    Write-Host ""')
     [void]$sb.AppendLine('    Write-Host "Traza:" -ForegroundColor DarkGray')
     [void]$sb.AppendLine('    Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray')
+    [void]$sb.AppendLine('} finally {')
+    [void]$sb.AppendLine('    Write-Host ""')
+    [void]$sb.AppendLine('    Write-Host "============================================"')
+    [void]$sb.AppendLine('    Write-Host "  Tool finalizada. Presiona ENTER para cerrar."')
+    [void]$sb.AppendLine('    Write-Host "============================================"')
+    [void]$sb.AppendLine('    [void](Read-Host)')
+    [void]$sb.AppendLine('    try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}')
     [void]$sb.AppendLine('}')
 
     $tempDir = Join-Path $env:TEMP 'AtlasPC'
-    if (-not (Test-Path $tempDir)) {
+    if (-not (Test-Path -LiteralPath $tempDir)) {
         New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
     }
     $stamp       = "$($Tool.id)-$(Get-Random)"
     $tempScript  = Join-Path $tempDir "run-$stamp.ps1"
-    $tempWrapper = Join-Path $tempDir "run-$stamp.cmd"
 
-    $utf8WithBom = New-Object System.Text.UTF8Encoding($true)
+    $utf8WithBom = [System.Text.UTF8Encoding]::new($true)
     [System.IO.File]::WriteAllText($tempScript, $sb.ToString(), $utf8WithBom)
+    Unblock-AtlasFile -Path $tempScript
 
-    $psFile = $tempScript.Replace('%', '%%')
     $psExe = 'powershell.exe'
     if ($script:AtlasPS7CachedPath -and (Test-Path -LiteralPath $script:AtlasPS7CachedPath)) {
-        $psExe = "`"$($script:AtlasPS7CachedPath)`""
+        $psExe = $script:AtlasPS7CachedPath
     }
-    $wrapperLines = @(
-        '@echo off',
-        'chcp 65001 > nul 2>&1',
-        ($psExe + ' -NoProfile -ExecutionPolicy Bypass -File "' + $psFile + '"'),
-        'echo.',
-        'echo ============================================',
-        'echo   Tool finalizada. Presiona una tecla para cerrar.',
-        'echo ============================================',
-        'pause > nul'
+    $psArgs = @(
+        '-NoLogo',
+        '-NoProfile',
+        '-Sta',
+        '-ExecutionPolicy', 'RemoteSigned',
+        '-File', $tempScript
     )
-    [System.IO.File]::WriteAllLines($tempWrapper, $wrapperLines, [System.Text.ASCIIEncoding]::new())
-
-    Write-AtlasLog "Temp wrapper: $tempWrapper" -Tool 'Runner' -Level DEBUG
 
     $startArgs = @{
-        FilePath     = 'cmd.exe'
-        ArgumentList = @('/c', "`"$tempWrapper`"")
+        FilePath         = $psExe
+        ArgumentList     = $psArgs
+        WorkingDirectory = (Split-Path -Parent $toolScriptPath)
     }
     if ($Tool.requiresAdmin -and -not (Test-IsAdmin)) {
         $startArgs.Verb = 'RunAs'
@@ -2405,6 +2720,7 @@ function Invoke-AtlasTool {
         $errMsg = "No se pudo lanzar la tool '$($Tool.name)': $($_.Exception.Message)"
         Write-AtlasLog $errMsg -Level ERROR -Tool 'Runner'
         [System.Windows.MessageBox]::Show($errMsg, 'Atlas PC Support', 'OK', 'Error') | Out-Null
+        Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -2421,8 +2737,28 @@ function Invoke-AtlasTool {
 function ConvertTo-AtlasHex {
     param([string]$Hex)
     if (-not $Hex) { return "#FFFFFF" }
-    if ($Hex -notmatch '^#') { $Hex = "#$Hex" }
-    return $Hex
+
+    $clean = ([string]$Hex).Trim()
+    if ($clean.StartsWith('#')) { $clean = $clean.Substring(1) }
+    if ($clean -match '^[0-9A-Fa-f]{3}$') {
+        $clean = ($clean.ToCharArray() | ForEach-Object { "$_$_" }) -join ''
+    }
+    if ($clean -notmatch '^[0-9A-Fa-f]{6}$') {
+        return "#FFFFFF"
+    }
+
+    return ('#{0}' -f $clean.ToUpperInvariant())
+}
+
+function ConvertTo-AtlasXamlSafe {
+    param($Value)
+    if ($null -eq $Value) { return '' }
+    return [System.Security.SecurityElement]::Escape([string]$Value)
+}
+
+function ConvertTo-AtlasIntOrDefault {
+    param($Value, [int]$Default = 0)
+    try { return [int]$Value } catch { return $Default }
 }
 
 # Recorre el arbol logico de WPF buscando el primer descendiente del tipo indicado.
@@ -2500,10 +2836,11 @@ function Get-AtlasPalette {
 
 function Get-AtlasColorShift {
     param([string]$Hex, [int]$Delta)
-    $Hex = $Hex.TrimStart('#')
-    $r = [Convert]::ToInt32($Hex.Substring(0,2), 16)
-    $g = [Convert]::ToInt32($Hex.Substring(2,2), 16)
-    $b = [Convert]::ToInt32($Hex.Substring(4,2), 16)
+    $safeHex = ConvertTo-AtlasHex $Hex
+    $h = $safeHex.TrimStart('#')
+    $r = [Convert]::ToInt32($h.Substring(0,2), 16)
+    $g = [Convert]::ToInt32($h.Substring(2,2), 16)
+    $b = [Convert]::ToInt32($h.Substring(4,2), 16)
     $r = [Math]::Max(0, [Math]::Min(255, $r + $Delta))
     $g = [Math]::Max(0, [Math]::Min(255, $g + $Delta))
     $b = [Math]::Max(0, [Math]::Min(255, $b + $Delta))
@@ -2520,17 +2857,17 @@ function Expand-AtlasXaml {
     if (-not $tagline) { $tagline = Get-AtlasString 'app.tagline' }
 
     $map = @{
-        'WINDOW_TITLE'       = $Branding.window.title
-        'WINDOW_WIDTH'       = $Branding.window.width
-        'WINDOW_HEIGHT'      = $Branding.window.height
-        'WINDOW_MIN_WIDTH'   = $Branding.window.minWidth
-        'WINDOW_MIN_HEIGHT'  = $Branding.window.minHeight
-        'BRAND_NAME'         = $Branding.brand.name
-        'BRAND_TAGLINE'      = $tagline
-        'BRAND_VERSION'      = $Branding.brand.version
-        'BRAND_COPYRIGHT'    = $Branding.brand.copyright
-        'FONT_FAMILY'        = $Branding.theme.fontFamily
-        'CORNER_RADIUS'      = $Branding.theme.cornerRadius
+        'WINDOW_TITLE'       = (ConvertTo-AtlasXamlSafe $Branding.window.title)
+        'WINDOW_WIDTH'       = (ConvertTo-AtlasIntOrDefault $Branding.window.width 1100)
+        'WINDOW_HEIGHT'      = (ConvertTo-AtlasIntOrDefault $Branding.window.height 720)
+        'WINDOW_MIN_WIDTH'   = (ConvertTo-AtlasIntOrDefault $Branding.window.minWidth 900)
+        'WINDOW_MIN_HEIGHT'  = (ConvertTo-AtlasIntOrDefault $Branding.window.minHeight 600)
+        'BRAND_NAME'         = (ConvertTo-AtlasXamlSafe $Branding.brand.name)
+        'BRAND_TAGLINE'      = (ConvertTo-AtlasXamlSafe $tagline)
+        'BRAND_VERSION'      = (ConvertTo-AtlasXamlSafe $Branding.brand.version)
+        'BRAND_COPYRIGHT'    = (ConvertTo-AtlasXamlSafe $Branding.brand.copyright)
+        'FONT_FAMILY'        = (ConvertTo-AtlasXamlSafe $Branding.theme.fontFamily)
+        'CORNER_RADIUS'      = (ConvertTo-AtlasIntOrDefault $Branding.theme.cornerRadius 8)
         'ACCENT_COLOR'       = $Palette.AccentColor
         'ACCENT_HOVER'       = $Palette.AccentHover
         'ACCENT_PRESSED'     = $Palette.AccentPressed
@@ -2541,31 +2878,31 @@ function Expand-AtlasXaml {
         'TEXT_PRIMARY'       = $Palette.TextPrimary
         'TEXT_SECONDARY'     = $Palette.TextSecondary
         'TEXT_MUTED'         = $Palette.TextMuted
-        'SEARCH_PLACEHOLDER' = (Get-AtlasString 'search.placeholder')
-        'HEADER_LOGS'        = (Get-AtlasString 'header.logs')
-        'HEADER_ABOUT'       = (Get-AtlasString 'header.about')
-        'STATUS_READY'       = (Get-AtlasString 'status.ready')
-        'COFFEE_LABEL'       = (Get-AtlasString 'footer.coffee')
-        'COFFEE_TOOLTIP'     = (Get-AtlasString 'footer.coffeeTooltip')
-        'LANG_TOOLTIP'       = (Get-AtlasString 'header.languageTooltip')
-        'RESTART_TOOLTIP'    = (Get-AtlasString 'header.restartTooltip')
-        'DASH_CPU'           = (Get-AtlasString 'dash.cpu')
-        'DASH_RAM'           = (Get-AtlasString 'dash.ram')
-        'DASH_DISK'          = (Get-AtlasString 'dash.disk')
-        'DASH_ALERTS'        = (Get-AtlasString 'dash.alerts')
-        'DASH_REFRESH_TOOLTIP' = (Get-AtlasString 'dash.refreshTooltip')
-        'DASH_TOGGLE_ON'     = (Get-AtlasString 'dash.monitor.on')
-        'DASH_TOGGLE_OFF'    = (Get-AtlasString 'dash.monitor.off')
-        'DASH_TOGGLE_TOOLTIP'= (Get-AtlasString 'dash.monitor.tooltip')
-        'SIDEBAR_HEADER'     = (Get-AtlasString 'sidebar.header')
-        'SIDEBAR_HOST'       = (Get-AtlasString 'sidebar.host')
-        'SIDEBAR_USER'       = (Get-AtlasString 'sidebar.user')
-        'SIDEBAR_OS'         = (Get-AtlasString 'sidebar.os')
-        'SIDEBAR_CPU'        = (Get-AtlasString 'sidebar.cpu')
-        'SIDEBAR_RAM'        = (Get-AtlasString 'sidebar.ram')
-        'SIDEBAR_UPTIME'     = (Get-AtlasString 'sidebar.uptime')
-        'SIDEBAR_IP'         = (Get-AtlasString 'sidebar.ip')
-        'SIDEBAR_LASTSYNC'   = (Get-AtlasString 'sidebar.lastSync')
+        'SEARCH_PLACEHOLDER' = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'search.placeholder'))
+        'HEADER_LOGS'        = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'header.logs'))
+        'HEADER_ABOUT'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'header.about'))
+        'STATUS_READY'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'status.ready'))
+        'COFFEE_LABEL'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'footer.coffee'))
+        'COFFEE_TOOLTIP'     = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'footer.coffeeTooltip'))
+        'LANG_TOOLTIP'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'header.languageTooltip'))
+        'RESTART_TOOLTIP'    = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'header.restartTooltip'))
+        'DASH_CPU'           = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.cpu'))
+        'DASH_RAM'           = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.ram'))
+        'DASH_DISK'          = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.disk'))
+        'DASH_ALERTS'        = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.alerts'))
+        'DASH_REFRESH_TOOLTIP' = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.refreshTooltip'))
+        'DASH_TOGGLE_ON'     = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.monitor.on'))
+        'DASH_TOGGLE_OFF'    = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.monitor.off'))
+        'DASH_TOGGLE_TOOLTIP'= (ConvertTo-AtlasXamlSafe (Get-AtlasString 'dash.monitor.tooltip'))
+        'SIDEBAR_HEADER'     = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.header'))
+        'SIDEBAR_HOST'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.host'))
+        'SIDEBAR_USER'       = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.user'))
+        'SIDEBAR_OS'         = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.os'))
+        'SIDEBAR_CPU'        = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.cpu'))
+        'SIDEBAR_RAM'        = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.ram'))
+        'SIDEBAR_UPTIME'     = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.uptime'))
+        'SIDEBAR_IP'         = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.ip'))
+        'SIDEBAR_LASTSYNC'   = (ConvertTo-AtlasXamlSafe (Get-AtlasString 'sidebar.lastSync'))
     }
     foreach ($k in $map.Keys) {
         $Xaml = $Xaml.Replace("{{$k}}", [string]$map[$k])
@@ -2581,13 +2918,14 @@ function New-AtlasToolCard {
     )
 
     $width = 320
+    $cornerRadius = ConvertTo-AtlasIntOrDefault $Branding.theme.cornerRadius 8
     $xaml = @"
 <Border xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
         xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'
         Background='$($Palette.SurfaceColor)'
         BorderBrush='$($Palette.BorderColor)'
         BorderThickness='1'
-        CornerRadius='$($Branding.theme.cornerRadius)'
+        CornerRadius='$cornerRadius'
         Padding='16'
         Margin='0,0,12,12'
         Width='$width'>
@@ -2642,6 +2980,14 @@ function New-AtlasToolCard {
 
 # ---- Dashboard / Sidebar helpers ----------------------------------------
 
+if (-not $script:AtlasLiveSnapshotMinIntervalSeconds) {
+    # Avoid hammering CIM from the UI thread every 2 seconds.
+    $script:AtlasLiveSnapshotMinIntervalSeconds = 5
+}
+if (-not $script:AtlasLiveSnapshotAt) {
+    $script:AtlasLiveSnapshotAt = [datetime]::MinValue
+}
+
 # Cached static system info (gathered once — these don't change at runtime).
 function Get-AtlasStaticSystemInfo {
     if ($script:AtlasStaticSysInfo) { return $script:AtlasStaticSysInfo }
@@ -2688,6 +3034,16 @@ function Get-AtlasStaticSystemInfo {
 
 # Live snapshot — fast queries only (called every refresh tick).
 function Get-AtlasLiveSystemSnapshot {
+    [CmdletBinding()]
+    param([switch]$ForceRefresh)
+
+    if (-not $ForceRefresh -and $script:AtlasLiveSnapshotCache -and $script:AtlasLiveSnapshotAt) {
+        $ageSec = ((Get-Date) - $script:AtlasLiveSnapshotAt).TotalSeconds
+        if ($ageSec -lt [double]$script:AtlasLiveSnapshotMinIntervalSeconds) {
+            return $script:AtlasLiveSnapshotCache
+        }
+    }
+
     $snap = @{
         CpuPercent  = $null
         RamPercent  = $null
@@ -2767,6 +3123,8 @@ function Get-AtlasLiveSystemSnapshot {
         }
     } catch { }
 
+    $script:AtlasLiveSnapshotCache = $snap
+    $script:AtlasLiveSnapshotAt = Get-Date
     return $snap
 }
 
@@ -2923,19 +3281,27 @@ function Initialize-AtlasDashboard {
     # $dashCpuVal/$sideHost/$logFn/etc. are all resolvable when the tick runs.
     $tickClosed = $tickAction.GetNewClosure()
     $script:AtlasDashboardTick = $tickClosed
+    try {
+        & $logFn ("Dashboard tick handler initialized: {0}" -f ($script:AtlasDashboardTick.GetType().FullName)) -Level DEBUG -Tool 'UI'
+    } catch { }
 
     $startMonitorAction = {
         try {
+            $tickToRun = if ($script:AtlasDashboardTick -is [scriptblock]) { $script:AtlasDashboardTick } else { $tickClosed }
+            if (-not ($tickToRun -is [scriptblock])) {
+                throw "Dashboard tick handler no disponible."
+            }
             if (-not $script:AtlasDashboardTimer) {
                 $timer = New-Object System.Windows.Threading.DispatcherTimer
                 $timer.Interval = [TimeSpan]::FromSeconds(2)
-                $timer.Add_Tick($script:AtlasDashboardTick)
+                $timer.Add_Tick($tickToRun)
                 $script:AtlasDashboardTimer = $timer
             }
-            & $script:AtlasDashboardTick
+            & $tickToRun
             $script:AtlasDashboardTimer.Start()
             $script:AtlasDashboardMonitorEnabled = $true
             if ($btnDashMonitorToggle) { $btnDashMonitorToggle.Content = $monitorOnText }
+            try { & $logFn "Dashboard monitor started." -Level DEBUG -Tool 'UI' } catch { }
         } catch {
             try { & $logFn "Dashboard monitor start failed: $_" -Level WARN -Tool 'UI' } catch { }
         }
@@ -2957,25 +3323,49 @@ function Initialize-AtlasDashboard {
         }
     }
 
-    $script:AtlasDashboardStartMonitor = $startMonitorAction.GetNewClosure()
-    $script:AtlasDashboardStopMonitor = $stopMonitorAction.GetNewClosure()
+    $startClosed = $startMonitorAction.GetNewClosure()
+    $stopClosed = $stopMonitorAction.GetNewClosure()
+    $script:AtlasDashboardStartMonitor = $startClosed
+    $script:AtlasDashboardStopMonitor = $stopClosed
 
     # Wire the manual refresh button (↻ next to the alerts panel).
     if ($btnDashRefresh) {
         $btnDashRefresh.Add_Click({
-            try { & $script:AtlasDashboardTick } catch { }
+            try {
+                $script:AtlasLiveSnapshotAt = [datetime]::MinValue
+                $tickToRun = if ($script:AtlasDashboardTick -is [scriptblock]) { $script:AtlasDashboardTick } else { $tickClosed }
+                if ($tickToRun -is [scriptblock]) {
+                    & $tickToRun
+                } else {
+                    throw "Dashboard tick handler no disponible para refresh."
+                }
+            } catch {
+                try { & $logFn "Dashboard manual refresh failed: $_" -Level WARN -Tool 'UI' } catch { }
+            }
         })
     }
 
     if ($btnDashMonitorToggle) {
         $btnDashMonitorToggle.Add_Click({
             try {
+                $startToRun = if ($script:AtlasDashboardStartMonitor -is [scriptblock]) { $script:AtlasDashboardStartMonitor } else { $startClosed }
+                $stopToRun  = if ($script:AtlasDashboardStopMonitor -is [scriptblock]) { $script:AtlasDashboardStopMonitor } else { $stopClosed }
                 if ($script:AtlasDashboardMonitorEnabled) {
-                    & $script:AtlasDashboardStopMonitor
+                    if ($stopToRun -is [scriptblock]) {
+                        & $stopToRun
+                    } else {
+                        throw "Dashboard stop handler no disponible."
+                    }
                 } else {
-                    & $script:AtlasDashboardStartMonitor
+                    if ($startToRun -is [scriptblock]) {
+                        & $startToRun
+                    } else {
+                        throw "Dashboard start handler no disponible."
+                    }
                 }
-            } catch { }
+            } catch {
+                try { & $logFn "Dashboard monitor toggle click failed: $_" -Level WARN -Tool 'UI' } catch { }
+            }
         })
     }
 
@@ -2984,7 +3374,8 @@ function Initialize-AtlasDashboard {
         try {
             if ($script:AtlasDashboardBooted) { return }
             $script:AtlasDashboardBooted = $true
-            & $script:AtlasDashboardStopMonitor
+            $stopToRun = if ($script:AtlasDashboardStopMonitor -is [scriptblock]) { $script:AtlasDashboardStopMonitor } else { $stopClosed }
+            if ($stopToRun -is [scriptblock]) { & $stopToRun }
         } catch {
             Write-AtlasLog "Dashboard bootstrap failed: $_" -Level WARN -Tool 'UI'
         }
@@ -3003,6 +3394,8 @@ function Initialize-AtlasDashboard {
             $script:AtlasDashboardTick = $null
             $script:AtlasDashboardStartMonitor = $null
             $script:AtlasDashboardStopMonitor = $null
+            $script:AtlasLiveSnapshotCache = $null
+            $script:AtlasLiveSnapshotAt = [datetime]::MinValue
         } catch { }
     })
 }
@@ -3260,6 +3653,20 @@ if ($ps7) {
     Write-AtlasLog "PowerShell 7 disponible: $ps7"
 } else {
     Write-AtlasLog "PowerShell 7 NO instalado; tools correran en Windows PowerShell 5.1. Usar la tool 'Actualizar PowerShell'."
+}
+
+try {
+    $toolHashesObj = ConvertFrom-AtlasJson $script:AtlasToolHashesJson
+    if ($toolHashesObj.files -is [hashtable]) {
+        $script:AtlasToolHashes = $toolHashesObj.files
+        Write-AtlasLog "Hashes embebidos cargados: $($script:AtlasToolHashes.Count)" -Tool 'Launcher'
+    } else {
+        $script:AtlasToolHashes = @{}
+        Write-AtlasLog "Hash map embebido invalido; continuando sin validacion fuerte." -Level WARN -Tool 'Launcher'
+    }
+} catch {
+    $script:AtlasToolHashes = @{}
+    Write-AtlasLog "No se pudo parsear hash map embebido: $_" -Level WARN -Tool 'Launcher'
 }
 
 try {

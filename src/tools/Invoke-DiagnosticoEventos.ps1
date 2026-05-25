@@ -257,7 +257,7 @@ function Invoke-DiagnosticoEventos {
     function _Query-Events {
         param(
             [string]$LogName = 'System',
-            [int[]]$Levels = @(1,2,3,4),
+            [int[]]$Levels = @(0,1,2,3,4),
             [int[]]$Ids = $null,
             [int]$Hours = 24,
             [int]$MaxEvents = 500

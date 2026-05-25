@@ -24,8 +24,9 @@ function Invoke-SelfElevate {
     }
 
     try {
+        Unblock-File -LiteralPath $ScriptPath -ErrorAction SilentlyContinue
         Start-Process -FilePath "powershell.exe" `
-            -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$ScriptPath`"") `
+            -ArgumentList @("-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-File", "`"$ScriptPath`"") `
             -Verb RunAs | Out-Null
         exit 0
     } catch {
@@ -56,7 +57,12 @@ function Invoke-AsAdmin {
     # -EncodedCommand triggers AV heuristics on many endpoints.
     $tmp = Join-Path $env:TEMP ("atlas-admin-" + [guid]::NewGuid().ToString('N').Substring(0,8) + ".ps1")
     try {
-        [System.IO.File]::WriteAllText($tmp, $ScriptBlock.ToString(), [System.Text.UTF8Encoding]::new($false))
+        $payload = @(
+            '$ErrorActionPreference = ''Continue'''
+            $ScriptBlock.ToString()
+            'try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}'
+        ) -join [Environment]::NewLine
+        [System.IO.File]::WriteAllText($tmp, $payload, [System.Text.UTF8Encoding]::new($true))
     } catch {
         Write-Warning "No se pudo escribir script temporal: $_"
         return $false
@@ -64,7 +70,7 @@ function Invoke-AsAdmin {
 
     $psArgs = @(
         "-NoProfile",
-        "-ExecutionPolicy", "Bypass",
+        "-ExecutionPolicy", "RemoteSigned",
         "-File", $tmp
     )
 
