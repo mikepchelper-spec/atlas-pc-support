@@ -41,6 +41,8 @@ function Invoke-InstalarMicrosoftStore {
             AlreadyInstalled= '  [OK] Microsoft Store is already installed ({0}). No action needed.'
             NotFound        = '  [!] Microsoft Store not found on this system.'
             SkipWsreset     = '[2/3] Skipping wsreset -i (LTSC/IoT build detected -- not reliable).'
+            SkipWsresetOnline = '[2/3] Skipping wsreset -i (online fallback mode enabled).'
+            OnlineFallback  = '  [i] Offline Store bundle unavailable on this USB. Using automatic online install (winget).'
             TryWsreset      = '[2/3] Trying wsreset -i (official Microsoft method)...'
             WsresetWait     = '  [i] Waiting up to 90 s for Store to appear...'
             WsresetOk       = '  [OK] Microsoft Store installed via wsreset.'
@@ -65,6 +67,8 @@ function Invoke-InstalarMicrosoftStore {
             AlreadyInstalled= '  [OK] Microsoft Store ya esta instalada ({0}). No se requiere accion.'
             NotFound        = '  [!] Microsoft Store no encontrada en este sistema.'
             SkipWsreset     = '[2/3] Omitiendo wsreset -i (build LTSC/IoT detectado -- no es confiable).'
+            SkipWsresetOnline = '[2/3] Omitiendo wsreset -i (modo fallback online activado).'
+            OnlineFallback  = '  [i] Bundle offline no disponible en esta USB. Usando instalacion online automatica (winget).'
             TryWsreset      = '[2/3] Intentando wsreset -i (metodo oficial de Microsoft)...'
             WsresetWait     = '  [i] Esperando hasta 90 s para que aparezca la Store...'
             WsresetOk       = '  [OK] Microsoft Store instalada via wsreset.'
@@ -130,9 +134,21 @@ function Invoke-InstalarMicrosoftStore {
     Write-Host $L.NotFound -ForegroundColor Yellow
     Write-Host ''
 
+    # If the USB prep tool marked Store bundle as unavailable, jump directly
+    # to online install path (winget) without waiting on wsreset probes.
+    $forceOnlineMode = $false
+    if (-not [string]::IsNullOrWhiteSpace([string]$env:ATLAS_OFFLINE_ROOT)) {
+        $onlineFlag = Join-Path $env:ATLAS_OFFLINE_ROOT 'deps\MicrosoftStore\ONLINE_MODE_REQUIRED.flag'
+        if (Test-Path -LiteralPath $onlineFlag) {
+            $forceOnlineMode = $true
+            Write-Host $L.OnlineFallback -ForegroundColor DarkGray
+            Write-Host ''
+        }
+    }
+
     # --- Step 2: wsreset -i (W11 non-LTSC only) ---
     $installedViaWsreset = $false
-    if ($isW11 -and -not $isLTSC) {
+    if ($isW11 -and -not $isLTSC -and -not $forceOnlineMode) {
         Write-Host $L.TryWsreset -ForegroundColor Cyan
         Write-Host $L.WsresetWait -ForegroundColor Gray
         try {
@@ -153,7 +169,11 @@ function Invoke-InstalarMicrosoftStore {
         }
         Write-Host ''
     } else {
-        Write-Host $L.SkipWsreset -ForegroundColor Gray
+        if ($forceOnlineMode) {
+            Write-Host $L.SkipWsresetOnline -ForegroundColor Gray
+        } else {
+            Write-Host $L.SkipWsreset -ForegroundColor Gray
+        }
         Write-Host ''
     }
 
