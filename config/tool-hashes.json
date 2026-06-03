@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T22:27:33.3157851-05:00",
+  "generatedAt": "2026-06-03T09:30:17.5132127-05:00",
   "algorithm": "SHA256",
   "files": {
     "Invoke-ActualizarPowerShell.ps1": "54832b414eaed34411ff1e2a471f0d1ec5fb04229e59d92c635261ed61ed09b0",
@@ -11,12 +11,12 @@
     "Invoke-EntregaPC.ps1": "93ae68c47b4f4b3955cdbeacb6290e12f1bd3278b481fd26a9a6b5658a3db164",
     "Invoke-ExtraerLicencias.ps1": "56775007685dbcfd87fb5c10a2318a8534cbc5c764c83228bcd1f0d264ca4ce7",
     "Invoke-Fase0.ps1": "2985b232443f6037376b9866934d28ebc293fad935de40ad0d23e55da5972352",
-    "Invoke-FastCopy.ps1": "deb4615764cb1068f41f50add5dee3fd69610e210d093a681eae7677b8015554",
+    "Invoke-FastCopy.ps1": "1216fcb4f83912677587cb8bbf87f3c247f225e271edb41be193e375bfe4f8e4",
     "Invoke-GestorBitLocker.ps1": "00ea4e8b691077e80679e1c7b7f878d2b60e8e9d84ead4f0419bf9e9042f0d10",
     "Invoke-GPUCheck.ps1": "5e3439b8ba1bd6ec34de358429596f53a986bbfeab797492d8453fad13b4492b",
     "Invoke-HostsManager.ps1": "669737fde3ae354f86d0247c6b511ad14e908a769a4bc2a8496b1b4d6d4c9a8a",
     "Invoke-InstalarMicrosoftStore.ps1": "a88f4096d33749637d2257bc7284fea002140d1ebb7833795f4d2803e4dd8fb2",
-    "Invoke-InstalarPaquetes.ps1": "5a86ad81d6f6a2a1676b94f3a9d5a5b3058f22476bb303914946c89f847a92cd",
+    "Invoke-InstalarPaquetes.ps1": "d0a02ba3d02858249e6c8871e1c11a9e10c2a872f5977f542a0659edfdb962dd",
     "Invoke-InstalarRuntimes.ps1": "60502070af04e5ac8fe97743f201773b755197efcdeeb6c312b04cc8698b0826",
     "Invoke-KeyboardDoctor.ps1": "645f606446394dd5f1b192a612ade7bb16bb8f0c8fb37dc40344115c156e6756",
     "Invoke-MantenimientoPRO.ps1": "981f64c24dccf8ff1d4c7a38cc43b9e5a230e0ad3d637a0eeee766e31b8ab124",

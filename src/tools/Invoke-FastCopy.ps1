@@ -912,7 +912,8 @@ do {
     }
     $cliente = $cliente -replace '[\\/:*?"<>|]', '_'
     $fechaHoy = Get-Date -Format 'yyyy-MM-dd'
-    $rutaFinal = Join-Path $destino "${cliente}_${fechaHoy}"
+    # Copiar directamente al destino seleccionado (sin crear subcarpeta Respaldo_fecha_hoy)
+    $rutaFinal = $destino
 
     # =============================================
     # MODO

@@ -242,7 +242,7 @@ function Invoke-InstalarPaquetes {
             @{ Id='OpenWhisperSystems.Signal';           Name='Signal' },
             @{ Id='Telegram.TelegramDesktop';            Name='Telegram Desktop' },
             @{ Id='9NKSQGP7F2NH';                        Name='WhatsApp Desktop'; Source='msstore' },
-            @{ Id='9NFHQRDFLG40';                        Name='JW Library'; Source='msstore' }
+            @{ Id='9WZDNCRFJ3B4';                        Name='JW Library'; Source='msstore' }
         )
         ($L.CategoryUtilities) = @(
             @{ Id='7zip.7zip';                           Name='7-Zip' },
@@ -289,6 +289,25 @@ function Invoke-InstalarPaquetes {
     # ============================================================
     # Helpers
     # ============================================================
+
+    function Clean-WingetOutput {
+        param([object[]]$Raw)
+        $esc = [char]0x1B
+        $out = @()
+        foreach ($ln in $Raw) {
+            $s = [string]$ln
+            $s = [regex]::Replace($s, $esc + '\[[\d;\?]*[A-Za-z]', '')
+            if ($s.IndexOf([char]13) -ge 0) {
+                $segs = @($s -split "`r" | Where-Object { $_.Length -gt 0 })
+                if ($segs.Count -gt 0) { $s = $segs[-1] } else { $s = '' }
+            }
+            $stripped = $s.Trim()
+            if ($stripped -match '^[\-\\\|/]$') { continue }
+            if ($stripped -match '^[█▒░■▓▄▀]+$') { continue }
+            $out += $s
+        }
+        return ,$out
+    }
 
     function Write-Centered-Pkg {
         param([string]$Text, [string]$Color = 'White')
@@ -521,7 +540,36 @@ function Invoke-InstalarPaquetes {
         # isn't set by Start-Process).
         $proc = Start-Process -FilePath 'winget.exe' -ArgumentList $wingetArgs `
             -NoNewWindow -Wait -PassThru
-        return @{ Exit = $proc.ExitCode; Output = $null }
+        $exitCode = $proc.ExitCode
+
+        # Failsafe fallback: if installation failed and we have a name, let's try to search by Name exactly
+        if ($exitCode -ne 0 -and $exitCode -ne -1978335189 -and $exitCode -ne -1978335212 -and $Pkg.Name) {
+            Write-Host "    [!] Installation of ID '$($Pkg.Id)' failed (exit=$exitCode). Trying failsafe search by name..." -ForegroundColor Yellow
+            try {
+                $searchOut = & winget.exe search $Pkg.Name --exact --accept-source-agreements --disable-interactivity 2>&1
+                $lines = Clean-WingetOutput -Raw @($searchOut | ForEach-Object { [string]$_ })
+                $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag ''
+                if ($parsed.Count -eq 1) {
+                    $newId = $parsed[0].Id
+                    $newSrc = $parsed[0].Source
+                    if ($newId -and $newId -ne $Pkg.Id) {
+                        Write-Host "    [!] Found new package ID '$newId'. Retrying installation..." -ForegroundColor Cyan
+                        $wingetArgsFallback = @('install', '--id', $newId, '--exact', '--silent',
+                                                '--accept-package-agreements', '--accept-source-agreements')
+                        if ($newSrc) {
+                            $wingetArgsFallback += @('--source', $newSrc)
+                        }
+                        $procFallback = Start-Process -FilePath 'winget.exe' -ArgumentList $wingetArgsFallback `
+                            -NoNewWindow -Wait -PassThru
+                        $exitCode = $procFallback.ExitCode
+                    }
+                }
+            } catch {
+                # Ignore fallback exceptions and keep original exit code
+            }
+        }
+
+        return @{ Exit = $exitCode; Output = $null }
     }
 
     function Install-Packages {
@@ -762,43 +810,6 @@ function Invoke-InstalarPaquetes {
         # Source field — needed at install time (msstore vs winget).
         # Keep the raw outputs so we can show them in diagnostics if no
         # results are parsed (helps remote debugging across locales).
-        # Clean helper: remove ANSI escapes, strip spinner-only frames,
-        # collapse progress-bar junk. winget emits those to stderr and when
-        # captured with 2>&1 each frame becomes a bogus line that confuses
-        # the column-aware parser.
-        $esc = [char]0x1B
-        $cleanLines = {
-            param([object[]]$Raw)
-            $out = @()
-            foreach ($ln in $Raw) {
-                $s = [string]$ln
-                # Strip ANSI escape sequences (ESC[...m, ESC[...K, ESC[?...).
-                # Use [char]0x1B instead of `e — `e is PowerShell 6+ only and
-                # this panel supports Windows PowerShell 5.1.
-                $s = [regex]::Replace($s, $esc + '\[[\d;\?]*[A-Za-z]', '')
-                # Drop CR-only redraws; keep the LAST NON-EMPTY segment
-                # after any CR. The naive "-split then [-1]" eats lines whose
-                # only CR is trailing (Windows line-terminator leftover from
-                # `winget 2>&1` capture), because split gives ('content','')
-                # and [-1] is the empty string → table rows silently vanish
-                # and Search-Winget reports "No results" for real hits.
-                if ($s.IndexOf([char]13) -ge 0) {
-                    $segs = @($s -split "`r" | Where-Object { $_.Length -gt 0 })
-                    if ($segs.Count -gt 0) { $s = $segs[-1] } else { $s = '' }
-                }
-                $stripped = $s.Trim()
-                # Skip pure spinner / progress frames (single char -,\,|,/,or
-                # just the Unicode spinner glyphs winget uses).
-                if ($stripped -match '^[\-\\\|/]$') { continue }
-                if ($stripped -match '^[█▒░■▓▄▀]+$') { continue }
-                # Skip empty-after-strip lines only if they were originally
-                # control-heavy (keep genuine blank separators between header
-                # and rows).
-                $out += $s
-            }
-            return ,$out
-        }
-
         $allResults = @()
         $rawOutputs = [ordered]@{}
         foreach ($src in @('winget', 'msstore')) {
@@ -809,7 +820,7 @@ function Invoke-InstalarPaquetes {
                 $rawOutputs[$src] = @("<exception> $($_.Exception.Message)")
                 continue
             }
-            $lines = & $cleanLines @($output | ForEach-Object { [string]$_ })
+            $lines = Clean-WingetOutput -Raw @($output | ForEach-Object { [string]$_ })
             $rawOutputs[$src] = $lines
             $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag $src
             if ($parsed.Count -gt 0) {
@@ -826,7 +837,7 @@ function Invoke-InstalarPaquetes {
             try {
                 $output = & winget.exe search $term `
                     --accept-source-agreements --disable-interactivity 2>&1
-                $lines = & $cleanLines @($output | ForEach-Object { [string]$_ })
+                $lines = Clean-WingetOutput -Raw @($output | ForEach-Object { [string]$_ })
                 $rawOutputs['(no --source filter)'] = $lines
                 $parsed = _Parse-WingetSearchOutput -Lines $lines -SourceTag ''
                 if ($parsed.Count -gt 0) { $allResults += $parsed }
