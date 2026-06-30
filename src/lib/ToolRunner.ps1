@@ -335,6 +335,19 @@ function Invoke-AtlasTool {
     [void]$sb.AppendLine('$ErrorActionPreference = ''Continue''')
     [void]$sb.AppendLine('try { $Host.UI.RawUI.WindowTitle = ' + ("'{0}'" -f ($title -replace "'","''")) + ' } catch {}')
     [void]$sb.AppendLine('')
+    # ---- Inyectar el ToolKit compartido (helpers de UI / reportes) ----
+    # Embebido en el launcher (cubierto por launcher.ps1.sha256), por lo que no
+    # anade superficie de descarga. Va dentro de try/catch para que un fallo del
+    # toolkit NUNCA impida ejecutar la tool. Se define ANTES del tool para que la
+    # propia tool pueda sobre-escribir cualquier helper si lo necesita.
+    if ($script:AtlasToolKitSource) {
+        [void]$sb.AppendLine('# ---- Atlas ToolKit (inyectado por ToolRunner) ----')
+        [void]$sb.AppendLine('try {')
+        [void]$sb.AppendLine($script:AtlasToolKitSource)
+        [void]$sb.AppendLine('} catch { Write-Host ("[Atlas] ToolKit no disponible: " + $_.Exception.Message) -ForegroundColor DarkYellow }')
+        [void]$sb.AppendLine('')
+    }
+
     # Dot-source del archivo de la tool (define la funcion)
     $escapedPath = $toolScriptPath -replace "'", "''"
     [void]$sb.AppendLine(". '$escapedPath'")

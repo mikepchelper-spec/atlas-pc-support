@@ -48,6 +48,7 @@ $version      = '1.0.0'
 $buildDate    = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 $manifest     = Get-EmbeddedContent (Join-Path $PSScriptRoot 'config\tools.json')
 $xamlTemplate = Get-EmbeddedContent (Join-Path $src 'gui\MainWindow.xaml')
+$toolkitSource = Get-EmbeddedContent (Join-Path $src 'lib\ToolKit.ps1')
 $toolsBaseUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/src/tools'
 
 # Mapa de hashes SHA-256 de herramientas (integridad en ToolRunner).
@@ -116,6 +117,7 @@ $libFiles = @(
     'lib\Strings.ps1'
     'lib\Admin.ps1'
     'lib\Logging.ps1'
+    'lib\ToolKit.ps1'
     'lib\Dependencies.ps1'
     'lib\PS7.ps1'
     'lib\ToolRunner.ps1'
@@ -199,6 +201,7 @@ $epilog = $epilog -replace "`r`n", "`n"
 $manifestEscaped = $manifest.Replace("'", "''")
 $xamlEscaped     = $xamlTemplate.Replace("'", "''")
 $toolHashesEscaped = $toolHashesJson.Replace("'", "''")
+$toolkitEscaped  = $toolkitSource.Replace("'", "''")
 
 $embeddedData = (@"
 
@@ -220,6 +223,10 @@ $toolHashesEscaped
 
 `$script:AtlasXamlTemplate = @'
 $xamlEscaped
+'@
+
+`$script:AtlasToolKitSource = @'
+$toolkitEscaped
 '@
 "@) -replace "`r`n", "`n"
 
