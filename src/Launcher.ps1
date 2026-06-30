@@ -23,9 +23,13 @@ if ($PSScriptRoot) {
 . (Join-Path $script:AtlasSrc 'lib\Strings.ps1')
 . (Join-Path $script:AtlasSrc 'lib\Admin.ps1')
 . (Join-Path $script:AtlasSrc 'lib\Logging.ps1')
+. (Join-Path $script:AtlasSrc 'lib\ToolKit.ps1')
 . (Join-Path $script:AtlasSrc 'lib\Dependencies.ps1')
 . (Join-Path $script:AtlasSrc 'lib\PS7.ps1')
 . (Join-Path $script:AtlasSrc 'lib\ToolRunner.ps1')
+
+# Fuente del ToolKit para que ToolRunner la inyecte en tools aisladas (modo dev).
+$script:AtlasToolKitSource = Get-Content -Raw (Join-Path $script:AtlasSrc 'lib\ToolKit.ps1')
 
 # --- Cargar todas las tools ---
 $toolsDir = Join-Path $script:AtlasSrc 'tools'
