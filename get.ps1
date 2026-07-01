@@ -8,6 +8,97 @@ $ErrorActionPreference = 'Stop'
 
 $launcherUrl  = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1'
 $launcherShaUrl = 'https://raw.githubusercontent.com/mikepchelper-spec/atlas-pc-support/main/launcher.ps1.sha256'
+$codeloadZipUrl = 'https://codeload.github.com/mikepchelper-spec/atlas-pc-support/zip/refs/heads/main'
+$launcherApiUrl = 'https://api.github.com/repos/mikepchelper-spec/atlas-pc-support/contents/launcher.ps1?ref=main'
+$launcherShaApiUrl = 'https://api.github.com/repos/mikepchelper-spec/atlas-pc-support/contents/launcher.ps1.sha256?ref=main'
+$githubApiHeaders = @{
+    'User-Agent' = 'AtlasPCSupport-Bootstrap'
+    'Accept'     = 'application/vnd.github+json'
+}
+$script:CodeloadExtractRoot = $null
+
+function Get-CodeloadFilePath {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath
+    )
+    if (-not $script:CodeloadExtractRoot) {
+        $zipPath = Join-Path $env:TEMP ('atlaspc-main-' + [guid]::NewGuid().ToString('N') + '.zip')
+        $extractRoot = Join-Path $env:TEMP ('atlaspc-main-' + [guid]::NewGuid().ToString('N'))
+        Invoke-WebRequest -Uri ($codeloadZipUrl + '?v=' + [guid]::NewGuid().ToString('N')) `
+            -OutFile $zipPath -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+        Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force -ErrorAction Stop
+        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+        $script:CodeloadExtractRoot = Join-Path $extractRoot 'atlas-pc-support-main'
+    }
+
+    return (Join-Path $script:CodeloadExtractRoot $RelativePath)
+}
+
+function Save-RemoteFileWithFallback {
+    param(
+        [Parameter(Mandatory = $true)][string]$RawUrl,
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string]$ApiUrl,
+        [Parameter(Mandatory = $true)][string]$OutFile,
+        [Parameter(Mandatory = $true)][hashtable]$Headers
+    )
+
+    try {
+        Invoke-WebRequest -Uri $RawUrl -OutFile $OutFile -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+        return
+    } catch {
+        Write-Warning "Direct download via raw.githubusercontent.com failed. Retrying via codeload.github.com..."
+    }
+
+    try {
+        $codeloadPath = Get-CodeloadFilePath -RelativePath $RelativePath
+        if (-not (Test-Path -LiteralPath $codeloadPath)) {
+            throw "File not found in codeload snapshot: $RelativePath"
+        }
+        Copy-Item -LiteralPath $codeloadPath -Destination $OutFile -Force -ErrorAction Stop
+        return
+    } catch {
+        Write-Warning "Download via codeload.github.com failed. Retrying via GitHub API..."
+    }
+
+    $apiResponse = Invoke-RestMethod -Uri $ApiUrl -Headers $Headers -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+    if (-not $apiResponse.content) {
+        throw "GitHub API fallback did not return file content."
+    }
+    $decodedBytes = [Convert]::FromBase64String(($apiResponse.content -replace '\s', ''))
+    [System.IO.File]::WriteAllBytes($OutFile, $decodedBytes)
+}
+
+function Get-RemoteTextWithFallback {
+    param(
+        [Parameter(Mandatory = $true)][string]$RawUrl,
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string]$ApiUrl,
+        [Parameter(Mandatory = $true)][hashtable]$Headers
+    )
+
+    try {
+        return (Invoke-WebRequest -Uri $RawUrl -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content
+    } catch {
+        Write-Warning "Checksum download via raw.githubusercontent.com failed. Retrying via codeload.github.com..."
+    }
+
+    try {
+        $codeloadPath = Get-CodeloadFilePath -RelativePath $RelativePath
+        if (-not (Test-Path -LiteralPath $codeloadPath)) {
+            throw "File not found in codeload snapshot: $RelativePath"
+        }
+        return [System.IO.File]::ReadAllText($codeloadPath, [System.Text.Encoding]::UTF8)
+    } catch {
+        Write-Warning "Checksum via codeload.github.com failed. Retrying via GitHub API..."
+    }
+
+    $apiResponse = Invoke-RestMethod -Uri $ApiUrl -Headers $Headers -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+    if (-not $apiResponse.content) {
+        throw "GitHub API fallback did not return checksum content."
+    }
+    return [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($apiResponse.content -replace '\s', '')))
+}
 
 # Keep launcher at a stable path so ToolRunner can read its AST at runtime.
 $atlasDir     = Join-Path $env:LOCALAPPDATA 'AtlasPC'
@@ -20,12 +111,19 @@ if (Test-Path -LiteralPath $launcherTempPath) {
 
 Write-Host '  [>] Downloading Atlas PC Support...' -ForegroundColor Cyan
 $ProgressPreference = 'SilentlyContinue'
-Invoke-WebRequest -Uri ($launcherUrl + '?v=' + [guid]::NewGuid().ToString('N')) `
-    -OutFile $launcherTempPath -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+Save-RemoteFileWithFallback `
+    -RawUrl ($launcherUrl + '?v=' + [guid]::NewGuid().ToString('N')) `
+    -RelativePath 'launcher.ps1' `
+    -ApiUrl $launcherApiUrl `
+    -OutFile $launcherTempPath `
+    -Headers $githubApiHeaders
 
 Write-Host '  [>] Verifying launcher integrity (SHA-256)...' -ForegroundColor Cyan
-$shaRaw = (Invoke-WebRequest -Uri ($launcherShaUrl + '?v=' + [guid]::NewGuid().ToString('N')) `
-    -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop).Content
+$shaRaw = Get-RemoteTextWithFallback `
+    -RawUrl ($launcherShaUrl + '?v=' + [guid]::NewGuid().ToString('N')) `
+    -RelativePath 'launcher.ps1.sha256' `
+    -ApiUrl $launcherShaApiUrl `
+    -Headers $githubApiHeaders
 $expectedHash = (($shaRaw -split '\s+') | Where-Object { $_ } | Select-Object -First 1).ToLowerInvariant()
 if (-not $expectedHash -or $expectedHash -notmatch '^[a-f0-9]{64}$') {
     throw "Invalid checksum metadata from server."
@@ -35,6 +133,12 @@ if ($actualHash -ne $expectedHash) {
     Remove-Item -LiteralPath $launcherTempPath -Force -ErrorAction SilentlyContinue
     throw "Integrity check failed. Expected SHA256=$expectedHash, got $actualHash."
 }
+
+if ($script:CodeloadExtractRoot) {
+    $cleanupRoot = Split-Path -Parent $script:CodeloadExtractRoot
+    Remove-Item -LiteralPath $cleanupRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Move-Item -LiteralPath $launcherTempPath -Destination $launcherPath -Force
 Unblock-File -LiteralPath $launcherPath -ErrorAction SilentlyContinue
 Write-Host "  [OK] SHA-256: $actualHash" -ForegroundColor Green
