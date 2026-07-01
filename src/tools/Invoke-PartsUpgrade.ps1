@@ -659,20 +659,212 @@ function Invoke-PartsUpgrade {
         }
         '2' {
             $p = Join-Path $desk "$base.html"
-            $style = @'
-<style>
-body{font-family:Segoe UI,sans-serif;background:#1e1e1e;color:#e0e0e0;padding:20px}
-h1{color:#0078D7;border-bottom:2px solid #0078D7;padding-bottom:5px}
-h2{color:#00A8FF;margin-top:25px}
-pre{background:#2d2d2d;border:1px solid #444;padding:15px;border-radius:5px;font-size:13px;white-space:pre-wrap}
-.foot{color:#888;text-align:center;margin-top:30px;font-size:11px}
-</style>
-'@
-            $escaped = [System.Web.HttpUtility]::HtmlEncode($script:ReporteTexto)
-            if (-not $escaped) {
-                $escaped = $script:ReporteTexto -replace '&','&amp;' -replace '<','&lt;' -replace '>','&gt;'
+
+            # --- Corporate branding: read branding.json (same lookup order as launcher) ---
+            # Corporate palette (Atlas): navy #002147 + orange #FF6600. brand.name and
+            # optional theme.primaryColor / theme.accentColor override it if present.
+            $brandName = 'ATLAS PC SUPPORT'
+            $primary   = '#002147'
+            $accent    = '#FF6600'
+            foreach ($bp in @(
+                (Join-Path $PSScriptRoot 'branding.json'),
+                (Join-Path $env:LOCALAPPDATA 'AtlasPC\branding.json'),
+                (Join-Path $env:APPDATA 'AtlasPC\branding.json'))) {
+                try {
+                    if ($bp -and (Test-Path -LiteralPath $bp)) {
+                        $bj = Get-Content -Raw -LiteralPath $bp -Encoding UTF8 | ConvertFrom-Json
+                        if ($bj.brand.name)          { $brandName = [string]$bj.brand.name }
+                        if ($bj.theme.primaryColor)  { $primary   = [string]$bj.theme.primaryColor }
+                        if ($bj.theme.accentColor)   { $accent    = [string]$bj.theme.accentColor }
+                        break
+                    }
+                } catch {}
             }
-            $html = "<html><head><meta charset='UTF-8'><title>Parts Upgrade - $env:COMPUTERNAME</title>$style</head><body><h1>Atlas PC Support - Parts Upgrade Advisor</h1><pre>$escaped</pre><div class='foot'>Generated $(Get-Date)</div></body></html>"
+            $primary = ($primary -replace '[^#0-9A-Za-z(),.%\s]', ''); if (-not $primary) { $primary = '#002147' }
+            $accent  = ($accent  -replace '[^#0-9A-Za-z(),.%\s]', ''); if (-not $accent)  { $accent  = '#FF6600' }
+
+            function _Enc([string]$s) { if ($null -eq $s) { return '' } [System.Net.WebUtility]::HtmlEncode($s) }
+            function _Bar([double]$v, [double]$max, [string]$col, [string]$lbl) {
+                $pct = if ($max -gt 0) { [math]::Min(100, [math]::Round(($v / $max) * 100, 1)) } else { 0 }
+                "<div class='barwrap'><div class='barlbl'>$(_Enc $lbl)</div><div class='bar'><div class='fill' style='width:$pct%;background:$col'></div></div></div>"
+            }
+
+            # ---------- CPU replaceability badge ----------
+            $repClass = 'badge-ok'; $repText = 'Reemplazable (socket)'
+            if ($null -ne $bgaSignals) {
+                if ($bgaSignals -ge 3)     { $repClass = 'badge-error'; $repText = 'Soldada (BGA)' }
+                elseif ($bgaSignals -ge 1) { $repClass = 'badge-warn';  $repText = 'Probablemente soldada' }
+            }
+            $ssdTotal = [int]$nvmeCount + [int]$sataSsdCount
+            $chassis  = if ($isLaptop) { 'Laptop' } else { 'Desktop / Otro' }
+            $maxTxt   = if ($maxGB) { "$maxGB GB" } else { 'N/D' }
+
+            # ---------- Summary (sys-grid) ----------
+            $sys = @()
+            $sys += "<div class='sys-item'><span class='sys-label'>RAM total</span><span class='sys-value big'>$ramTotalGB GB</span></div>"
+            $sys += "<div class='sys-item'><span class='sys-label'>Maximo (BIOS)</span><span class='sys-value big'>$maxTxt</span></div>"
+            $sys += "<div class='sys-item'><span class='sys-label'>Slots usados</span><span class='sys-value big'>$slotsUsados / $slotsTotales</span></div>"
+            $sys += "<div class='sys-item'><span class='sys-label'>Slots libres</span><span class='sys-value big'>$slotsLibres</span></div>"
+            $sys += "<div class='sys-item'><span class='sys-label'>Discos</span><span class='sys-value big'>$ssdTotal SSD / $hddCount HDD</span></div>"
+            $sys += "<div class='sys-item'><span class='sys-label'>CPU</span><span class='sys-value'><span class='badge $repClass'>$(_Enc $repText)</span></span></div>"
+            $sysHtml = $sys -join "`n"
+
+            # ---------- RAM ----------
+            $ramBars = ''
+            if ([int]$slotsTotales -gt 0) { $ramBars += _Bar $slotsUsados $slotsTotales $primary "Slots: $slotsUsados de $slotsTotales ocupados" }
+            if ($maxGB)                   { $ramBars += _Bar $ramTotalGB $maxGB $accent "RAM: $ramTotalGB GB de $maxGB GB (max BIOS)" }
+            $ramRows = ''
+            foreach ($ram in $modulos) {
+                $capGB = [math]::Round($ram.Capacity / 1GB, 0)
+                $tmap = @{ 20='DDR'; 21='DDR2'; 24='DDR3'; 26='DDR4'; 34='DDR5' }; $tc = [int]$ram.SMBIOSMemoryType
+                $tn = if ($tmap.ContainsKey($tc)) { $tmap[$tc] } else { "T$tc" }
+                $xmp = if ($ram.ConfiguredClockSpeed -lt $ram.Speed) { " <span class='error'>XMP OFF</span>" } else { '' }
+                $ramRows += "<tr><td>$(_Enc ([string]$ram.DeviceLocator))</td><td>$capGB GB</td><td>$tn</td><td>$($ram.ConfiguredClockSpeed) / $($ram.Speed) MHz$xmp</td><td>$(_Enc ([string]$ram.Manufacturer))</td><td>$(_Enc ([string]$ram.PartNumber))</td></tr>"
+            }
+            if (-not $ramRows) { $ramRows = "<tr><td colspan='6'>Sin datos de modulos (ejecuta como administrador)</td></tr>" }
+
+            # ---------- CPU ----------
+            $cpuRows = ''
+            if ($cpuName) {
+                $cpuRows += "<tr><th>Procesador</th><td>$(_Enc $cpuName)</td></tr>"
+                $cpuRows += "<tr><th>Nucleos / Hilos</th><td>$cores C / $threads T</td></tr>"
+                $cpuRows += "<tr><th>Socket</th><td>$(_Enc ([string]$socketName))</td></tr>"
+                $cpuRows += "<tr><th>Metodo de upgrade</th><td>$(_Enc ([string]$upgradeMethodName))</td></tr>"
+                if ($genLabel) { $cpuRows += "<tr><th>Generacion</th><td>$(_Enc $genLabel)</td></tr>" }
+                $cpuRows += "<tr><th>Estado</th><td><span class='badge $repClass'>$(_Enc $repText)</span></td></tr>"
+            } else { $cpuRows = "<tr><th>CPU</th><td>Sin datos</td></tr>" }
+
+            # ---------- Storage ----------
+            $stMax = [math]::Max(1, (@([int]$nvmeCount, [int]$sataSsdCount, [int]$hddCount, [int]$usbCount) | Measure-Object -Maximum).Maximum)
+            $stBars  = _Bar $nvmeCount    $stMax $primary   "NVMe (M.2): $nvmeCount"
+            $stBars += _Bar $sataSsdCount $stMax '#26518a'  "SSD SATA: $sataSsdCount"
+            $stBars += _Bar $hddCount     $stMax $accent    "HDD mecanico: $hddCount"
+            $stBars += _Bar $usbCount     $stMax '#6c757d'  "USB externo: $usbCount"
+            $diskRows = ''
+            foreach ($pd in $physDisks) {
+                $dn = if ($pd.FriendlyName) { $pd.FriendlyName } else { 'Disco' }
+                $db = if ($pd.BusType)      { $pd.BusType.ToString() } else { '?' }
+                $dm = if ($pd.MediaType)    { $pd.MediaType.ToString() } else { '?' }
+                $ds = if ($pd.Size)         { [math]::Round($pd.Size / 1GB, 0) } else { 0 }
+                $dh = if ($pd.HealthStatus) { $pd.HealthStatus.ToString() } else { '?' }
+                $hc = if ($dh -eq 'Healthy') { 'ok' } else { 'error' }
+                $diskRows += "<tr><td>$(_Enc $dn)</td><td>$(_Enc $db)</td><td>$(_Enc $dm)</td><td>$ds GB</td><td class='$hc'>$(_Enc $dh)</td></tr>"
+            }
+            if (-not $diskRows) { $diskRows = "<tr><td colspan='5'>Sin discos detectados</td></tr>" }
+
+            # ---------- GPU ----------
+            $gpuRows = ''
+            foreach ($g in $gpus) {
+                $vram = if ($g.AdapterRAM -gt 0) { [math]::Round($g.AdapterRAM / 1MB, 0) } else { 0 }
+                $gpuRows += "<tr><td>$(_Enc ([string]$g.Name))</td><td>$vram MB</td></tr>"
+            }
+            if (-not $gpuRows) { $gpuRows = "<tr><td colspan='2'>Sin GPU dedicada detectada</td></tr>" }
+
+            # ---------- Full text report + integrity SHA256 ----------
+            $escaped = [System.Net.WebUtility]::HtmlEncode([string]$script:ReporteTexto)
+            $sha = ''
+            try {
+                $h = [System.Security.Cryptography.SHA256]::Create()
+                $sha = ([System.BitConverter]::ToString($h.ComputeHash([System.Text.Encoding]::UTF8.GetBytes([string]$script:ReporteTexto))) -replace '-', '')
+                $h.Dispose()
+            } catch {}
+
+            $generated = Get-Date -Format 'dd-MM-yyyy HH:mm'
+            $compName  = _Enc $env:COMPUTERNAME
+            $brandEnc  = _Enc $brandName
+
+            $html = @"
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>$brandEnc - Parts Upgrade Advisor - $compName</title>
+<style>
+body{font-family:'Segoe UI',sans-serif;background:#f4f4f9;color:#333;margin:0;padding:20px}
+.container{max-width:1100px;margin:0 auto;background:#fff;box-shadow:0 0 15px rgba(0,0,0,.1);border-radius:8px;overflow:hidden}
+.header{background:$primary;color:#fff;padding:25px;text-align:center;border-bottom:5px solid $accent}
+.header h1{margin:0;font-size:26px;letter-spacing:3px}
+.header p{margin:5px 0 0;color:$accent;font-weight:bold}
+.info-box{padding:20px;background:#f9f9f9;border-bottom:1px solid #eee;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.info-box .info-item{font-size:14px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px 15px;text-align:left;border-bottom:1px solid #ddd}
+th{background:$primary;color:#fff;font-weight:600;text-transform:uppercase;font-size:11px}
+.ok{color:#28a745;font-weight:bold} .error{color:#dc3545;font-weight:bold}
+.footer{padding:20px;text-align:center;font-size:11px;color:#777;background:#fafafa}
+.section{padding:20px;border-top:3px solid $accent}
+.section h2{margin:0 0 15px;font-size:16px;color:$primary;text-transform:uppercase;letter-spacing:1px}
+.sys-info{padding:20px;border-bottom:2px solid $accent}
+.sys-info h2{margin:0 0 15px;font-size:16px;color:$primary}
+.sys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.sys-item{background:#f8f9fa;padding:10px 15px;border-radius:6px;border-left:3px solid $primary}
+.sys-label{display:block;font-size:11px;color:#666;text-transform:uppercase;font-weight:600}
+.sys-value{display:block;font-size:13px;color:#333;margin-top:3px}
+.sys-value.big{font-size:20px;font-weight:700;color:$primary}
+.barwrap{margin:10px 0}
+.barlbl{font-size:12px;font-weight:600;color:#333;margin-bottom:3px}
+.bar{background:#eef0f3;border-radius:4px;height:14px;overflow:hidden}
+.fill{height:100%;border-radius:4px}
+.badge{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:bold;color:#fff}
+.badge-ok{background:#28a745} .badge-warn{background:#ffc107;color:#333} .badge-error{background:#dc3545}
+.sys-value .badge{display:inline-block;white-space:normal;line-height:1.5}
+details{margin-top:6px} summary{cursor:pointer;font-weight:600;color:$primary}
+pre{white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;color:#333;background:#f8f9fa;border-radius:6px;padding:15px;margin-top:10px}
+</style></head><body>
+<div class="container">
+    <div class="header"><h1>$brandEnc</h1><p>PARTS UPGRADE ADVISOR</p></div>
+    <div class="info-box">
+        <div class="info-item"><strong>Computer:</strong> $compName</div>
+        <div class="info-item"><strong>Chassis:</strong> $chassis</div>
+        <div class="info-item"><strong>Date:</strong> $generated</div>
+    </div>
+    <div class="sys-info">
+        <h2>RESUMEN</h2>
+        <div class="sys-grid">
+$sysHtml
+        </div>
+    </div>
+    <div class="section">
+        <h2>Memoria RAM</h2>
+$ramBars
+        <table><thead><tr><th>Slot</th><th>Capacidad</th><th>Tipo</th><th>Velocidad (cfg/nat)</th><th>Fabricante</th><th>Part Number</th></tr></thead>
+        <tbody>
+$ramRows
+        </tbody></table>
+    </div>
+    <div class="section">
+        <h2>Procesador (CPU)</h2>
+        <table><tbody>
+$cpuRows
+        </tbody></table>
+    </div>
+    <div class="section">
+        <h2>Almacenamiento</h2>
+$stBars
+        <table><thead><tr><th>Disco</th><th>Bus</th><th>Medio</th><th>Tamano</th><th>Salud</th></tr></thead>
+        <tbody>
+$diskRows
+        </tbody></table>
+    </div>
+    <div class="section">
+        <h2>Tarjeta grafica (GPU)</h2>
+        <table><thead><tr><th>GPU</th><th>VRAM</th></tr></thead>
+        <tbody>
+$gpuRows
+        </tbody></table>
+    </div>
+    <div class="section">
+        <h2>Reporte completo</h2>
+        <details><summary>Ver reporte detallado y recomendaciones de compra</summary>
+        <pre>$escaped</pre>
+        </details>
+    </div>
+    <div class="footer">
+        <p>Generado por $brandEnc - Parts Upgrade Advisor</p>
+        <p style="font-size:10px;color:#aaa">Integridad del reporte verificable via SHA256 (ver fuente HTML)</p>
+    </div>
+</div>
+<!-- SHA256: $sha -->
+</body></html>
+"@
             [System.IO.File]::WriteAllText($p, $html, [System.Text.UTF8Encoding]::new($true))
             Log-Out ''
             Log-Out ($L.HTMLSaved -f $p) 'Green'
