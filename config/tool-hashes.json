@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T22:27:33.3157851-05:00",
+  "generatedAt": "2026-07-01T02:52:04.6135757+00:00",
   "algorithm": "SHA256",
   "files": {
     "Invoke-ActualizarPowerShell.ps1": "54832b414eaed34411ff1e2a471f0d1ec5fb04229e59d92c635261ed61ed09b0",
@@ -21,7 +21,7 @@
     "Invoke-KeyboardDoctor.ps1": "645f606446394dd5f1b192a612ade7bb16bb8f0c8fb37dc40344115c156e6756",
     "Invoke-MantenimientoPRO.ps1": "981f64c24dccf8ff1d4c7a38cc43b9e5a230e0ad3d637a0eeee766e31b8ab124",
     "Invoke-MenorPrivilegio.ps1": "a2a5ff7fdc7cfc5fd0ae9ec65fc8ee565ded2e802fa804719e4fa60d632dcc4f",
-    "Invoke-PartsUpgrade.ps1": "f77e3e9ac6937950373377c943123e87aac84473dd8347a14f67d9b8a619e136",
+    "Invoke-PartsUpgrade.ps1": "073d114013810af0223092d3192406880b735e5199a70a1d48101abb60ccab97",
     "Invoke-Personalizacion.ps1": "08aff302f6f6faa331ee587904106a4b8efb3fa0ca7176d83e53c21f8460169c",
     "Invoke-PrepararUSB.ps1": "38581d2c9951661f343a95a6d5588950a6298aaefc69c9133fe0ab58392d3cbf",
     "Invoke-PrinterDoctor.ps1": "d1d6c5f4ae88467a072cfb021c69315cbe4a771fb538baf8974d17fddaf20dad",
